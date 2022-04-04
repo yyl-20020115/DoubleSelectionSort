@@ -10,6 +10,11 @@
 using System.Diagnostics;
 using System.Numerics;
 
+const int SampleDataSize = 4096;
+const int VerficationRepeats = 1000;
+const bool DoVerfications = false;
+
+
 void Swap(int[] a, int i, int j)
 {
     int t = a[i];
@@ -157,11 +162,10 @@ bool FastSelectionSort(int[] data)
     return true;
 }
 
-const int SampleSize = 4096;
 
 var watch = new Stopwatch();
 
-var data0 = new int[SampleSize];// new int[16] { 6, 11, 4, 7, 0, 2, 9, 8, 1, 14, 10, 15, 13, 12, 3, 5 };
+var data0 = new int[SampleDataSize];// new int[16] { 6, 11, 4, 7, 0, 2, 9, 8, 1, 14, 10, 15, 13, 12, 3, 5 };
 
 for (int i = 0; i < data0.Length; i++)
 {
@@ -170,42 +174,48 @@ for (int i = 0; i < data0.Length; i++)
 var data1 = new int[data0.Length];
 var data2 = new int[data0.Length];
 var data3 = new int[data0.Length];
+var data4 = new int[data0.Length];
+var data5 = new int[data0.Length];
 data0.CopyTo(data1, 0);
 data0.CopyTo(data2, 0);
 data0.CopyTo(data3, 0);
+data0.CopyTo(data4, 0);
+data0.CopyTo(data5, 0);
 
-/// <summary>
-/// Verification tests
-/// </summary>
-const int Repeats = 1000;
-
-Console.WriteLine("Verification tests for {0} iterations, this may take some time.", Repeats);
-int fails = 0;
-for (int c = 0; c < Repeats; c++)
+if (DoVerfications)
 {
-    var data5 = new int[data0.Length];
-    for (int i = 0; i < data5.Length; i++)
+    /// <summary>
+    /// Verification tests
+    /// </summary>
+
+    Console.WriteLine("Verification tests for {0} iterations, this may take some time.", VerficationRepeats);
+    int fails = 0;
+    for (int c = 0; c < VerficationRepeats; c++)
     {
-        data5[i] = Random.Shared.Next(data5.Length);
-    }
-    var data6 = new int[data5.Length];
-    data5.CopyTo(data6, 0);
+        var data_vf1 = new int[data0.Length];
+        for (int i = 0; i < data_vf1.Length; i++)
+        {
+            data_vf1[i] = Random.Shared.Next(data_vf1.Length);
+        }
+        var data_vf2 = new int[data_vf1.Length];
+        data_vf1.CopyTo(data_vf2, 0);
 
-    Array.Sort(data5);
-    DoubleSelectionSort(data6);
-    if (!Enumerable.SequenceEqual(data5, data6))
-    {
-        Console.WriteLine("ERROR SORTING ARRAY! AT {0}", c);
-        fails++;
+        Array.Sort(data_vf1);
+        DoubleSelectionSort(data_vf2);
+        if (!Enumerable.SequenceEqual(data_vf1, data_vf2))
+        {
+            Console.WriteLine("ERROR SORTING ARRAY! AT {0}", c);
+            fails++;
+        }
     }
-}
-if (fails == 0)
-{
-    Console.WriteLine("Verification tests passed!");
-}
-else
-{
-    Console.WriteLine("Verification tests failed for {0} times!", fails);
+    if (fails == 0)
+    {
+        Console.WriteLine("Verification tests passed!");
+    }
+    else
+    {
+        Console.WriteLine("Verification tests failed for {0} times!", fails);
+    }
 }
 
 /// <summary>
@@ -264,6 +274,92 @@ Console.WriteLine("Efficiency Boost:{0:F2}%", ef*100.0);
 //double t3 = watch.ElapsedMilliseconds;
 
 //Console.WriteLine("Fast Selection Sort[t={0}ms,correct={1}]:{2}", t3, Enumerable.SequenceEqual(data0, data3), string.Join(',', data3.Take(16)) + "...");
+
+
+///
+///Quick Sort
+///
+
+void QuickSort(int[] array, int low, int high)
+{
+    if (low >= high) return;
+
+    int x = low, y = high;
+    int key = array[x];
+    while (x < y)
+    {
+        while (array[y] >= key && y > x)
+            --y;
+        array[x] = array[y];
+        while (array[x] <= key && y > x)
+            ++x;
+        array[y] = array[x];
+    }
+    array[x] = key;
+    if (low < x - 1)
+    {
+        QuickSort(array, low, x - 1);
+    }
+    if (x + 1 < high)
+    {
+        QuickSort(array, x + 1, high);
+    }
+}
+
+watch.Restart();
+
+QuickSort(data4, 0, data4.Length - 1);
+
+watch.Stop();
+
+double t4 = watch.ElapsedMilliseconds;
+
+Console.WriteLine("Quick Sort[t={0}ms,correct={1}]:{2}", t4, Enumerable.SequenceEqual(data1, data4), string.Join(',', data4.Take(16)) + "...");
+
+
+void StackQuickSort(int[] array, int low, int high,Stack<(int,int)> stack)
+{
+    if (low >= high) return;
+
+    stack.Push((low, high));
+
+    while(stack.Count>0)
+    {
+        (low,high) = stack.Pop();
+        int x = low, y = high;
+        int key = array[x];
+        while (x < y)
+        {
+            while (array[y] >= key && y > x)
+                --y;
+            array[x] = array[y];
+            while (array[x] <= key && y > x)
+                ++x;
+            array[y] = array[x];
+        }
+        array[x] = key;
+
+        if (low < x - 1)
+        {
+            stack.Push((low, x - 1));
+        }
+        if (x + 1 < high)
+        {
+            stack.Push((x + 1, high));
+        }      
+    }
+}
+
+
+watch.Restart();
+
+StackQuickSort(data5, 0, data5.Length - 1, new(32));
+
+watch.Stop();
+
+double t5 = watch.ElapsedMilliseconds;
+
+Console.WriteLine("Stack Quick Sort[t={0}ms,correct={1}]:{2}", t5, Enumerable.SequenceEqual(data1, data5), string.Join(',', data5.Take(16)) + "...");
 
 
 Console.WriteLine("Finished.");
