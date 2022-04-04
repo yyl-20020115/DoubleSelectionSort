@@ -3,13 +3,13 @@ Double Selection Sort Algorithm
 
   Within single iteration, we get both max and min from the 
 
-  searching range, and then swap the min with the element
+  searching range, and then swap the min with the first element
 
-  before the range, and swap the max with the element after 
+  of the range, and the max with the last element of 
 
   the range. Therefore we can sort from both direction,
 
-  and get the double speed.
+  and get almost double speed.
 
 
 
