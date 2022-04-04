@@ -44,19 +44,19 @@ void SingleSelectionSort(int[] data)
 void DoubleSelectionSort(int[] data)
 {
     int T = data.Length -1;
-    int startIndex = 0;
+    int staIndex = 0;
     int endIndex = T;
-    while (startIndex < endIndex)
+    while (staIndex < endIndex)
     {
-        int minIndex = startIndex;
+        int minIndex = staIndex;
         int maxIndex = endIndex;
 
-        int startValue = data[startIndex];
+        int staValue = data[staIndex];
         int endValue = data[endIndex];
         int minValue = data[minIndex];
         int maxValue = data[maxIndex];
 
-        for (int j = startIndex; j <= endIndex; j++)
+        for (int j = staIndex; j <= endIndex; j++)
         {
             if (data[j] < minValue)
             {
@@ -69,36 +69,37 @@ void DoubleSelectionSort(int[] data)
                 maxIndex = j;
             }
         }
-        //if min == max, this sort is done.
-        if (minValue == maxValue) break;
-
-        if(maxIndex == startIndex && minIndex == endIndex)
+        if (minValue == maxValue)
         {
-            data[startIndex] = minValue;
+            break;
+        }
+        else if (maxIndex == staIndex && minIndex == endIndex)
+        {
+            data[staIndex] = minValue;
             data[endIndex] = maxValue;
         }
-        else if (maxIndex == startIndex)
+        else if (maxIndex == staIndex)
         {
-            data[startIndex] = minValue;
+            data[staIndex] = minValue;
             data[endIndex] = maxValue;
             data[minIndex] = endValue;
         }
-        else if(minIndex == endIndex)
+        else if (minIndex == endIndex)
         {
-            data[startIndex] = minValue;
+            data[staIndex] = minValue;
             data[endIndex] = maxValue;
-            data[maxIndex] = startValue;
+            data[maxIndex] = staValue;
         }
         else
         {
-            data[startIndex] = minValue;
+            data[staIndex] = minValue;
             data[endIndex] = maxValue;
-            data[minIndex] = startValue;
+            data[minIndex] = staValue;
             data[maxIndex] = endValue;
         }
 
         endIndex--;
-        startIndex++;
+        staIndex++;
     }
 }
 
@@ -162,6 +163,40 @@ data0.CopyTo(data2, 0);
 data0.CopyTo(data3, 0);
 
 /// <summary>
+/// Verification tests
+/// </summary>
+const int Repeats = 1000;
+
+Console.WriteLine("Verification tests for {0} iterations, this may take some time.", Repeats);
+int fails = 0;
+for (int c = 0; c < Repeats; c++)
+{
+    var data5 = new int[data0.Length];
+    for (int i = 0; i < data5.Length; i++)
+    {
+        data5[i] = Random.Shared.Next(data5.Length);
+    }
+    var data6 = new int[data5.Length];
+    data5.CopyTo(data6, 0);
+
+    Array.Sort(data5);
+    DoubleSelectionSort(data6);
+    if (!Enumerable.SequenceEqual(data5, data6))
+    {
+        Console.WriteLine("ERROR SORTING ARRAY! AT {0}", c);
+        fails++;
+    }
+}
+if (fails == 0)
+{
+    Console.WriteLine("Verification tests passed!");
+}
+else
+{
+    Console.WriteLine("Verification tests failed for {0} times!", fails);
+}
+
+/// <summary>
 /// Array.Sort
 /// </summary>
 watch.Start();
@@ -190,43 +225,9 @@ Console.WriteLine("Single Selection Sort[t={0}ms,correct={1}]:{2}",t2, Enumerabl
 /// <summary>
 /// DoubleSelectionSort
 /// </summary>
-
-const int Repeats = 1000;
-
-Console.WriteLine("Verification tests for {0} iterations, this may take some time.",Repeats);
-int fails = 0;
-for (int c = 0; c < Repeats; c++)
-{
-    var data5 = new int[data0.Length];
-    for (int i = 0; i < data5.Length; i++)
-    {
-        data5[i] = Random.Shared.Next(data5.Length);
-    }
-    var data6 = new int[data5.Length];
-    data5.CopyTo(data6, 0);
-
-    Array.Sort(data5);
-    DoubleSelectionSort(data6);
-    if (!Enumerable.SequenceEqual(data5, data6))
-    {
-        Console.WriteLine("ERROR SORTING ARRAY! AT {0}", c);
-        fails++;
-    }
-}
-if (fails==0)
-{
-    Console.WriteLine("Verification tests passed!");
-}
-else
-{
-    Console.WriteLine("Verification tests failed for {0} times!",fails);
-}
-
-
 watch.Restart();
 
 DoubleSelectionSort(data3);
-
 
 watch.Stop();
 
