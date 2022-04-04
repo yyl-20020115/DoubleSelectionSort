@@ -10,10 +10,11 @@
 using System.Diagnostics;
 using System.Numerics;
 
-const int SampleDataSize = 4096;
+const int SampleDataSize = 65536;
 const int VerficationRepeats = 1000;
 const bool DoVerfications = false;
 
+Console.WriteLine("Array Size = {0}", SampleDataSize);
 
 void Swap(int[] a, int i, int j)
 {
@@ -120,49 +121,6 @@ void DoubleSelectionSort(int[] data)
     }
 }
 
-
-bool FastSelectionSort(int[] data)
-{
-    int width = Vector<int>.Count;
-    int[] positions = new int[width];
-    int N = data.Length;
-    if (N % width > 0) return false;
-
-    do
-    {
-        var first = new Vector<int>(data, 0);
-        for (int segment_start = width; segment_start < N; segment_start += width)
-        {
-            var current = new Vector<int>(data, segment_start);
-
-            var result = Vector.Min(first, current);
-            var compare = Vector.Equals(current, result);
-            for (int i = 0; i < width; i++)
-            {
-                //if the Min value equals to the current value, update the position
-                if (compare[i] == -1)
-                {
-                    positions[i] = segment_start + i;
-                }
-            }
-        }
-        for (int i = 0; i < width; i++)
-        {
-            var p = positions[i];
-            if (p != 0)
-            {
-                Swap(data, p, 0);
-            }
-        }
-    }
-    while (false);
-
-
-
-    return true;
-}
-
-
 var watch = new Stopwatch();
 
 var data0 = new int[SampleDataSize];// new int[16] { 6, 11, 4, 7, 0, 2, 9, 8, 1, 14, 10, 15, 13, 12, 3, 5 };
@@ -176,11 +134,13 @@ var data2 = new int[data0.Length];
 var data3 = new int[data0.Length];
 var data4 = new int[data0.Length];
 var data5 = new int[data0.Length];
+var data6 = new int[data0.Length];
 data0.CopyTo(data1, 0);
 data0.CopyTo(data2, 0);
 data0.CopyTo(data3, 0);
 data0.CopyTo(data4, 0);
 data0.CopyTo(data5, 0);
+data0.CopyTo(data6, 0);
 
 if (DoVerfications)
 {
@@ -257,29 +217,116 @@ double t3 = watch.ElapsedMilliseconds;
 
 Console.WriteLine("Double Selection Sort[t={0}ms,correct={1}]:{2}", t3, Enumerable.SequenceEqual(data1, data3), string.Join(',', data3.Take(16)) + "...");
 
-double ef = (1.0 / t3 - 1.0 / t2) / (1.0 / t2);
+double ef1 = (1.0 / t3 - 1.0 / t2) / (1.0 / t2);
 
-Console.WriteLine("Efficiency Boost:{0:F2}%", ef*100.0);
+Console.WriteLine("Double Selection Sort Efficiency Boost:{0:F2}%", ef1 * 100.0);
 
 /// <summary>
-/// FastSelectionSort
+/// FastSingleSelectionSort
 /// </summary>
+int[] FastSingleSelectionSort(int[] data)
+{
+    int width = Vector<int>.Count;
+    int N = data.Length;
+    
+    if (N % width > 0) 
+        throw new ArgumentException($"data size should have aligned to {width}");
 
-//watch.Restart();
+    int[] buffer = new int[width];
+    int[] positions = new int[width];
 
-//FastSelectionSort(data3);
+    for (int i = 0; i < N - width; i+= width)
+    {
+        for (int q = 0; q < width; q++)
+        {
+            positions[q] = i + q;
+        }
+        var min = new Vector<int>(data,i);        
 
-//watch.Stop();
+        for (int j = i + width; j < N; j+=width)
+        {
+            var dt = new Vector<int>(data, j);
+            var rt = Vector.LessThan(dt, min);
+            var any = false;
+            for(int s = 0; s < width; s++)
+            {
+                if (rt[s] == -1)
+                {
+                    positions[s] = j + s;
+                    buffer[s] = dt[s];
+                    any = true;
+                }
+                else
+                {
+                    buffer[s] = min[s];
+                }
+            }
+            if (any)
+            {
+                min = new Vector<int>(buffer);
+            }
+        }
+        for(int q = 0; q < width; q++)
+        {
+            if(positions[q] != i + q)
+            {
+                Swap(data, i + q, positions[q]);
+            }
+        }
+    }
 
-//double t3 = watch.ElapsedMilliseconds;
+    int[] result = new int[data.Length];
+    for (int q = 0; q < width; q++)
+    {
+        positions[q] = q;
+    }
+    int tp = 0;
+    while (tp<result.Length)
+    {
+        int? minpos = null;
+        int? minval = null;
+        for (int q = 0; q < width; q++)
+        {
+            int index = positions[q];
+            if (index >= data.Length) continue;
+            int value = data[index];
+            if (minval == null || value < minval)
+            {
+                minval = value;
+                minpos = q;
+            }
+        }
+        if (minpos is int _minpos && minval is int _minval)
+        {
+            positions[_minpos] += width;
+            result[tp++] = _minval;
+        }
+        else
+        {
+            break;
+        }
+    }
 
-//Console.WriteLine("Fast Selection Sort[t={0}ms,correct={1}]:{2}", t3, Enumerable.SequenceEqual(data0, data3), string.Join(',', data3.Take(16)) + "...");
+    return result;
+}
 
+
+watch.Restart();
+
+data6 = FastSingleSelectionSort(data6);
+
+watch.Stop();
+
+double t6 = watch.ElapsedMilliseconds;
+
+Console.WriteLine("Fast Single Selection Sort[t={0}ms,correct={1}]:{2}", t6, Enumerable.SequenceEqual(data1, data6), string.Join(',', data6.Take(16)) + "...");
+
+double ef2 = (1.0 / t6 - 1.0 / t2) / (1.0 / t2);
+Console.WriteLine("Fast Single Selection Sort Efficiency Boost:{0:F2}%", ef2 * 100.0);
 
 ///
 ///Quick Sort
 ///
-
 void QuickSort(int[] array, int low, int high)
 {
     if (low >= high) return;
