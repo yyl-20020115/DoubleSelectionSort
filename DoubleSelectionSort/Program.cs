@@ -43,9 +43,20 @@ void SingleSelectionSort(int[] data)
 /// </summary>
 void DoubleSelectionSort(int[] data)
 {
-    int T = data.Length -1;
+    if (data == null || data.Length <= 1)
+    {
+        return;
+    }
+    else if(data.Length == 2)
+    {
+        var min = Math.Min(data[0], data[1]); 
+        var max = Math.Max(data[0], data[1]);
+        data[0] = min;
+        data[1] = max;
+        return;
+    }
     int staIndex = 0;
-    int endIndex = T;
+    int endIndex = data.Length - 1;
     while (staIndex < endIndex)
     {
         int minIndex = staIndex;
