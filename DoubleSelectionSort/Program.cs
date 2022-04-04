@@ -3,7 +3,7 @@
 //
 // Single Selection Sort[t=26ms]:0,1,3,4,4,5,6,7,9,9,12,13,16,17,17,19...
 // Double Selection Sort[t=17ms]:0,1,3,4,4,5,6,7,9,9,12,13,16,17,17,19...
-// Efficiency Boost:52.94 %
+// Efficiency Boost:52.94%
 
 
 
