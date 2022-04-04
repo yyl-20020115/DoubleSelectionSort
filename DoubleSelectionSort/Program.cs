@@ -33,7 +33,6 @@ void SingleSelectionSort(int[] data)
     }
 }
 
-
 /// <summary>
 /// Double Selection Sort Algorithm
 /// Within single iteration, we get both max and min from the 
@@ -44,43 +43,62 @@ void SingleSelectionSort(int[] data)
 /// </summary>
 void DoubleSelectionSort(int[] data)
 {
-    int N = data.Length;
-    int H = N >> 1;
-    for (int fi = 0; fi <= H; fi++)
+    int T = data.Length -1;
+    int startIndex = 0;
+    int endIndex = T;
+    while (startIndex < endIndex)
     {
-        if (fi == H)
+        int minIndex = startIndex;
+        int maxIndex = endIndex;
+
+        int startValue = data[startIndex];
+        int endValue = data[endIndex];
+        int minValue = data[minIndex];
+        int maxValue = data[maxIndex];
+
+        for (int j = startIndex; j <= endIndex; j++)
         {
-            if (data[fi] > data[fi + 1])
+            if (data[j] < minValue)
             {
-                Swap(data, fi, fi + 1);
+                minValue = data[j];
+                minIndex = j;
             }
+            if (data[j] > maxValue)
+            {
+                maxValue = data[j];
+                maxIndex = j;
+            }
+        }
+        //if min == max, this sort is done.
+        if (minValue == maxValue) break;
+
+        if(maxIndex == startIndex && minIndex == endIndex)
+        {
+            data[startIndex] = minValue;
+            data[endIndex] = maxValue;
+        }
+        else if (maxIndex == startIndex)
+        {
+            data[startIndex] = minValue;
+            data[endIndex] = maxValue;
+            data[minIndex] = endValue;
+        }
+        else if(minIndex == endIndex)
+        {
+            data[startIndex] = minValue;
+            data[endIndex] = maxValue;
+            data[maxIndex] = startValue;
         }
         else
         {
-            int ri = N - fi - 1;
-            int minIndex = fi, maxIndex = ri;
-            for (int j = fi + 1; j < N - fi; j++)
-            {
-                if (data[j] < data[minIndex])
-                {
-                    minIndex = j;
-                }
-                if (data[j] > data[maxIndex])
-                {
-                    maxIndex = j;
-                }
-            }
-            if (fi != minIndex) Swap(data, fi, minIndex);
-            if (ri != maxIndex) Swap(data, ri, maxIndex);
+            data[startIndex] = minValue;
+            data[endIndex] = maxValue;
+            data[minIndex] = startValue;
+            data[maxIndex] = endValue;
         }
-    }
 
-    for(int fi = 0; fi < N-1; fi++)
-    {
-        if(data[fi]> data[fi + 1])
-        {
-            Swap(data,fi,fi + 1);
-        }
+        endIndex--;
+        startIndex++;
     }
 }
 
@@ -126,21 +144,19 @@ bool FastSelectionSort(int[] data)
     return true;
 }
 
+const int SampleSize = 4096;
 
 var watch = new Stopwatch();
 
-var data0 = new int[4096];// new int[16] { 6, 11, 4, 7, 0, 2, 9, 8, 1, 14, 10, 15, 13, 12, 3, 5 };
+var data0 = new int[SampleSize];// new int[16] { 6, 11, 4, 7, 0, 2, 9, 8, 1, 14, 10, 15, 13, 12, 3, 5 };
 
 for (int i = 0; i < data0.Length; i++)
 {
     data0[i] = Random.Shared.Next(data0.Length);
 }
-var datam = new int[data0.Length];
 var data1 = new int[data0.Length];
 var data2 = new int[data0.Length];
 var data3 = new int[data0.Length];
-data0.CopyTo(datam, 0);
-
 data0.CopyTo(data1, 0);
 data0.CopyTo(data2, 0);
 data0.CopyTo(data3, 0);
@@ -150,59 +166,75 @@ data0.CopyTo(data3, 0);
 /// </summary>
 watch.Start();
 
-Array.Sort(data0);
+Array.Sort(data1);
 
 watch.Stop();
 
-double t0 = watch.ElapsedMilliseconds;
+double t1 = watch.ElapsedMilliseconds;
 
-Console.WriteLine("Array.Sort[t={0}ms]:{1}", t0, string.Join(',', data0.Take(16)) + "...");
+Console.WriteLine("Array.Sort[t={0}ms]:{1}", t1, string.Join(',', data1.Take(16)) + "...");
 
 /// <summary>
 /// SingleSelectionSort
 /// </summary>
 watch.Restart();
 
-SingleSelectionSort(data1);
-
-watch.Stop();
-
-double t1 = watch.ElapsedMilliseconds;
-
-Console.WriteLine("Single Selection Sort[t={0}ms,correct={1}]:{2}",t1, Enumerable.SequenceEqual(data0,data1), string.Join(',', data1.Take(16)) + "...");
-
-/// <summary>
-/// DoubleSelectionSort
-/// </summary>
-watch.Restart();
-
-DoubleSelectionSort(data2);
+SingleSelectionSort(data2);
 
 watch.Stop();
 
 double t2 = watch.ElapsedMilliseconds;
 
-Console.WriteLine("Double Selection Sort[t={0}ms,correct={1}]:{2}", t2, Enumerable.SequenceEqual(data0, data2), string.Join(',', data2.Take(16)) + "...");
+Console.WriteLine("Single Selection Sort[t={0}ms,correct={1}]:{2}",t2, Enumerable.SequenceEqual(data1,data2), string.Join(',', data2.Take(16)) + "...");
 
-var wrong = false;
-var wp = -1;
-for(int i = 0; i < data0.Length; i++)
+/// <summary>
+/// DoubleSelectionSort
+/// </summary>
+
+const int Repeats = 1000;
+
+Console.WriteLine("Verification tests for {0} iterations, this may take some time.",Repeats);
+int fails = 0;
+for (int c = 0; c < Repeats; c++)
 {
-    if(data0[i] != data2[i])
+    var data5 = new int[data0.Length];
+    for (int i = 0; i < data5.Length; i++)
     {
-        if(wp==-1) wp = i;
-        wrong = true;
-        Console.WriteLine("wrong at={0},data1({0})={1},data2({0})={2}", i,data0[i],data2[i]);
-       
+        data5[i] = Random.Shared.Next(data5.Length);
+    }
+    var data6 = new int[data5.Length];
+    data5.CopyTo(data6, 0);
+
+    Array.Sort(data5);
+    DoubleSelectionSort(data6);
+    if (!Enumerable.SequenceEqual(data5, data6))
+    {
+        Console.WriteLine("ERROR SORTING ARRAY! AT {0}", c);
+        fails++;
     }
 }
-
-if (wrong)
+if (fails==0)
 {
-    DoubleSelectionSort(datam);
+    Console.WriteLine("Verification tests passed!");
+}
+else
+{
+    Console.WriteLine("Verification tests failed for {0} times!",fails);
 }
 
-double ef = (1.0 / t2 - 1.0 / t1) / (1.0 / t1);
+
+watch.Restart();
+
+DoubleSelectionSort(data3);
+
+
+watch.Stop();
+
+double t3 = watch.ElapsedMilliseconds;
+
+Console.WriteLine("Double Selection Sort[t={0}ms,correct={1}]:{2}", t3, Enumerable.SequenceEqual(data1, data3), string.Join(',', data3.Take(16)) + "...");
+
+double ef = (1.0 / t3 - 1.0 / t2) / (1.0 / t2);
 
 Console.WriteLine("Efficiency Boost:{0:F2}%", ef*100.0);
 
@@ -210,15 +242,16 @@ Console.WriteLine("Efficiency Boost:{0:F2}%", ef*100.0);
 /// FastSelectionSort
 /// </summary>
 
-watch.Restart();
+//watch.Restart();
 
-FastSelectionSort(data3);
+//FastSelectionSort(data3);
 
-watch.Stop();
+//watch.Stop();
 
-double t3 = watch.ElapsedMilliseconds;
+//double t3 = watch.ElapsedMilliseconds;
 
-Console.WriteLine("Fast Selection Sort[t={0}ms,correct={1}]:{2}", t3, Enumerable.SequenceEqual(data0, data3), string.Join(',', data3.Take(16)) + "...");
+//Console.WriteLine("Fast Selection Sort[t={0}ms,correct={1}]:{2}", t3, Enumerable.SequenceEqual(data0, data3), string.Join(',', data3.Take(16)) + "...");
 
 
 Console.WriteLine("Finished.");
+Console.ReadKey();
