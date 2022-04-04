@@ -49,8 +49,8 @@ void DoubleSelectionSort(int[] data)
     }
     else if(data.Length == 2)
     {
-        var min = Math.Min(data[0], data[1]); 
-        var max = Math.Max(data[0], data[1]);
+        int min = Math.Min(data[0], data[1]);
+        int max = min == data[0] ? data[1] : data[0];
         data[0] = min;
         data[1] = max;
         return;
@@ -84,7 +84,8 @@ void DoubleSelectionSort(int[] data)
         {
             break;
         }
-        else if (maxIndex == staIndex && minIndex == endIndex)
+        else if (maxIndex == staIndex 
+              && minIndex == endIndex)
         {
             data[staIndex] = minValue;
             data[endIndex] = maxValue;
