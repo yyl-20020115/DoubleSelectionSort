@@ -14,7 +14,33 @@ const int SampleDataSize = 65536;
 const int VerficationRepeats = 1000;
 const bool DoVerfications = false;
 
+var watch = new Stopwatch();
+
+
 Console.WriteLine("Array Size = {0}", SampleDataSize);
+
+bool SequenceEqual(int[] a, int[] b)
+{
+    if (a == null) throw new ArgumentNullException(nameof(a));
+    if (b == null) throw new ArgumentNullException(nameof(b));
+    if (a.Length != b.Length) return false;
+    int N = a.Length;
+    int W = Vector<int>.Count;
+    int R = N % W;
+    int T = N - R;
+    for (int i = T; i < N; i++)
+    {
+        if (a[i] != b[i]) return false;
+    }
+    for(int i = 0; i < T; i += W)
+    {
+        var x = new Vector<int>(a, i);
+        var y = new Vector<int>(b, i);
+        if (!Vector.EqualsAll(x, y)) return false;
+    }
+
+    return true;
+}
 
 void Swap(int[] a, int i, int j)
 {
@@ -25,6 +51,19 @@ void Swap(int[] a, int i, int j)
 
 void SingleSelectionSort(int[] data)
 {
+    if (data == null || data.Length <= 1)
+    {
+        return;
+    }
+    else if (data.Length == 2)
+    {
+        int min = Math.Min(data[0], data[1]);
+        int max = min == data[0] ? data[1] : data[0];
+        data[0] = min;
+        data[1] = max;
+        return;
+    }
+
     for (int i = 0; i < data.Length - 1; i++)
     {
         int minIndex = i;
@@ -121,9 +160,8 @@ void DoubleSelectionSort(int[] data)
     }
 }
 
-var watch = new Stopwatch();
 
-var data0 = new int[SampleDataSize];// new int[16] { 6, 11, 4, 7, 0, 2, 9, 8, 1, 14, 10, 15, 13, 12, 3, 5 };
+var data0 = new int[SampleDataSize];
 
 for (int i = 0; i < data0.Length; i++)
 {
@@ -162,7 +200,7 @@ if (DoVerfications)
 
         Array.Sort(data_vf1);
         DoubleSelectionSort(data_vf2);
-        if (!Enumerable.SequenceEqual(data_vf1, data_vf2))
+        if (!SequenceEqual(data_vf1, data_vf2))
         {
             Console.WriteLine("ERROR SORTING ARRAY! AT {0}", c);
             fails++;
@@ -202,7 +240,7 @@ watch.Stop();
 
 double t2 = watch.ElapsedMilliseconds;
 
-Console.WriteLine("Single Selection Sort[t={0}ms,correct={1}]:{2}",t2, Enumerable.SequenceEqual(data1,data2), string.Join(',', data2.Take(16)) + "...");
+Console.WriteLine("Single Selection Sort[t={0}ms,correct={1}]:{2}",t2, SequenceEqual(data1,data2), string.Join(',', data2.Take(16)) + "...");
 
 /// <summary>
 /// DoubleSelectionSort
@@ -215,7 +253,7 @@ watch.Stop();
 
 double t3 = watch.ElapsedMilliseconds;
 
-Console.WriteLine("Double Selection Sort[t={0}ms,correct={1}]:{2}", t3, Enumerable.SequenceEqual(data1, data3), string.Join(',', data3.Take(16)) + "...");
+Console.WriteLine("Double Selection Sort[t={0}ms,correct={1}]:{2}", t3, SequenceEqual(data1, data3), string.Join(',', data3.Take(16)) + "...");
 
 double ef1 = (1.0 / t3 - 1.0 / t2) / (1.0 / t2);
 
@@ -375,7 +413,7 @@ int[] FastDoubleSelectionSort(int[] data)
 
     //TODO:
 
-    return DoCollect(data, width);
+    return DoCollect(data, width, true);
 }
 
 watch.Restart();
@@ -386,7 +424,7 @@ watch.Stop();
 
 double t6 = watch.ElapsedMilliseconds;
 
-Console.WriteLine("Fast Single Selection Sort[t={0}ms,correct={1}]:{2}", t6, Enumerable.SequenceEqual(data1, data6), string.Join(',', data6.Take(16)) + "...");
+Console.WriteLine("Fast Single Selection Sort[t={0}ms,correct={1}]:{2}", t6, SequenceEqual(data1, data6), string.Join(',', data6.Take(16)) + "...");
 
 double ef2 = (1.0 / t6 - 1.0 / t2) / (1.0 / t2);
 Console.WriteLine("Fast Single Selection Sort Efficiency Boost:{0:F2}%", ef2 * 100.0);
@@ -428,7 +466,7 @@ watch.Stop();
 
 double t4 = watch.ElapsedMilliseconds;
 
-Console.WriteLine("Quick Sort[t={0}ms,correct={1}]:{2}", t4, Enumerable.SequenceEqual(data1, data4), string.Join(',', data4.Take(16)) + "...");
+Console.WriteLine("Quick Sort[t={0}ms,correct={1}]:{2}", t4, SequenceEqual(data1, data4), string.Join(',', data4.Take(16)) + "...");
 
 
 void StackQuickSort(int[] array, int low, int high,Stack<(int,int)> stack)
@@ -473,7 +511,7 @@ watch.Stop();
 
 double t5 = watch.ElapsedMilliseconds;
 
-Console.WriteLine("Stack Quick Sort[t={0}ms,correct={1}]:{2}", t5, Enumerable.SequenceEqual(data1, data5), string.Join(',', data5.Take(16)) + "...");
+Console.WriteLine("Stack Quick Sort[t={0}ms,correct={1}]:{2}", t5, SequenceEqual(data1, data5), string.Join(',', data5.Take(16)) + "...");
 
 
 Console.WriteLine("Finished.");
