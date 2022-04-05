@@ -408,10 +408,12 @@ int[] FastDoubleSelectionSort(int[] data)
         }
     }
 
+    int[] minBuffer = new int[width];
+    int[] minPositions = new int[width];
+    int[] maxBuffer = new int[width];
+    int[] maxPositions = new int[width];
 
 
-    int[] buffer = new int[width];
-    int[] positions = new int[width];
 
     //TODO:
 
@@ -519,8 +521,6 @@ double t5 = watch.ElapsedMilliseconds;
 
 Console.WriteLine("Stack Quick Sort[t={0}ms,correct={1}]:{2}", t5, SequenceEqual(data1, data5), string.Join(',', data5.Take(16)) + "...");
 
-
-
 int[] FastStackQuickSort(int[] data)
 {
     int N = data.Length;
@@ -544,35 +544,55 @@ int[] FastStackQuickSort(int[] data)
             Swap(data, maxIndex, i);
         }
     }
-    
-    Stack<(int, int)> stack = new();
 
-    stack.Push((0, T));
-    //TODO:
+    int[] keys = new int[W];
+    int[] xs = new int[W];
+    int[] ys = new int[W];
+    
+
+    Stack<(int[], int[])> stack = new();
+    for(int q = 0; q < W; q++)
+    {
+        xs[q] = q;
+        ys[q] = T - q;
+    }
+
+    stack.Push((xs.ToArray(), ys.ToArray()));
+
     while (stack.Count > 0)
     {
         var (low, high) = stack.Pop();
-        int x = low, y = high;
-        int key = data[x];
-        while (x < y)
-        {
-            while (data[y] >= key && y > x)
-                --y;
-            data[x] = data[y];
-            while (data[x] <= key && y > x)
-                ++x;
-            data[y] = data[x];
-        }
-        data[x] = key;
 
-        if (low < x - 1)
+        xs = low;
+        ys = high;
+        
+        for (int q = 0; q < W; q++)
         {
-            stack.Push((low, x - 1));
+            keys[q] = data[xs[q]];
         }
-        if (x + 1 < high)
-        {
-            stack.Push((x + 1, high));
-        }
+        //TODO:
+        //while (x < y)
+        //{
+        //    while (data[y] >= key && y > x)
+        //        --y;
+        //    data[x] = data[y];
+        //    while (data[x] <= key && y > x)
+        //        ++x;
+        //    data[y] = data[x];
+        //}
+        //for (int q = 0; q < W; q++)
+        //{
+        //    data[xs[q]] = keys[q];
+        //}
+
+        //if (low < x - 1)
+        //{
+        //    stack.Push((low, x - 1));
+        //}
+        //if (x + 1 < high)
+        //{
+        //    stack.Push((x + 1, high));
+        //}
     }
     return DoCollect(data, W, true);
 }
@@ -672,3 +692,4 @@ Console.WriteLine("Fast Insertion Sort Efficiency Boost:{0:F2}%", ef3 * 100.0);
 
 Console.WriteLine("Finished.");
 Console.ReadKey();
+
