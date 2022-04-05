@@ -434,29 +434,29 @@ Console.WriteLine("Fast Single Selection Sort Efficiency Boost:{0:F2}%", ef2 * 1
 ///
 ///Quick Sort
 ///
-void QuickSort(int[] array, int low, int high)
+void QuickSort(int[] data, int low, int high)
 {
     if (low >= high) return;
 
     int x = low, y = high;
-    int key = array[x];
+    int key = data[x];
     while (x < y)
     {
-        while (array[y] >= key && y > x)
+        while (data[y] >= key && y > x)
             --y;
-        array[x] = array[y];
-        while (array[x] <= key && y > x)
+        data[x] = data[y];
+        while (data[x] <= key && y > x)
             ++x;
-        array[y] = array[x];
+        data[y] = data[x];
     }
-    array[x] = key;
+    data[x] = key;
     if (low < x - 1)
     {
-        QuickSort(array, low, x - 1);
+        QuickSort(data, low, x - 1);
     }
     if (x + 1 < high)
     {
-        QuickSort(array, x + 1, high);
+        QuickSort(data, x + 1, high);
     }
 }
 
@@ -471,9 +471,13 @@ double t4 = watch.ElapsedMilliseconds;
 Console.WriteLine("Quick Sort[t={0}ms,correct={1}]:{2}", t4, SequenceEqual(data1, data4), string.Join(',', data4.Take(16)) + "...");
 
 
-void StackQuickSort(int[] array, int low, int high,Stack<(int,int)> stack)
+void StackQuickSort(int[] data)
 {
-    if (low >= high) return;
+    int low = 0;
+    int high = data.Length - 1;
+
+    Stack<(int, int)> stack = new(32);
+
 
     stack.Push((low, high));
 
@@ -481,17 +485,17 @@ void StackQuickSort(int[] array, int low, int high,Stack<(int,int)> stack)
     {
         (low,high) = stack.Pop();
         int x = low, y = high;
-        int key = array[x];
+        int key = data[x];
         while (x < y)
         {
-            while (array[y] >= key && y > x)
+            while (data[y] >= key && y > x)
                 --y;
-            array[x] = array[y];
-            while (array[x] <= key && y > x)
+            data[x] = data[y];
+            while (data[x] <= key && y > x)
                 ++x;
-            array[y] = array[x];
+            data[y] = data[x];
         }
-        array[x] = key;
+        data[x] = key;
 
         if (low < x - 1)
         {
@@ -507,13 +511,74 @@ void StackQuickSort(int[] array, int low, int high,Stack<(int,int)> stack)
 
 watch.Restart();
 
-StackQuickSort(data5, 0, data5.Length - 1, new(32));
+StackQuickSort(data5);
 
 watch.Stop();
 
 double t5 = watch.ElapsedMilliseconds;
 
 Console.WriteLine("Stack Quick Sort[t={0}ms,correct={1}]:{2}", t5, SequenceEqual(data1, data5), string.Join(',', data5.Take(16)) + "...");
+
+
+
+int[] FastStackQuickSort(int[] data)
+{
+    int N = data.Length;
+    int W = Vector<int>.Count;
+    int R = N % W;
+    int T = N - R;
+    for (int i = N - 1; i >= T; i--)
+    {
+        int maxIndex = i;
+        int max = data[maxIndex];
+        for (int j = i - 1; i >= 0; j--)
+        {
+            if (data[j] > max)
+            {
+                max = data[j];
+                maxIndex = j;
+            }
+        }
+        if (maxIndex != i)
+        {
+            Swap(data, maxIndex, i);
+        }
+    }
+    
+    Stack<(int, int)> stack = new();
+
+    stack.Push((0, T));
+    //TODO:
+    while (stack.Count > 0)
+    {
+        var (low, high) = stack.Pop();
+        int x = low, y = high;
+        int key = data[x];
+        while (x < y)
+        {
+            while (data[y] >= key && y > x)
+                --y;
+            data[x] = data[y];
+            while (data[x] <= key && y > x)
+                ++x;
+            data[y] = data[x];
+        }
+        data[x] = key;
+
+        if (low < x - 1)
+        {
+            stack.Push((low, x - 1));
+        }
+        if (x + 1 < high)
+        {
+            stack.Push((x + 1, high));
+        }
+    }
+    return DoCollect(data, W, true);
+}
+
+
+
 
 /// <summary>
 /// Insertion Sort
