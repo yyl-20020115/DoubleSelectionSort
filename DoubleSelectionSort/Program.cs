@@ -690,6 +690,24 @@ Console.WriteLine("Fast Insertion Sort[t={0}ms,correct={1}]:{2}", t8, SequenceEq
 double ef3 = (1.0 / t8 - 1.0 / t7) / (1.0 / t7);
 Console.WriteLine("Fast Insertion Sort Efficiency Boost:{0:F2}%", ef3 * 100.0);
 
+
+void GnomeSort(int[] a)
+{
+    int p = 0;
+    while (p < a.Length)
+    {
+        if (p == 0 || a[p] >= a[p - 1])
+        {
+            p++;
+        }
+        else
+        {
+            Swap(a, p, p - 1);
+            p--;
+        }
+    }
+}
+
 Console.WriteLine("Finished.");
 Console.ReadKey();
 
