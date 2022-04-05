@@ -221,59 +221,11 @@ double ef1 = (1.0 / t3 - 1.0 / t2) / (1.0 / t2);
 
 Console.WriteLine("Double Selection Sort Efficiency Boost:{0:F2}%", ef1 * 100.0);
 
-/// <summary>
-/// FastSingleSelectionSort
-/// </summary>
-int[] FastSingleSelectionSort(int[] data)
+int[] DoCollect(int[] data, int width)
 {
-    int width = Vector<int>.Count;
-    int N = data.Length;
-    
-    if (N % width > 0) 
-        throw new ArgumentException($"data size should have aligned to {width}");
+    if (width <= 1) return data;
 
-    int[] buffer = new int[width];
     int[] positions = new int[width];
-
-    for (int i = 0; i < N - width; i+= width)
-    {
-        for (int q = 0; q < width; q++)
-        {
-            positions[q] = i + q;
-        }
-        var min = new Vector<int>(data,i);        
-
-        for (int j = i + width; j < N; j+=width)
-        {
-            var dt = new Vector<int>(data, j);
-            var rt = Vector.LessThan(dt, min);
-            var any = false;
-            for(int s = 0; s < width; s++)
-            {
-                if (rt[s] == -1)
-                {
-                    positions[s] = j + s;
-                    buffer[s] = dt[s];
-                    any = true;
-                }
-                else
-                {
-                    buffer[s] = min[s];
-                }
-            }
-            if (any)
-            {
-                min = new Vector<int>(buffer);
-            }
-        }
-        for(int q = 0; q < width; q++)
-        {
-            if(positions[q] != i + q)
-            {
-                Swap(data, i + q, positions[q]);
-            }
-        }
-    }
 
     int[] result = new int[data.Length];
     for (int q = 0; q < width; q++)
@@ -281,7 +233,7 @@ int[] FastSingleSelectionSort(int[] data)
         positions[q] = q;
     }
     int tp = 0;
-    while (tp<result.Length)
+    while (tp < result.Length)
     {
         int? minpos = null;
         int? minval = null;
@@ -301,15 +253,83 @@ int[] FastSingleSelectionSort(int[] data)
             positions[_minpos] += width;
             result[tp++] = _minval;
         }
-        else
-        {
-            break;
-        }
     }
-
     return result;
 }
 
+/// <summary>
+/// FastSingleSelectionSort
+/// </summary>
+int[] FastSingleSelectionSort(int[] data)
+{
+    int width = Vector<int>.Count;
+    int N = data.Length;
+    
+    if (N % width > 0) 
+        throw new ArgumentException($"data size should have been aligned to {width} elements");
+
+    int[] buffer = new int[width];
+    int[] positions = new int[width];
+
+    for (int i = 0; i < N - width; i+= width)
+    {
+        for (int q = 0; q < width; q++)
+        {
+            positions[q] = i + q;
+        }
+        var min = new Vector<int>(data,i);        
+
+        for (int j = i + width; j < N; j+=width)
+        {
+            min.CopyTo(buffer);
+            var dt = new Vector<int>(data, j);
+            var rt = Vector.LessThan(dt, min);
+            var any = false;
+            for(int s = 0; s < width; s++)
+            {
+                if (rt[s] != 0)
+                {
+                    positions[s] = j + s;
+                    buffer[s] = dt[s];
+                    any = true;
+                }
+            }
+            if (any)
+            {
+                min = new Vector<int>(buffer);
+            }
+        }
+        for(int q = 0; q < width; q++)
+        {
+            int a = positions[q];
+            int b = i + q;
+            if (a != b)
+            {
+                Swap(data, a, b);
+            }
+        }
+    }
+
+    return DoCollect(data,width);
+}
+/// <summary>
+/// FastDoubleSelectionSort
+/// </summary>
+int[] FastDoubleSelectionSort(int[] data)
+{
+    int width = Vector<int>.Count;
+    int N = data.Length;
+
+    if (N % width > 0)
+        throw new ArgumentException($"data size should have aligned to {width}");
+
+    int[] buffer = new int[width];
+    int[] positions = new int[width];
+
+    //TODO:
+
+    return DoCollect(data, width);
+}
 
 watch.Restart();
 

@@ -11,6 +11,9 @@ Double Selection Sort Algorithm
 
   and get almost double speed.
 
+  There are new algorithms utilizing AVX instructions to make
+  
+  the selections 5 times faster.
 
 
 Please check the source code.
