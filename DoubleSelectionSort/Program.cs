@@ -221,37 +221,42 @@ double ef1 = (1.0 / t3 - 1.0 / t2) / (1.0 / t2);
 
 Console.WriteLine("Double Selection Sort Efficiency Boost:{0:F2}%", ef1 * 100.0);
 
-int[] DoCollect(int[] data, int width)
+int[] DoCollect(int[] data, int width, bool copy_tail)
 {
     if (width <= 1) return data;
-
+    
+    int N = data.Length;
+    int R = N % width;
     int[] positions = new int[width];
-
-    int[] result = new int[data.Length];
-    for (int q = 0; q < width; q++)
+    int[] result = new int[N];
+    if (copy_tail && R > 0)
     {
-        positions[q] = q;
+        Array.Copy(data, N - R, result, N - R, R);
     }
-    int tp = 0;
-    while (tp < result.Length)
+    for (int i = 0; i < width; i++)
+    {
+        positions[i] = i;
+    }
+    int p = 0;
+    while (p < result.Length)
     {
         int? minpos = null;
         int? minval = null;
-        for (int q = 0; q < width; q++)
+        for (int i = 0; i < width; i++)
         {
-            int index = positions[q];
+            int index = positions[i];
             if (index >= data.Length) continue;
             int value = data[index];
             if (minval == null || value < minval)
             {
                 minval = value;
-                minpos = q;
+                minpos = i;
             }
         }
         if (minpos is int _minpos && minval is int _minval)
         {
             positions[_minpos] += width;
-            result[tp++] = _minval;
+            result[p++] = _minval;
         }
     }
     return result;
@@ -264,9 +269,29 @@ int[] FastSingleSelectionSort(int[] data)
 {
     int width = Vector<int>.Count;
     int N = data.Length;
-    
-    if (N % width > 0) 
-        throw new ArgumentException($"data size should have been aligned to {width} elements");
+    int R = N % width;
+    if (R > 0) //Sort tail
+    {
+        int T = N - R;
+        for(int i = N-1; i >= T; i--)
+        {
+            int maxIndex = i;
+            int max = data[maxIndex];
+            for(int j = i - 1; i >= 0; j--)
+            {
+                if (data[j] > max)
+                {
+                    max=data[j];
+                    maxIndex = j;
+                }
+            }
+            if (maxIndex != i)
+            {
+                Swap(data, maxIndex, i);
+            }
+        }
+        N = T;
+    }
 
     int[] buffer = new int[width];
     int[] positions = new int[width];
@@ -310,7 +335,7 @@ int[] FastSingleSelectionSort(int[] data)
         }
     }
 
-    return DoCollect(data,width);
+    return DoCollect(data, width, true);
 }
 /// <summary>
 /// FastDoubleSelectionSort
@@ -319,9 +344,31 @@ int[] FastDoubleSelectionSort(int[] data)
 {
     int width = Vector<int>.Count;
     int N = data.Length;
+    int R = N % width;
+    if (R > 0) //Sort tail
+    {
+        int T = N - R;
+        for (int i = N - 1; i >= T; i--)
+        {
+            int maxIndex = i;
+            int max = data[maxIndex];
+            for (int j = i - 1; i >= 0; j--)
+            {
+                if (data[j] > max)
+                {
+                    max = data[j];
+                    maxIndex = j;
+                }
+            }
+            if (maxIndex != i)
+            {
+                Swap(data, maxIndex, i);
+            }
+        }
+        N = T;
+    }
 
-    if (N % width > 0)
-        throw new ArgumentException($"data size should have aligned to {width}");
+
 
     int[] buffer = new int[width];
     int[] positions = new int[width];
