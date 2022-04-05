@@ -15,6 +15,32 @@ const int VerficationRepeats = 1000;
 const bool DoVerfications = false;
 
 var watch = new Stopwatch();
+var data0 = new int[SampleDataSize];
+
+for (int i = 0; i < data0.Length; i++)
+{
+    data0[i] = Random.Shared.Next(data0.Length);
+}
+var data1 = new int[data0.Length];
+var data2 = new int[data0.Length];
+var data3 = new int[data0.Length];
+var data4 = new int[data0.Length];
+var data5 = new int[data0.Length];
+var data6 = new int[data0.Length];
+var data7 = new int[data0.Length];
+var data8 = new int[data0.Length];
+var data9 = new int[data0.Length];
+
+data0.CopyTo(data1, 0);
+data0.CopyTo(data2, 0);
+data0.CopyTo(data3, 0);
+data0.CopyTo(data4, 0);
+data0.CopyTo(data5, 0);
+data0.CopyTo(data6, 0);
+data0.CopyTo(data7, 0);
+data0.CopyTo(data8, 0);
+data0.CopyTo(data9, 0);
+
 
 
 Console.WriteLine("Array Size = {0}", SampleDataSize);
@@ -41,13 +67,53 @@ bool SequenceEqual(int[] a, int[] b)
 
     return true;
 }
-
 void Swap(int[] a, int i, int j)
 {
     int t = a[i];
     a[i] = a[j];
     a[j] = t;
 }
+int[] DoCollect(int[] data, int width, bool copy_tail)
+{
+    if (width <= 1) return data;
+
+    int N = data.Length;
+    int R = N % width;
+    int[] positions = new int[width];
+    int[] result = new int[N];
+    if (copy_tail && R > 0)
+    {
+        Array.Copy(data, N - R, result, N - R, R);
+    }
+    for (int i = 0; i < width; i++)
+    {
+        positions[i] = i;
+    }
+    int p = 0;
+    while (p < result.Length)
+    {
+        int? minpos = null;
+        int? minval = null;
+        for (int i = 0; i < width; i++)
+        {
+            int index = positions[i];
+            if (index >= data.Length) continue;
+            int value = data[index];
+            if (minval == null || value < minval)
+            {
+                minval = value;
+                minpos = i;
+            }
+        }
+        if (minpos is int _minpos && minval is int _minval)
+        {
+            positions[_minpos] += width;
+            result[p++] = _minval;
+        }
+    }
+    return result;
+}
+
 
 void SingleSelectionSort(int[] data)
 {
@@ -160,26 +226,6 @@ void DoubleSelectionSort(int[] data)
     }
 }
 
-
-var data0 = new int[SampleDataSize];
-
-for (int i = 0; i < data0.Length; i++)
-{
-    data0[i] = Random.Shared.Next(data0.Length);
-}
-var data1 = new int[data0.Length];
-var data2 = new int[data0.Length];
-var data3 = new int[data0.Length];
-var data4 = new int[data0.Length];
-var data5 = new int[data0.Length];
-var data6 = new int[data0.Length];
-data0.CopyTo(data1, 0);
-data0.CopyTo(data2, 0);
-data0.CopyTo(data3, 0);
-data0.CopyTo(data4, 0);
-data0.CopyTo(data5, 0);
-data0.CopyTo(data6, 0);
-
 if (DoVerfications)
 {
     /// <summary>
@@ -259,46 +305,6 @@ double ef1 = (1.0 / t3 - 1.0 / t2) / (1.0 / t2);
 
 Console.WriteLine("Double Selection Sort Efficiency Boost:{0:F2}%", ef1 * 100.0);
 
-int[] DoCollect(int[] data, int width, bool copy_tail)
-{
-    if (width <= 1) return data;
-    
-    int N = data.Length;
-    int R = N % width;
-    int[] positions = new int[width];
-    int[] result = new int[N];
-    if (copy_tail && R > 0)
-    {
-        Array.Copy(data, N - R, result, N - R, R);
-    }
-    for (int i = 0; i < width; i++)
-    {
-        positions[i] = i;
-    }
-    int p = 0;
-    while (p < result.Length)
-    {
-        int? minpos = null;
-        int? minval = null;
-        for (int i = 0; i < width; i++)
-        {
-            int index = positions[i];
-            if (index >= data.Length) continue;
-            int value = data[index];
-            if (minval == null || value < minval)
-            {
-                minval = value;
-                minpos = i;
-            }
-        }
-        if (minpos is int _minpos && minval is int _minval)
-        {
-            positions[_minpos] += width;
-            result[p++] = _minval;
-        }
-    }
-    return result;
-}
 
 /// <summary>
 /// FastSingleSelectionSort
@@ -383,27 +389,23 @@ int[] FastDoubleSelectionSort(int[] data)
     int width = Vector<int>.Count;
     int N = data.Length;
     int R = N % width;
-    if (R > 0) //Sort tail
+    int T = N - R;
+    for (int i = N - 1; i >= T; i--)
     {
-        int T = N - R;
-        for (int i = N - 1; i >= T; i--)
+        int maxIndex = i;
+        int max = data[maxIndex];
+        for (int j = i - 1; i >= 0; j--)
         {
-            int maxIndex = i;
-            int max = data[maxIndex];
-            for (int j = i - 1; i >= 0; j--)
+            if (data[j] > max)
             {
-                if (data[j] > max)
-                {
-                    max = data[j];
-                    maxIndex = j;
-                }
-            }
-            if (maxIndex != i)
-            {
-                Swap(data, maxIndex, i);
+                max = data[j];
+                maxIndex = j;
             }
         }
-        N = T;
+        if (maxIndex != i)
+        {
+            Swap(data, maxIndex, i);
+        }
     }
 
 
@@ -513,6 +515,95 @@ double t5 = watch.ElapsedMilliseconds;
 
 Console.WriteLine("Stack Quick Sort[t={0}ms,correct={1}]:{2}", t5, SequenceEqual(data1, data5), string.Join(',', data5.Take(16)) + "...");
 
+/// <summary>
+/// Insertion Sort
+/// </summary>
+void InsertionSort(int[] a)
+{
+    int N = a.Length;
+    for (int i = 1; i < N; i++)
+    {
+        for (int j = i; j > 0 && a[j] < a[j - 1]; j--)
+        {
+            int t = a[j];
+            a[j] = a[j - 1];
+            a[j - 1] = t;
+        }
+    }
+}
+
+watch.Restart();
+
+InsertionSort(data7);
+
+watch.Stop();
+
+double t7 = watch.ElapsedMilliseconds;
+
+Console.WriteLine("Insertion Sort[t={0}ms,correct={1}]:{2}", t7, SequenceEqual(data1, data7), string.Join(',', data7.Take(16)) + "...");
+
+
+/// <summary>
+/// FastInsertionSort
+/// </summary>
+int[] FastInsertionSort(int[] data)
+{
+    int N = data.Length;
+    int W = Vector<int>.Count;
+    int R = N % W;
+    int T = N - R;
+    for (int i = N - 1; i >= T; i--)
+    {
+        int maxIndex = i;
+        int max = data[maxIndex];
+        for (int j = i - 1; i >= 0; j--)
+        {
+            if (data[j] > max)
+            {
+                max = data[j];
+                maxIndex = j;
+            }
+        }
+        if (maxIndex != i)
+        {
+            Swap(data, maxIndex, i);
+        }
+    }
+
+    for (int i = W; i < T; i += W)
+    {
+        for (int j = i; j > 0; j -= W)
+        {
+            var dj = new Vector<int>(data, j);
+            var dm = new Vector<int>(data, j - W);
+            var dk = Vector.LessThan(dj, dm);
+            for (int k = 0; k < W; k++)
+            {
+                if (dk[k] != 0)
+                {
+                    int t = data[j + k];
+                    data[j + k] = data[j - W + k];
+                    data[j - W + k] = t;
+                }
+            }
+        }
+    }
+
+    return DoCollect(data, W, true);
+}
+
+watch.Restart();
+
+data8 = FastInsertionSort(data8);
+
+watch.Stop();
+
+double t8 = watch.ElapsedMilliseconds;
+
+Console.WriteLine("Fast Insertion Sort[t={0}ms,correct={1}]:{2}", t8, SequenceEqual(data1, data8), string.Join(',', data8.Take(16)) + "...");
+
+double ef3 = (1.0 / t8 - 1.0 / t7) / (1.0 / t7);
+Console.WriteLine("Fast Insertion Sort Efficiency Boost:{0:F2}%", ef3 * 100.0);
 
 Console.WriteLine("Finished.");
 Console.ReadKey();
