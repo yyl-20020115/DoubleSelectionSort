@@ -314,33 +314,29 @@ int[] FastSingleSelectionSort(int[] data)
     int width = Vector<int>.Count;
     int N = data.Length;
     int R = N % width;
-    if (R > 0) //Sort tail
+    int T = N - R;
+    for (int i = N - 1; i >= T; i--)
     {
-        int T = N - R;
-        for(int i = N-1; i >= T; i--)
+        int maxIndex = i;
+        int max = data[maxIndex];
+        for (int j = i - 1; i >= 0; j--)
         {
-            int maxIndex = i;
-            int max = data[maxIndex];
-            for(int j = i - 1; i >= 0; j--)
+            if (data[j] > max)
             {
-                if (data[j] > max)
-                {
-                    max=data[j];
-                    maxIndex = j;
-                }
-            }
-            if (maxIndex != i)
-            {
-                Swap(data, maxIndex, i);
+                max = data[j];
+                maxIndex = j;
             }
         }
-        N = T;
+        if (maxIndex != i)
+        {
+            Swap(data, maxIndex, i);
+        }
     }
 
     int[] buffer = new int[width];
     int[] positions = new int[width];
 
-    for (int i = 0; i < N - width; i+= width)
+    for (int i = 0; i < T - width; i+= width)
     {
         for (int q = 0; q < width; q++)
         {
@@ -348,7 +344,7 @@ int[] FastSingleSelectionSort(int[] data)
         }
         var min = new Vector<int>(data,i);        
 
-        for (int j = i + width; j < N; j+=width)
+        for (int j = i + width; j < T; j+=width)
         {
             min.CopyTo(buffer);
             var dt = new Vector<int>(data, j);
@@ -409,15 +405,114 @@ int[] FastDoubleSelectionSort(int[] data)
     }
 
     int[] minBuffer = new int[width];
-    int[] minPositions = new int[width];
+    int[] minIndices = new int[width];
     int[] maxBuffer = new int[width];
-    int[] maxPositions = new int[width];
+    int[] maxIndices = new int[width];
+    int[] staIndices = new int[width];
+    int[] endIndices = new int[width];
+    int[] staValues = new int[width];
+    int[] endValues = new int[width];
+    for (int i = 0; i < T - width; i += width)
+    {
+        for (int q = 0; q < width; q++)
+        {
+            minIndices[q] = i + q;
+        }
+        for (int q = 0; q < width; q++)
+        {
+            maxIndices[q] = T - i + q;
+        }
+        minIndices.CopyTo(staIndices, 0);
+        maxIndices.CopyTo(endIndices, 0);
+
+        for (int q = 0; q < width; q++)
+        {
+            staValues[q] = data[i + q];
+        }
+        for (int q = 0; q < width; q++)
+        {
+            endValues[q] = data[T - i + q];
+        }
 
 
+        var minValues = new Vector<int>(data, i);
+        var maxValues = new Vector<int>(data, T - i);
 
-    //TODO:
+        for (int j = i + width; j < T; j += width)
+        {
+            minValues.CopyTo(minBuffer);
+            maxValues.CopyTo(maxBuffer);
+
+            var dt = new Vector<int>(data, j);
+            var lrt = Vector.LessThan(dt, minValues);
+            var grt = Vector.GreaterThan(dt, maxValues);
+
+            var anylt = false;
+            var anygt = false;
+            for (int s = 0; s < width; s++)
+            {
+                if (lrt[s] != 0)
+                {
+                    minIndices[s] = j + s;
+                    minBuffer[s] = dt[s];
+                    anylt = true;
+                }
+            }
+            if (anylt)
+            {
+                minValues = new Vector<int>(minBuffer);
+            }
+            for (int s = 0; s < width; s++)
+            {
+                if (grt[s] != 0)
+                {
+                    maxIndices[s] = j + s;
+                    maxBuffer[s] = dt[s];
+                    anygt = true;
+                }
+            }
+            if (anygt)
+            {
+                maxValues = new Vector<int>(maxBuffer);
+            }
+
+        }
+        for (int q = 0; q < width; q++)
+        {
+            if (minValues[q] == maxValues[q])
+            {
+                break;
+            }
+            else if (maxIndices[q] == staIndices[q]
+                  && minIndices[q] == endIndices[q])
+            {
+                data[staIndices[q]] = minValues[q];
+                data[endIndices[q]] = maxValues[q];
+            }
+            else if (maxIndices[q] == staIndices[q])
+            {
+                data[staIndices[q]] = minValues[q];
+                data[endIndices[q]] = maxValues[q];
+                data[minIndices[q]] = endValues[q];
+            }
+            else if (minIndices[q] == endIndices[q])
+            {
+                data[staIndices[q]] = minValues[q];
+                data[endIndices[q]] = maxValues[q];
+                data[maxIndices[q]] = staValues[q];
+            }
+            else
+            {
+                data[staIndices[q]] = minValues[q];
+                data[endIndices[q]] = maxValues[q];
+                data[minIndices[q]] = staValues[q];
+                data[maxIndices[q]] = endValues[q];
+            }
+        }
+    }
 
     return DoCollect(data, width, true);
+
 }
 
 watch.Restart();
