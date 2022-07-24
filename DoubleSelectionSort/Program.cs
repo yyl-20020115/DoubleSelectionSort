@@ -6,9 +6,10 @@
 // Efficiency Boost:52.94%
 
 
-
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 const int SampleDataSize = 65536;
 const int VerficationRepeats = 1000;
@@ -30,6 +31,9 @@ var data6 = new int[data0.Length];
 var data7 = new int[data0.Length];
 var data8 = new int[data0.Length];
 var data9 = new int[data0.Length];
+var data10 = new int[data0.Length];
+var data11 = new int[data0.Length];
+
 
 data0.CopyTo(data1, 0);
 data0.CopyTo(data2, 0);
@@ -40,6 +44,8 @@ data0.CopyTo(data6, 0);
 data0.CopyTo(data7, 0);
 data0.CopyTo(data8, 0);
 data0.CopyTo(data9, 0);
+data0.CopyTo(data10, 0);
+data0.CopyTo(data11, 0);
 
 
 
@@ -62,7 +68,7 @@ bool SequenceEqual(int[] a, int[] b)
     {
         var x = new Vector<int>(a, i);
         var y = new Vector<int>(b, i);
-        if (!Vector.EqualsAll(x, y)) return false;
+        if (!System.Numerics.Vector.EqualsAll(x, y)) return false;
     }
 
     return true;
@@ -348,7 +354,7 @@ int[] FastSingleSelectionSort(int[] data)
         {
             min.CopyTo(buffer);
             var dt = new Vector<int>(data, j);
-            var rt = Vector.LessThan(dt, min);
+            var rt = System.Numerics.Vector.LessThan(dt, min);
             var any = false;
             for(int s = 0; s < width; s++)
             {
@@ -444,8 +450,8 @@ int[] FastDoubleSelectionSort(int[] data)
             maxValues.CopyTo(maxBuffer);
 
             var dt = new Vector<int>(data, j);
-            var lrt = Vector.LessThan(dt, minValues);
-            var grt = Vector.GreaterThan(dt, maxValues);
+            var lrt = System.Numerics.Vector.LessThan(dt, minValues);
+            var grt = System.Numerics.Vector.GreaterThan(dt, maxValues);
 
             var anylt = false;
             var anygt = false;
@@ -756,7 +762,7 @@ int[] FastInsertionSort(int[] data)
         {
             var dj = new Vector<int>(data, j);
             var dm = new Vector<int>(data, j - W);
-            var dk = Vector.LessThan(dj, dm);
+            var dk = System.Numerics.Vector.LessThan(dj, dm);
             for (int k = 0; k < W; k++)
             {
                 if (dk[k] != 0)
@@ -802,6 +808,97 @@ void GnomeSort(int[] a)
         }
     }
 }
+
+int[] OddEvenSort(int[] a)
+{
+    for(int c= 0; c < a.Length; c++)
+    {
+        int p = c % 2;
+        for (int d = 0; d < a.Length - p - p; d += 2)
+        {
+            //this step should be in parallel
+            if (a[d + p + 0] > a[d + p + 1])
+            {
+                Swap(a, d + p + 0, d + p + 1);
+            }
+        }
+    }
+    return a;
+}
+int[] interlace_indices = new int[] { 0, 2, 4, 6 };
+unsafe int[] FastOddEvenSort(int[] a)
+{
+    if(!Avx2.X64.IsSupported)
+    {
+        return a;
+    }
+    else if(a.Length == 0)
+    {
+        return a;
+    }
+    else if (a.Length < Vector<int>.Count)
+    {
+        var b = new int[Vector<int>.Count];
+        Array.Copy(a, b, a.Length);
+        a = b;
+    }
+
+    var size = Vector<int>.Count;
+    var half = size >> 1;
+    fixed (int* pa = a, pi = interlace_indices)
+    {
+        var ie = Sse2.LoadVector128(pi); 
+        for (var repeat = 0; repeat < a.Length; repeat++)
+        {
+            var p = repeat % 2;
+            for (var part = 0; part < a.Length; part += size)
+            {
+                var ve = Avx2.GatherVector128(pa + part + (p << 1), ie, 4);
+                var vo = Avx2.GatherVector128(pa + part + 1, ie, 4);
+                var re = p == 0 ? Sse2.CompareGreaterThan(ve, vo) : Sse2.CompareGreaterThan(vo, ve);
+                for (var i = 0; i < ((p == 1 && part + size == a.Length) ? half - 1 : half); i++)
+                {
+                    var v = Vector128.GetElement(re, i);
+                    var j = i << 1;
+                    if (v == -1)
+                    {
+                        Swap(a, part + p + j + 0, part + p + j + 1);
+                    }
+                }
+            }
+        }
+    }
+
+    return a;
+}
+
+
+watch.Restart();
+data10 = OddEvenSort(data10);
+
+watch.Stop();
+
+double t10 = watch.ElapsedMilliseconds;
+
+Console.WriteLine("Odd Even Sort[t={0}ms,correct={1}]:{2}", t10, SequenceEqual(data1, data10), string.Join(',', data10.Take(16)) + "...");
+
+double ef4 = (1.0 / t10 - 1.0 / t7) / (1.0 / t7);
+Console.WriteLine("Odd Even Sort Efficiency Boost:{0:F2}%", ef4 * 100.0);
+
+
+watch.Restart();
+//var data12 = new int[] { 3, 5, 2, 4, 1, 7, 8, 6, 12, 11, 10, 13, 15, 18, 16, 17 };
+data11 = FastOddEvenSort(data11);
+
+watch.Stop();
+
+double t11 = watch.ElapsedMilliseconds;
+
+Console.WriteLine("Fast Odd Even Sort[t={0}ms,correct={1}]:{2}", t11, SequenceEqual(data1, data11), string.Join(',', data11.Take(16)) + "...");
+
+double ef5 = (1.0 / t11 - 1.0 / t10) / (1.0 / t10);
+Console.WriteLine("Fast Odd Even Sort Efficiency Boost:{0:F2}%", ef5 * 100.0);
+
 
 Console.WriteLine("Finished.");
 Console.ReadKey();
