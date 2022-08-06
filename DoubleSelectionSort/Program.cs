@@ -6,6 +6,7 @@
 // Efficiency Boost:52.94%
 
 
+using DoubleSelectionSort;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.Intrinsics;
@@ -562,6 +563,33 @@ void QuickSort(int[] data, int low, int high)
         QuickSort(data, x + 1, high);
     }
 }
+void DoubleQuickSort(int[] data, int lower, int upper)
+{
+    if (lower >= upper) return;
+
+    int foreward = lower, backward = upper;
+    int smaller = data[foreward];
+    int bigger = data[backward];
+    if(bigger < smaller)
+    {
+        Swap(data, foreward, backward);
+        smaller = data[foreward];
+        bigger = data[backward];
+    }
+
+    while (data[backward] >= smaller && backward > foreward)
+        --backward;
+    //found the one much smaller than smaller one
+
+    while (data[foreward] <= bigger && backward > foreward)
+        ++foreward;
+    //found the one much bigger than the bigger one
+    int even_smaller = data[backward];
+    int even_bigger = data[foreward];
+
+
+}
+
 
 watch.Restart();
 
@@ -579,8 +607,7 @@ void StackQuickSort(int[] data)
     int low = 0;
     int high = data.Length - 1;
 
-    Stack<(int, int)> stack = new(32);
-
+    var stack = new Stack<(int, int)>(32);
 
     stack.Push((low, high));
 
@@ -651,7 +678,7 @@ int[] FastStackQuickSort(int[] data)
     int[] ys = new int[W];
     
 
-    Stack<(int[], int[])> stack = new();
+    LinkedListStack<(int[], int[])> stack = new();
     for(int q = 0; q < W; q++)
     {
         xs[q] = q;
@@ -825,7 +852,21 @@ int[] OddEvenSort(int[] a)
     }
     return a;
 }
-int[] interlace_indices = new int[] { 0, 2, 4, 6 };
+var interlace_indices_even = new int[] { 0, 2, 4, 6, 8, 10, 12, 14 };
+var interlace_indices_even_ext = new int[] { 2, 4, 6, 8, 10, 12, 14, 16 };
+var interlace_indices_even_skip = new int[] { 2, 4, 6, 8, 10, 12, 14, 0 };
+
+var interlace_indices_odd = new int[] { 1, 3, 5, 7, 9, 11, 13, 15 };
+
+unsafe bool ComparingSet(int* p, int v)
+{
+    var ret = (*p != v);
+    if (ret)
+    {
+        *p = v;
+    }
+    return ret;
+}
 unsafe int[] FastOddEvenSort(int[] a)
 {
     if(!Avx2.X64.IsSupported)
@@ -836,45 +877,101 @@ unsafe int[] FastOddEvenSort(int[] a)
     {
         return a;
     }
-    else if (a.Length < Vector<int>.Count)
+
+    var mod = a.Length % Vector256<int>.Count;
+
+    if (mod>0)
     {
-        var b = new int[Vector<int>.Count];
+        var b = new int[a.Length + Vector256<int>.Count - mod];
         Array.Copy(a, b, a.Length);
         a = b;
     }
 
-    var size = Vector<int>.Count;
-    var half = size >> 1;
-    fixed (int* pa = a, pi = interlace_indices)
+    var size = (byte)Vector256<int>.Count;
+    var half = (byte)(size >> 1);
+    var _dbl = (byte)(size << 1);
+
+    fixed (int* pa = a, po = interlace_indices_odd, pe = interlace_indices_even, ps = interlace_indices_even_skip,pt = interlace_indices_even_ext)
     {
-        var ie = Sse2.LoadVector128(pi); 
+        var iep = Avx.LoadVector256(pe);
+        var isp = Avx.LoadVector256(ps);
+        var ist = Avx.LoadVector256(pt);
+        var ieo = Avx.LoadVector256(po);
         for (var repeat = 0; repeat < a.Length; repeat++)
         {
-            var p = repeat % 2;
-            for (var part = 0; part < a.Length; part += size)
+            var any_even_set = false;
+            var any_odd_set = false;
+
+            for (var part = 0; part < a.Length; part += _dbl)
             {
-                var ve = Avx2.GatherVector128(pa + part + (p << 1), ie, 4);
-                var vo = Avx2.GatherVector128(pa + part + 1, ie, 4);
-                var re = p == 0 ? Sse2.CompareGreaterThan(ve, vo) : Sse2.CompareGreaterThan(vo, ve);
-                for (var i = 0; i < ((p == 1 && part + size == a.Length) ? half - 1 : half); i++)
+                var ptr = pa + part;
+
+                var veven = Avx2.GatherVector256(ptr, iep, half);
+                var vodd_ = Avx2.GatherVector256(ptr, ieo, half);
+
+                var min = Avx2.Min(vodd_, veven);
+                var max = Avx2.Max(vodd_, veven);
+                var upl = Avx2.UnpackLow(min, max);
+                var upll = upl.GetLower();
+                var uplh = upl.GetUpper();
+
+                var uph = Avx2.UnpackHigh(min, max);
+                var uphl = uph.GetLower();
+                var uphh = uph.GetUpper();
+
+                var uplx = Vector256.Create(upll, uphl);
+                var uphx = Vector256.Create(uplh, uphh);
+                Avx2.Store(ptr, uplx);
+                Avx2.Store(ptr + size, uphx);
+            }
+
+            for (var part = 0; part < a.Length; part += _dbl)
+            {
+                var ptr = pa + part;
+                var last = part + _dbl == a.Length;
+                //this is the last
+                var vskip = Avx2.GatherVector256(ptr, last ? isp : ist, half);
+                var vodd_ = Avx2.GatherVector256(ptr, ieo, half);
+
+                var min = Avx2.Min(vodd_, vskip);
+                var max = Avx2.Max(vodd_, vskip);
+                var ub = size - (last ? 1 : 0);
+                for (int i = 0; i < ub; i++)
                 {
-                    var v = Vector128.GetElement(re, i);
-                    var j = i << 1;
-                    if (v == -1)
-                    {
-                        Swap(a, part + p + j + 0, part + p + j + 1);
-                    }
+                    any_odd_set |= ComparingSet((ptr + i * 2 + 1), min.GetElement(i));
+                    any_odd_set |= ComparingSet((ptr + i * 2 + 2), max.GetElement(i));
+                }
+                if (last)
+                {
+                    any_odd_set |= ComparingSet((ptr + size * 2 - 1), vodd_.GetElement(size - 1));
                 }
             }
+            if (!(any_even_set||any_odd_set)) break;
         }
     }
 
     return a;
 }
 
+#if true
+data11 = new int[64];
+for (int i = 0; i < data11.Length; i++)
+{
+    data11[i] = Random.Shared.Next(data11.Length);
+}
+data1 = new int[data11.Length];
+
+data11.CopyTo(data1, 0);
+
+Array.Sort(data1);
+
+data10 = new int[data11.Length];
+data11.CopyTo(data10, 0);
+#endif
 
 watch.Restart();
 data10 = OddEvenSort(data10);
+Array.Sort(data10);
 
 watch.Stop();
 
@@ -887,7 +984,7 @@ Console.WriteLine("Odd Even Sort Efficiency Boost:{0:F2}%", ef4 * 100.0);
 
 
 watch.Restart();
-//var data12 = new int[] { 3, 5, 2, 4, 1, 7, 8, 6, 12, 11, 10, 13, 15, 18, 16, 17 };
+
 data11 = FastOddEvenSort(data11);
 
 watch.Stop();
