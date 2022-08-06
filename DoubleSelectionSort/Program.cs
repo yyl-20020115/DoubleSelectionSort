@@ -843,6 +843,8 @@ int[] OddEvenSort(int[] a)
         int p = c % 2;
         for (int d = 0; d < a.Length - p - p; d += 2)
         {
+            //this is for odd length
+            if (d + p + 1 >= a.Length) break;
             //this step should be in parallel
             if (a[d + p + 0] > a[d + p + 1])
             {
@@ -858,15 +860,14 @@ var interlace_indices_even_skip = new int[] { 2, 4, 6, 8, 10, 12, 14, 0 };
 
 var interlace_indices_odd = new int[] { 1, 3, 5, 7, 9, 11, 13, 15 };
 
-unsafe bool ComparingSet(int* p, int v)
-{
-    var ret = (*p != v);
-    if (ret)
-    {
-        *p = v;
-    }
-    return ret;
-}
+var ones = Vector256<int>.AllBitsSet;
+
+bool IsDifferent(ref Vector256<int> x, ref Vector256<int> y) =>
+    //if x[i]==y[i], result[i]=0xffffffff else result[i] = 0x00000000
+    //if any result[i]==0x00000000, x is different from y
+    //
+    !Avx2.TestZ(Avx2.Subtract(x, y), ones);
+
 unsafe int[] FastOddEvenSort(int[] a)
 {
     if(!Avx2.X64.IsSupported)
@@ -890,6 +891,7 @@ unsafe int[] FastOddEvenSort(int[] a)
     var size = (byte)Vector256<int>.Count;
     var half = (byte)(size >> 1);
     var _dbl = (byte)(size << 1);
+    var ones = Vector256<int>.AllBitsSet;
 
     fixed (int* pa = a, po = interlace_indices_odd, pe = interlace_indices_even, ps = interlace_indices_even_skip,pt = interlace_indices_even_ext)
     {
@@ -905,12 +907,15 @@ unsafe int[] FastOddEvenSort(int[] a)
             for (var part = 0; part < a.Length; part += _dbl)
             {
                 var ptr = pa + part;
+                var front = Avx.LoadVector256(ptr);
+                var later = Avx.LoadVector256(ptr + size);
 
                 var veven = Avx2.GatherVector256(ptr, iep, half);
                 var vodd_ = Avx2.GatherVector256(ptr, ieo, half);
 
                 var min = Avx2.Min(vodd_, veven);
                 var max = Avx2.Max(vodd_, veven);
+
                 var upl = Avx2.UnpackLow(min, max);
                 var upll = upl.GetLower();
                 var uplh = upl.GetUpper();
@@ -921,39 +926,98 @@ unsafe int[] FastOddEvenSort(int[] a)
 
                 var uplx = Vector256.Create(upll, uphl);
                 var uphx = Vector256.Create(uplh, uphh);
-                Avx2.Store(ptr, uplx);
-                Avx2.Store(ptr + size, uphx);
+
+                if (IsDifferent(ref uplx, ref front))
+                {
+                    any_even_set |= true;
+                    Avx.Store(ptr, uplx);
+                }
+                if (IsDifferent(ref uphx, ref later))
+                {
+                    any_even_set |= true;
+                    Avx.Store(ptr + size, uphx);
+                }
             }
 
             for (var part = 0; part < a.Length; part += _dbl)
             {
                 var ptr = pa + part;
-                var last = part + _dbl == a.Length;
+                var last = part + _dbl >= a.Length - 1;
                 //this is the last
                 var vskip = Avx2.GatherVector256(ptr, last ? isp : ist, half);
                 var vodd_ = Avx2.GatherVector256(ptr, ieo, half);
 
                 var min = Avx2.Min(vodd_, vskip);
                 var max = Avx2.Max(vodd_, vskip);
-                var ub = size - (last ? 1 : 0);
-                for (int i = 0; i < ub; i++)
+
+                if (!last)
                 {
-                    any_odd_set |= ComparingSet((ptr + i * 2 + 1), min.GetElement(i));
-                    any_odd_set |= ComparingSet((ptr + i * 2 + 2), max.GetElement(i));
+                    var front = Avx.LoadVector256(ptr + 1);
+                    var later = Avx.LoadVector256(ptr + 1 + size);
+
+                    var upl = Avx2.UnpackLow(min, max);
+                    var upll = upl.GetLower();
+                    var uplh = upl.GetUpper();
+
+                    var uph = Avx2.UnpackHigh(min, max);
+                    var uphl = uph.GetLower();
+                    var uphh = uph.GetUpper();
+
+                    var uplx = Vector256.Create(upll, uphl);
+                    var uphx = Vector256.Create(uplh, uphh);
+
+                    if (IsDifferent(ref uplx, ref front))
+                    {
+                        any_odd_set |= true;
+                        Avx.Store(ptr + 1, uplx);
+                    }
+                    if (IsDifferent(ref uphx,ref later))
+                    {
+                        any_odd_set |= true;
+                        Avx.Store(ptr + 1 + size, uphx);
+                    }
                 }
-                if (last)
+                else //last
                 {
-                    any_odd_set |= ComparingSet((ptr + size * 2 - 1), vodd_.GetElement(size - 1));
+                    for (int i = 0; i < size - 1; i++)
+                    {
+                        var v1 = *(ptr + i * 2 + 1);
+                        var v2 = *(ptr + i * 2 + 2);
+                     
+                        var v1_ = min.GetElement(i);
+                        var v2_ = max.GetElement(i);
+
+                        var b1 = v1 != v1_;
+                        var b2 = v2 != v2_;
+                        if (b1)
+                        {
+                            *(ptr + i * 2 + 1) = v1_;
+                        }
+                        if (b2)
+                        {
+                            *(ptr + i * 2 + 2) = v2_;
+                        }
+                        any_odd_set |= (b1||b2);
+                    }
+
+                    var vx = *(ptr + size * 2 - 1);
+                    var vy = vodd_.GetElement(size - 1);
+                    var bz = (vx != vy);
+                    any_odd_set |= bz;
+                    if (bz)
+                    {
+                        *(ptr + size * 2 - 1) = vy;
+                    }
                 }
             }
-            if (!(any_even_set||any_odd_set)) break;
+            if (!(any_even_set || any_odd_set)) break;
         }
     }
 
     return a;
 }
 
-#if true
+#if false
 data11 = new int[64];
 for (int i = 0; i < data11.Length; i++)
 {
