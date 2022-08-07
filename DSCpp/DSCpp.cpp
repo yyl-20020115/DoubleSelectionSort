@@ -81,7 +81,7 @@ void OddEvenSort(int* a,int n)
     }
 }
 
-void QuickSort(int* data, int low, int high)
+void QuickSortImpl(int* data, int low, int high)
 {
     if (low < high)
     {
@@ -99,21 +99,88 @@ void QuickSort(int* data, int low, int high)
                 data[j--] = data[i];
         }
         data[i] = k;
-        QuickSort(data, low, i - 1);
-        QuickSort(data, i + 1, high);
+        QuickSortImpl(data, low, i - 1);
+        QuickSortImpl(data, i + 1, high);
     }
 }
-
-typedef union _m256i_m128i
+void QuickSort(int data[], int n)
 {
-    __m256i m256;
-    struct _m128s
-    {
-        __m128i low;
-        __m128i high;
-    } m128s;
+    QuickSortImpl(data, 0, n - 1);
+}
 
-}__m256i_m128i;
+bool FastQuickSortImpl(int data[], int low, int high) {
+    const int stride = sizeof(__m512i) / sizeof(int);
+    int length = high - low + 1;
+    if (length % stride > 0) return false;
+ 
+    //do_print(data, length,true);
+    
+    if (low < high)
+    {
+        unsigned long index = 0;
+        int i = low, j = high;
+        int k = data[i];
+        __m512i t = _mm512_set1_epi32(data[i]);
+        while (i < j)
+        {
+            while (i < j)
+            {
+                //&& data[j] > k
+                __m512i ds = _mm512_loadu_epi32(data + j - stride + 1);
+                __mmask16 rt = _mm512_cmple_epi32_mask(ds, t);
+                //for (int p = 0; p < 16; p++) {
+                //    int* u = data + j - stride + p + 1;
+                //    if (rt & (1 << p)) {
+                //        printf("%d %d %08X<k(%d)\n",p, *u, *u, k);
+                //    }
+                //    else {
+                //        printf("%d %d %08X>=k(%d)\n", p, *u, *u, k);
+                //    }
+                //}
+
+                if (rt == 0) {
+                    j -= stride;
+                }
+                else {
+                    if (_BitScanReverse(&index, rt)) {
+                        j -= (stride - index - 1);
+                        break;
+                    }
+                }
+
+            }
+            if (i < j)
+                data[i++] = data[j];
+
+            while (i < j)
+            {
+                //&& data[i] <= k
+                __m512i ds = _mm512_loadu_epi32(data + i);
+                __mmask16 rt = _mm512_cmpgt_epi32_mask(ds, t);
+                if (rt == 0) {
+                    i += stride;
+                }
+                else {
+                    if (_BitScanForward(&index, rt)) {
+                        i += index;
+                        break;
+                    }
+                }
+            }
+            if (i < j)
+                data[j--] = data[i];
+        }
+        data[i] = k;
+        FastQuickSortImpl(data, low, i - 1);
+        FastQuickSortImpl(data, i + 1, high);
+    }
+    return true;
+}
+
+bool FastQuickSort(int data[], int n) 
+{
+    return FastQuickSortImpl(data, 0, n - 1);
+}
 
 const int po256[] = { 1, 3, 5, 7, 9, 11, 13, 15 };
 const int pe256[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
@@ -121,9 +188,6 @@ const int pt256[] = { 2, 4, 6, 8, 10, 12, 14, 16 };
 
 int* FastOddEvenSort256(int* t, int n)
 {
-    __m256i_m128i mixl = { 0 };
-    __m256i_m128i mixh = { 0 };
-
     const int size = sizeof(__m256i) / sizeof(int);
     const int last = size - 1;
     const int half = size >> 1;
@@ -208,18 +272,6 @@ int* FastOddEvenSort256(int* t, int n)
 
     return t;
 }
-
-
-typedef union _m512i_m256i 
-{
-    __m512i m512;
-    struct _m256s
-    {
-        __m256i low;
-        __m256i high;
-    } m256s;
-
-}__m512i_m256i;
 
 const int po512[] = { 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 };
 const int pe512[] = { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30 };
@@ -333,14 +385,16 @@ int* FastOddEvenSort512(int* t, int n)
 
 }
 
-const int DATA_SIZE = 4096;
+const int DATA_SIZE = 32;
 
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63 };
-int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31, };
+//int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31, };
+int data0[DATA_SIZE] = { 12,2,23,25,17,1,16,19,31,19,1,23,31,19,13,25,26,14,10,28,31,25,7,14,17,3,25,24,21,22,8,14 };
 int data1[DATA_SIZE] = { 0 };
 int data2[DATA_SIZE] = { 0 };
 int data3[DATA_SIZE] = { 0 };
 int data4[DATA_SIZE] = { 0 };
+int data5[DATA_SIZE] = { 0 };
 
 bool CheckSequence(int a[], int b[], int n) {
     for (int i = 0; i < n; i++) {
@@ -356,13 +410,15 @@ int main()
     {
         printf("original data(count = %d):\n",DATA_SIZE);
         for (int i = 0; i < DATA_SIZE; i++) {
-            data4[i]
+            data5[i]
+                = data4[i]
                 = data3[i]
                 = data2[i]
                 = data1[i]
-                = data0[i] //;
-                = (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
-            if (false) {
+                = data0[i] //
+                ;
+                //= (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
+            if (true) {
                 printf("%d ", data0[i]);
             }
         }
@@ -377,7 +433,7 @@ int main()
         }
         printf("time:%lf(ms)\n",
             ((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
-        if (false) {
+        if (true) {
             for (int i = 0; i < DATA_SIZE; i++) {
                 printf("%d ", data0[i]);
             }
@@ -389,7 +445,7 @@ int main()
         printf("for quick sort:\n");
         t0 = _Query_perf_counter();
         {
-            QuickSort(data1, 0, DATA_SIZE - 1);
+            QuickSort(data1,DATA_SIZE);
         }
         printf("time:%lf(ms)\n",
             ((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
@@ -399,6 +455,25 @@ int main()
         if (!c) {
             for (int i = 0; i < DATA_SIZE; i++) {
                 printf("%d ", data1[i]);
+            }
+        }
+        printf("\n\n");
+    }
+
+    {
+        printf("for fast quick sort:\n");
+        t0 = _Query_perf_counter();
+        {
+            FastQuickSort(data5, DATA_SIZE);
+        }
+        printf("time:%lf(ms)\n",
+            ((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+
+        bool c = CheckSequence(data0, data5, DATA_SIZE);
+        printf("correct:%s\n", c ? "true" : "false");
+        if (!c) {
+            for (int i = 0; i < DATA_SIZE; i++) {
+                printf("%d ", data5[i]);
             }
         }
         printf("\n\n");
