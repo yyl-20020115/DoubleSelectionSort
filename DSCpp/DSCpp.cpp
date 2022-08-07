@@ -65,13 +65,8 @@ const int po256[] = { 1, 3, 5, 7, 9, 11, 13, 15 };
 const int pe256[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
 const int pt256[] = { 2, 4, 6, 8, 10, 12, 14, 16 };
 
-void FastOddEvenSort256(int* a, int n)
+int* FastOddEvenSort256(int* t, int n)
 {
-    __m256i zeros = _mm256_setzero_si256();
-    __m256i ones = _mm256_cmpeq_epi32(zeros, zeros);
-    __m256i ipo = _mm256_loadu_epi32(po256);
-    __m256i ipe = _mm256_loadu_epi32(pe256);
-    __m256i ipt = _mm256_loadu_epi32(pt256);
     __m256i_m128i mix = { 0 };
 
     const int size = sizeof(mix) / sizeof(int);
@@ -80,7 +75,21 @@ void FastOddEvenSort256(int* a, int n)
     const int dbls = (size << 1);
     const int quad = dbls << 1;
 
-    int buff[4 * dbls] = { 0 };
+    if (n < dbls || n % dbls>0) {
+        std::sort(t, t + n);
+        return t;
+    }
+    int* a = new int[n + 1];
+    memcpy_s(a, (n) * sizeof(int), t, (n) * sizeof(int));
+    a[n] = 0;
+    
+    __m256i zeros = _mm256_setzero_si256();
+    __m256i ones = _mm256_cmpeq_epi32(zeros, zeros);
+    __m256i ipo = _mm256_loadu_epi32(po256);
+    __m256i ipe = _mm256_loadu_epi32(pe256);
+    __m256i ipt = _mm256_loadu_epi32(pt256);
+
+    int buff[2 * dbls + 2] = { 0 };
     
     for (int repeat = 0; repeat < n / 2; repeat++)
     {
@@ -172,17 +181,17 @@ void FastOddEvenSort256(int* a, int n)
             }
             {
                 any_odd_set |= true;
-                if (islast) {
-                    //NOTICE: this will take one extra integer outside of the array!
-                    _mm256_storeu_si256((__m256i*)(pur + size), uphx);
-                }
-                else {
-                    _mm256_storeu_si256((__m256i*)(pur + size), uphx);
-                }
+                _mm256_storeu_si256((__m256i*)(pur + size), uphx);
             }
         }
         if (!(any_odd_set || any_even_set)) break;
     }
+
+    memcpy_s(t, (n) * sizeof(int), a, (n) * sizeof(int));
+
+    delete[] a;
+
+    return t;
 }
 
 
