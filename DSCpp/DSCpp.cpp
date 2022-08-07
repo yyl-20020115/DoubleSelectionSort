@@ -110,14 +110,10 @@ void QuickSort(int data[], int n)
 
 bool FastQuickSortImpl(int data[], int low, int high) {
     const int stride = sizeof(__m512i) / sizeof(int);
-    int length = high - low + 1;
-    if (length % stride > 0) return false;
- 
-    //do_print(data, length,true);
-    
     if (low < high)
     {
         unsigned long index = 0;
+        int delta = 0;
         int i = low, j = high;
         int k = data[i];
         __m512i t = _mm512_set1_epi32(data[i]);
@@ -125,46 +121,36 @@ bool FastQuickSortImpl(int data[], int low, int high) {
         {
             while (i < j)
             {
-                //&& data[j] > k
                 __m512i ds = _mm512_loadu_epi32(data + j - stride + 1);
                 __mmask16 rt = _mm512_cmple_epi32_mask(ds, t);
-                //for (int p = 0; p < 16; p++) {
-                //    int* u = data + j - stride + p + 1;
-                //    if (rt & (1 << p)) {
-                //        printf("%d %d %08X<k(%d)\n",p, *u, *u, k);
-                //    }
-                //    else {
-                //        printf("%d %d %08X>=k(%d)\n", p, *u, *u, k);
-                //    }
-                //}
-
+                
                 if (rt == 0) {
-                    j -= stride;
+                    j = j - stride < i ? i : j - stride;
                 }
                 else {
                     if (_BitScanReverse(&index, rt)) {
-                        j -= (stride - index - 1);
-                        break;
+                        delta = stride - index - 1;
+                        j = j - delta < i ? i : j - delta;
                     }
+                    break;
                 }
-
             }
+            
             if (i < j)
                 data[i++] = data[j];
 
             while (i < j)
             {
-                //&& data[i] <= k
                 __m512i ds = _mm512_loadu_epi32(data + i);
                 __mmask16 rt = _mm512_cmpgt_epi32_mask(ds, t);
                 if (rt == 0) {
-                    i += stride;
+                    i = i + stride > j ? j : i + stride;
                 }
                 else {
                     if (_BitScanForward(&index, rt)) {
-                        i += index;
-                        break;
+                        i = i + index > j ? j : i + index;
                     }
+                    break;
                 }
             }
             if (i < j)
@@ -179,6 +165,9 @@ bool FastQuickSortImpl(int data[], int low, int high) {
 
 bool FastQuickSort(int data[], int n) 
 {
+    const int stride = sizeof(__m512i) / sizeof(int);
+    if (n % stride > 0) return false;
+
     return FastQuickSortImpl(data, 0, n - 1);
 }
 
@@ -385,7 +374,7 @@ int* FastOddEvenSort512(int* t, int n)
 
 }
 
-const int DATA_SIZE = 32;
+const int DATA_SIZE = 4096;
 
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31, };
@@ -405,6 +394,7 @@ bool CheckSequence(int a[], int b[], int n) {
 }
 int main()
 {
+    bool show = false;
     long long t0;
     srand((unsigned)time(0));
     {
@@ -416,9 +406,8 @@ int main()
                 = data2[i]
                 = data1[i]
                 = data0[i] //
-                ;
-                //= (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
-            if (true) {
+                = (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
+            if (show) {
                 printf("%d ", data0[i]);
             }
         }
@@ -433,7 +422,7 @@ int main()
         }
         printf("time:%lf(ms)\n",
             ((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
-        if (true) {
+        if (show) {
             for (int i = 0; i < DATA_SIZE; i++) {
                 printf("%d ", data0[i]);
             }
