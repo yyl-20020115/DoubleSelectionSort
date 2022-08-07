@@ -235,6 +235,8 @@ bool FastQuickSort256(int data[], int n)
 
     return FastQuickSortImpl512(data, 0, n - 1);
 }
+
+
 int HorizentalMin16(__m128i data, unsigned short* p) {
     __m128i result = _mm_minpos_epu16(data);
     if (p != 0) {
@@ -242,6 +244,7 @@ int HorizentalMin16(__m128i data, unsigned short* p) {
     }
     return result.m128i_i16[1] & 0x7;
 }
+
 int HorizentalMax16(__m128i data, unsigned short* p) {
     __m128i zero = _mm_setzero_si128();
     __m128i ones = _mm_cmpeq_epi32(zero, zero);
@@ -253,107 +256,17 @@ int HorizentalMax16(__m128i data, unsigned short* p) {
     }
     return result.m128i_i16[1] & 0x7;
 }
-int HorizentalMin32(__m256i data, unsigned int* p) {
-    __m128i zero = _mm_setzero_si128();
-    __m128i ones = _mm_cmpeq_epi32(zero, zero);
-    __m256i idx = _mm256_setr_epi16(0, 2, 4, 6, 8, 10, 12, 14,1,3,5,7,9,11,13,15);
 
-    __m256i r = _mm256_permutexvar_epi16(idx, data);
+//int HorizentalMin32(__m256i data, unsigned int* p) {
+//   
+//    /*_mm_i32scatter_epi32*/
+//    __m128i result = _mm_minpos_epu16(data);
+//    if (p != 0) {
+//        *p = result.m128i_i16[0];
+//    }
+//    return result.m128i_i16[1] & 0x7;
+//}
 
-    __m128i low = _mm256_extracti128_si256(r, 0);
-    __m128i high = _mm256_extracti128_si256(r, 1);
-    __m128i higher_value = _mm_minpos_epu16(high);
-    __m128i t = _mm_set1_epi16(higher_value.m128i_i16[0]);
-    __m128i mask = _mm_cmpeq_epi16(high, t);
-    __m128i _low = _mm_and_si128(low, mask);
-    __m128i _low_sub = _mm_sub_epi16(zero, _low);
-    __m128i _low_sub_inv = _mm_andnot_si128(_low_sub, ones);
-
-    __m128i lower_value = _mm_minpos_epu16(_low_sub_inv);
-
-    unsigned short lower_index = lower_value.m128i_i16[1];
-    
-    if (p != 0) {
-        unsigned int value = (r.m256i_i16[lower_index]) | (higher_value.m128i_i16[0] << 16);
-
-        *p = value;
-    }
-    return lower_index+8;
-}
-int HorizentalMax32(__m256i _data, unsigned int* p) {
-    __m128i zero = _mm_setzero_si128();
-    __m128i ones = _mm_cmpeq_epi32(zero, zero);
-
-    __m256i zero_ = _mm256_setzero_si256();
-    __m256i ones_ = _mm256_cmpeq_epi32(zero_, zero_);
-
-    __m256i data = _mm256_sub_epi32(ones_, _data);
-    
-    __m256i idx = _mm256_setr_epi16(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
-
-    __m256i r = _mm256_permutexvar_epi16(idx, data);
-
-    __m128i low = _mm256_extracti128_si256(r, 0);
-    __m128i high = _mm256_extracti128_si256(r, 1);
-    __m128i higher_value = _mm_minpos_epu16(high);
-    __m128i t = _mm_set1_epi16(higher_value.m128i_i16[0]);
-    __m128i mask = _mm_cmpeq_epi16(high, t);
-    __m128i _low = _mm_and_si128(low, mask);
-    //__m128i _low_sub = _mm_sub_epi16(zero, _low);
-    __m128i _low_sub_inv = _mm_andnot_si128(_low, ones);
-
-    __m128i lower_value = _mm_minpos_epu16(_low_sub_inv);
-
-    unsigned short lower_index = lower_value.m128i_i16[1];
-
-    if (p != 0) {
-        unsigned int value = (~r.m256i_i16[lower_index]) | (~higher_value.m128i_i16[0] << 16);
-
-        *p = value;
-    }
-    return 8 - 1 - lower_index;
-}
-int HorizentalMin32(__m512i _data, unsigned int* p)
-{
-    __m256i low = _mm512_extracti32x8_epi32(_data, 0);
-    __m256i high = _mm512_extracti32x8_epi32(_data, 1);
-
-    unsigned int lv = 0;
-    unsigned int hv = 0;
-
-    int li = HorizentalMin32(low, &lv);
-    int hi = HorizentalMin32(low, &hv);
-    if (lv <= hv) {
-        if (p != 0)*p = lv;
-        return li;
-    }
-    else //hv<lv
-    {
-        if (p != 0)*p = hv;
-        return hi;
-    }
-}
-int HorizentalMax32(__m512i _data, unsigned int* p)
-{
-    __m256i low = _mm512_extracti32x8_epi32(_data, 0);
-    __m256i high = _mm512_extracti32x8_epi32(_data, 1);
-
-    unsigned int lv = 0;
-    unsigned int hv = 0;
-
-    int li = HorizentalMax32(low, &lv);
-    int hi = HorizentalMax32(low, &hv);
-    if (lv < hv) {
-        if (p != 0)*p = hv;
-        return hi;
-    }
-    else //hv<=lv
-    {
-        if (p != 0)*p = lv;
-        return li;
-    }
-
-}
 
 const int po256[] = { 1, 3, 5, 7, 9, 11, 13, 15 };
 const int pe256[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
@@ -513,29 +426,12 @@ bool CheckSequence(int a[], int b[], int n) {
 }
 int main()
 {
-    __m128i data16 = _mm_set_epi16(5, 3, 1, 4, 2, 9, 7, 6); //0 is last
-    __m256i data32 = _mm256_set_epi32(
-        0x00050055, 
-        0x00240044, 
-        0x00060066, 
-        0x00090099,
-        0x00010033,
-        0x00020011,
-        0x00170077,
-        0x00030033
-        );
-    unsigned short r16 = 0;
-    unsigned int r32 = 0;
+    __m128i data = _mm_set_epi16(5, 3, 1, 4, 2, 9, 7, 6); //0 is last
+    unsigned short r = 0;
 
-    int i = 0;
-    i = HorizentalMin16(data16, &r16);
+    int i = HorizentalMin16(data, &r);
 
-    i = HorizentalMax16(data16, &r16);
-
-    i = HorizentalMin32(data32, &r32);
-
-    i = HorizentalMax32(data32, &r32);
-
+    i = HorizentalMax16(data, &r);
 
     bool show = false;
     long long t0;

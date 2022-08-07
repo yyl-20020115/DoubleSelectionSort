@@ -913,7 +913,7 @@ unsafe int[] FastOddEvenSort(int[] t)
 
                 var min = Avx2.Min(vodd_, veven);
                 var max = Avx2.Max(vodd_, veven);
-
+                
                 var upl = Avx2.UnpackLow(min, max);
                 var upll = upl.GetLower();
                 var uplh = upl.GetUpper();
