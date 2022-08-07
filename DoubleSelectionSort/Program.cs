@@ -538,12 +538,12 @@ Console.WriteLine("Fast Single Selection Sort Efficiency Boost:{0:F2}%", ef2 * 1
 ///
 ///Quick Sort
 ///
-
-void QuickSort(int[] data, int low = -1, int high = -1)
+void QuickSort(int[] data)
 {
-    low = low < 0 ? 0 : low;
-    high = high < 0 ? data.Length - 1 : high;
-
+    QuickSortImpl(data, 0, data.Length - 1);
+}
+void QuickSortImpl(int[] data, int low, int high)
+{
     if (low < high)
     {
         int i = low, j = high;
@@ -560,8 +560,8 @@ void QuickSort(int[] data, int low = -1, int high = -1)
                 data[j--] = data[i];
         }
         data[i] = k;
-        QuickSort(data, low, i - 1);
-        QuickSort(data, i + 1, high);
+        QuickSortImpl(data, low, i - 1);
+        QuickSortImpl(data, i + 1, high);
     }
 }
 void DoubleQuickSort(int[] data, int lower, int upper)
@@ -594,7 +594,7 @@ void DoubleQuickSort(int[] data, int lower, int upper)
 
 watch.Restart();
 
-QuickSort(data4, 0, data4.Length - 1);
+QuickSort(data4);
 
 watch.Stop();
 
@@ -856,7 +856,7 @@ int[] OddEvenSort(int[] a)
     return a;
 }
 
-unsafe int[] FastOddEvenSort(int[] a)
+unsafe int[] FastOddEvenSort(int[] t)
 {
     var interlace_indices_even = new int[] { 0, 2, 4, 6, 8, 10, 12, 14 };
     var interlace_indices_even_ext = new int[] { 2, 4, 6, 8, 10, 12, 14, 16 };
@@ -870,25 +870,23 @@ unsafe int[] FastOddEvenSort(int[] a)
     var quad = (byte)@double << 1;
     if (!Avx2.X64.IsSupported)
     {
-        return a;
+        return t;
     }
-    else if(a.Length == 0)
+    else if(t.Length == 0)
     {
-        return a;
+        return t;
     }
-    else if (a.Length < @double)
+    else if (t.Length < @double || t.Length % @double>0)
     {
-        Array.Sort(a);
-        return a;
+        Array.Sort(t);
+        return t;
     }
-    
+    var a = t;
     var mod = a.Length % @double;
-
-    if (mod>0)
+    if (mod == 0)
     {
-        var b = new int[a.Length + @double - mod];
-        Array.Copy(a, b, a.Length);
-        a = b;
+        a = new int[a.Length + 1];
+        Array.Copy(t, a, t.Length);
     }
 
     var buff = new int[@double + 1]; 
@@ -901,12 +899,12 @@ unsafe int[] FastOddEvenSort(int[] a)
         var ipe = Avx.LoadVector256(pe);
         var ipt = Avx.LoadVector256(pt);
         var ipo = Avx.LoadVector256(po);
-        for (var repeat = 0; repeat < a.Length/2; repeat++)
+        for (var repeat = 0; repeat < t.Length/2; repeat++)
         {
             var any_even_set = false;
             var any_odd_set = false;
 
-            for (var part = 0; part < a.Length; part += @double)
+            for (var part = 0; part < t.Length; part += @double)
             {
                 var ptr = pa + part;
 
@@ -942,9 +940,9 @@ unsafe int[] FastOddEvenSort(int[] a)
                     any_even_set |= true;
                 }
             }
-            for (var part = 0; part < a.Length; part += @double)
+            for (var part = 0; part < t.Length; part += @double)
             {
-                var islast = @double >= a.Length - part - 1;
+                var islast = @double >= t.Length - part - 1;
 
                 //this is the last
                 if (islast)
@@ -990,8 +988,12 @@ unsafe int[] FastOddEvenSort(int[] a)
             if (!(any_odd_set || any_even_set)) break;
         }
     }
+    if (a != t)
+    {
+        Array.Copy(a, t, t.Length);
+    }
 
-    return a;
+    return t;
 }
 
 #if false

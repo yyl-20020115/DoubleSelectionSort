@@ -80,8 +80,8 @@ void FastOddEvenSort256(int* a, int n)
     const int dbls = (size << 1);
     const int quad = dbls << 1;
 
-    int buff[2 * dbls] = { 0 };
-
+    int buff[4 * dbls] = { 0 };
+    
     for (int repeat = 0; repeat < n / 2; repeat++)
     {
         bool any_even_set = false;
@@ -117,16 +117,10 @@ void FastOddEvenSort256(int* a, int n)
 
             __m256i uphx = mix.m256;
 
-            __m256i lx = _mm256_lddqu_si256((__m256i*)(ptr + 0));
-            __m256i hx = _mm256_lddqu_si256((__m256i*)(ptr + size));
-            
-            if (!_mm256_testz_si256(_mm256_sub_epi32(uplx, lx), ones))
             {
                 _mm256_storeu_si256((__m256i*)ptr, uplx);
                 any_even_set |= true;
             }
-
-            if (!_mm256_testz_si256(_mm256_sub_epi32(uphx, hx), ones))
             {
                 _mm256_storeu_si256((__m256i*)(ptr + size), uphx);
                 any_even_set |= true;
@@ -136,14 +130,13 @@ void FastOddEvenSort256(int* a, int n)
         {
             bool islast = dbls >= n - part - 1;
 
-            //this is the last
             if (islast)
             {
                 memcpy_s(buff, sizeof(buff), a + part, dbls * sizeof(int));
                 buff[dbls] = buff[dbls - 1];
             }
-
             int* par = a + part;
+
             int* ptr = islast ? buff : par;
 
             __m256i veven = _mm256_i32gather_epi32(ptr, ipt, half);
@@ -171,40 +164,21 @@ void FastOddEvenSort256(int* a, int n)
             mix.m128s.high = uphh;
 
             __m256i uphx = mix.m256;
-            __m256i uphc = uphx;
-
-            __m256i lx = _mm256_lddqu_si256((__m256i*)(ptr + 0));
-            __m256i hx = _mm256_lddqu_si256((__m256i*)(ptr + size));
-
-            if (islast) {
-                uphc.m256i_u32[size - 1] = 0;
-                hx.m256i_u32[size - 1] = 0;
-            }
-
-            if (!_mm256_testz_si256(_mm256_sub_epi32(uplx, lx), ones))
-            {
-                _mm256_storeu_si256((__m256i*)(a + part + 1), uplx);
-                any_odd_set |= true;
-            }
-            if (!_mm256_testz_si256(_mm256_sub_epi32(uphc, hx), ones))
+            
+            int* pur = (islast ? par + 1 : ptr + 1);
             {
                 any_odd_set |= true;
-
-                _mm256_storeu_si256((__m256i*)(buff), uphx);
+                _mm256_storeu_si256((__m256i*)(pur), uplx);
+            }
+            {
+                any_odd_set |= true;
                 if (islast) {
-                    memcpy_s(a + part + 1,
-                        (dbls - 2) * sizeof(int),
-                        buff, 
-                        (dbls - 2) * sizeof(int)
-                    );
+                    //NOTICE: this will take one extra integer outside of the array!
+                    _mm256_storeu_si256((__m256i*)(pur + size), uphx);
                 }
                 else {
-                    memcpy_s(a + part + 1,
-                        dbls * sizeof(int),
-                        buff,
-                        dbls * sizeof(int)
-                    );
-                }            
+                    _mm256_storeu_si256((__m256i*)(pur + size), uphx);
+                }
             }
         }
         if (!(any_odd_set || any_even_set)) break;
@@ -280,20 +254,11 @@ void FastOddEvenSort512(int* a, int n)
 
             __m512i uphx = mix.m512;
 
-            __m256i fl = _mm256_lddqu_si256((__m256i*)(ptr + 0));
-            __m256i fh = _mm256_lddqu_si256((__m256i*)(ptr + half));
-            __m256i ll = _mm256_lddqu_si256((__m256i*)(ptr + size));
-            __m256i lh = _mm256_lddqu_si256((__m256i*)(ptr + size + half));
-
-            if (!_mm256_testz_si256(_mm256_cmpeq_epi32(upll, fl), ones)
-                || !_mm256_testz_si256(_mm256_cmpeq_epi32(uplh, fh), ones))
             {
                 _mm512_storeu_si512(ptr, uplx);
                 any_even_set |= true;
             }
 
-            if (!_mm256_testz_si256(_mm256_cmpeq_epi32(uphl, ll), ones)
-                || !_mm256_testz_si256(_mm256_cmpeq_epi32(uphh, lh), ones))
             {
                 _mm512_storeu_si512(ptr + size, uphx);
                 any_even_set |= true;
@@ -303,7 +268,6 @@ void FastOddEvenSort512(int* a, int n)
         {
             bool islast = dbls >= n - part - 1;
 
-            //this is the last
             if (islast)
             {
                 memcpy_s(buff, sizeof(buff), a + part, dbls * sizeof(int));
@@ -312,7 +276,6 @@ void FastOddEvenSort512(int* a, int n)
 
             int* par = a + part;
             int* ptr = islast ? buff : par;
-            int* pur = (islast ? par + 1 : ptr + 1);
 
             __m512i veven = _mm512_i32gather_epi32(ipt, ptr, half);
             __m512i vodd_ = _mm512_i32gather_epi32(ipo, ptr, half);
@@ -339,36 +302,31 @@ void FastOddEvenSort512(int* a, int n)
             mix.m256s.high = uphh;
 
             __m512i uphx = mix.m512;
-
-            __m256i fl = _mm256_lddqu_si256((__m256i*)(ptr + 0));
-            __m256i fh = _mm256_lddqu_si256((__m256i*)(ptr + half));
-            __m256i ll = _mm256_lddqu_si256((__m256i*)(ptr + size));
-            __m256i lh = _mm256_lddqu_si256((__m256i*)(ptr + size + half));
-
-            if (!_mm256_testz_si256(_mm256_cmpeq_epi32(upll, fl), ones)
-                || !_mm256_testz_si256(_mm256_cmpeq_epi32(uplh, fh), ones))
+            int* pur = (islast ? par + 1 : ptr + 1);
             {
                 _mm512_storeu_si512(pur, uplx);
                 any_odd_set |= true;
             }
-            if (!_mm256_testz_si256(_mm256_cmpeq_epi32(uphl, ll), ones)
-                || !_mm256_testz_si256(_mm256_cmpeq_epi32(uphh, lh), ones))
             {
                 _mm512_storeu_si512(pur + size, uphx);
+                long long dx = pur + size + size - a - n;
+                if (dx > 0) {
+                    dx = dx;
+                }
                 any_odd_set |= true;
-                //TODO:
             }
         }
         if (!(any_odd_set || any_even_set)) break;
     }
 }
 
-const int DATA_SIZE = 128;
+const int DATA_SIZE = 4096;
 
 int data0[DATA_SIZE] = { 0 };
 int data1[DATA_SIZE] = { 0 };
 int data2[DATA_SIZE] = { 0 };
 int data3[DATA_SIZE] = { 0 };
+int data4[DATA_SIZE] = { 0 };
 
 bool CheckSequence(int a[], int b[], int n) {
     for (int i = 0; i < n; i++) {
@@ -382,14 +340,17 @@ int main()
     long long t0;
     srand((unsigned)time(0));
     {
-        printf("original data:\n");
+        printf("original data(count = %d):\n",DATA_SIZE);
         for (int i = 0; i < DATA_SIZE; i++) {
-            data3[i]
+            data4[i]
+                = data3[i]
                 = data2[i]
                 = data1[i]
                 = data0[i]
                 = (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
-            printf("%d ", data0[i]);
+            if (false) {
+                printf("%d ", data0[i]);
+            }
         }
         printf("\n\n");
     }
@@ -402,9 +363,10 @@ int main()
         }
         printf("time:%lf(ms)\n",
             ((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
-
-        for (int i = 0; i < DATA_SIZE; i++) {
-            printf("%d ", data0[i]);
+        if (false) {
+            for (int i = 0; i < DATA_SIZE; i++) {
+                printf("%d ", data0[i]);
+            }
         }
         printf("\n\n");
     }
@@ -418,9 +380,12 @@ int main()
         printf("time:%lf(ms)\n",
             ((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
 
-        printf("correct:%s\n", CheckSequence(data0, data1, DATA_SIZE) ? "true" : "false");
-        for (int i = 0; i < DATA_SIZE; i++) {
-            printf("%d ", data1[i]);
+        bool c = CheckSequence(data0, data1, DATA_SIZE);
+        printf("correct:%s\n", c ? "true" : "false");
+        if (!c) {
+            for (int i = 0; i < DATA_SIZE; i++) {
+                printf("%d ", data1[i]);
+            }
         }
         printf("\n\n");
     }
@@ -430,15 +395,17 @@ int main()
         t0 = _Query_perf_counter();
         printf("for odd even sort:\n");
         {
-            OddEvenSort(data1, DATA_SIZE);
-            //        QuickSort(data1, 0, DATA_SIZE);
+            OddEvenSort(data2, DATA_SIZE);
         }
         printf("time:%lf(ms)\n",
             ((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
 
-        printf("correct:%s\n", CheckSequence(data0, data1, DATA_SIZE) ? "true" : "false");
-        for (int i = 0; i < DATA_SIZE; i++) {
-            printf("%d ", data1[i]);
+        bool c = CheckSequence(data0, data2, DATA_SIZE);
+        printf("correct:%s\n", c ? "true" : "false");
+        if (!c) {
+            for (int i = 0; i < DATA_SIZE; i++) {
+                printf("%d ", data2[i]);
+            }
         }
         printf("\n\n");
     }
@@ -447,17 +414,20 @@ int main()
         printf("for fast odd even sort 256:\n");
         t0 = _Query_perf_counter();
         {
-            FastOddEvenSort256(data2, DATA_SIZE);
+            FastOddEvenSort256(data3, DATA_SIZE);
         }
         printf("time:%lf(ms)\n",
             ((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
-        printf("correct:%s\n", CheckSequence(data0, data2, DATA_SIZE) ? "true" : "false");
+        bool b = CheckSequence(data0, data3, DATA_SIZE);
 
-        for (int i = 0; i < DATA_SIZE; i++) {
-            printf("%d ", data2[i]);
+        printf("correct:%s\n", b ? "true" : "false");
+        if (!b)
+        {
+            for (int i = 0; i < DATA_SIZE; i++) {
+                printf("%d ", data3[i]);
+            }
         }
         printf("\n\n");
-
     }
 
 
@@ -465,15 +435,17 @@ int main()
         printf("for fast odd even sort 512:\n");
         t0 = _Query_perf_counter();
         {
-            FastOddEvenSort512(data3, DATA_SIZE);
+            FastOddEvenSort512(data4, DATA_SIZE);
         }
         printf("time:%lf(ms)\n",
             ((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
-
-        printf("correct:%s\n", CheckSequence(data0, data2, DATA_SIZE) ? "true" : "false");
-
-        for (int i = 0; i < DATA_SIZE; i++) {
-            printf("%d ", data2[i]);
+        bool b = CheckSequence(data0, data4, DATA_SIZE);
+        printf("correct:%s\n", b ? "true" : "false");
+        if (!b) 
+        {
+            for (int i = 0; i < DATA_SIZE; i++) {
+                printf("%d ", data4[i]);
+            }
         }
         printf("\n\n");
     }
