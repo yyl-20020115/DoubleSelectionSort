@@ -149,9 +149,6 @@ int* FastOddEvenSort256(int* t, int n)
     
     for (int repeat = 0; repeat < n / 2; repeat++)
     {
-        bool any_even_set = false;
-        bool any_odd_set = false;
-
         for (int part = 0; part < n; part += dbls)
         {
             int* ptr = a + part;
@@ -165,24 +162,11 @@ int* FastOddEvenSort256(int* t, int n)
             __m256i upl = _mm256_unpacklo_epi32(min, max);
             __m256i uph = _mm256_unpackhi_epi32(min, max);
 
-            _mm256_storeu_epi32(&mixl, upl);
-            _mm256_storeu_epi32(&mixh, uph);
-
-            __m128i upll = mixl.m128s.low;
-            __m128i uplh = mixl.m128s.high;
-
-            __m128i uphl = mixh.m128s.low;
-            __m128i uphh = mixh.m128s.high;
-
-            mixl.m128s.low = upll;
-            mixl.m128s.high = uphl;
-            mixh.m128s.low = uplh;
-            mixh.m128s.high = uphh;
-
             {
-                _mm256_storeu_si256((__m256i*)(ptr + 0), mixl.m256);
-                _mm256_storeu_si256((__m256i*)(ptr + size), mixh.m256);
-                any_even_set |= true;
+                _mm_storeu_epi32((ptr + 0), _mm256_extracti128_si256(upl, 0));
+                _mm_storeu_epi32((ptr + 4), _mm256_extracti128_si256(uph, 0));
+                _mm_storeu_epi32((ptr + 8), _mm256_extracti128_si256(upl, 1));
+                _mm_storeu_epi32((ptr + 12), _mm256_extracti128_si256(uph, 1));
             }
         }
         for (int part = 0; part < n; part += dbls)
@@ -197,6 +181,7 @@ int* FastOddEvenSort256(int* t, int n)
             int* par = a + part;
 
             int* ptr = islast ? buff : par;
+            int* pur = (islast ? par + 1 : ptr + 1);
 
             __m256i veven = _mm256_i32gather_epi32(ptr, ipt, skip);
             __m256i vodd_ = _mm256_i32gather_epi32(ptr, ipo, skip);
@@ -207,28 +192,14 @@ int* FastOddEvenSort256(int* t, int n)
             __m256i upl = _mm256_unpacklo_epi32(min, max);
             __m256i uph = _mm256_unpackhi_epi32(min, max);
 
-            _mm256_storeu_epi32(&mixl, upl);
-            _mm256_storeu_epi32(&mixh, uph);
-
-            __m128i upll = mixl.m128s.low;
-            __m128i uplh = mixl.m128s.high;
-
-            __m128i uphl = mixh.m128s.low;
-            __m128i uphh = mixh.m128s.high;
-
-            mixl.m128s.low = upll;
-            mixl.m128s.high = uphl;
-            mixh.m128s.low = uplh;
-            mixh.m128s.high = uphh;
-
-            int* pur = (islast ? par + 1 : ptr + 1);
+            ptr = pur;
             {
-                _mm256_storeu_si256((__m256i*)(pur + 0), mixl.m256);
-                _mm256_storeu_si256((__m256i*)(pur + size), mixh.m256);
-                any_odd_set |= true;
+                _mm_storeu_epi32((ptr + 0), _mm256_extracti128_si256(upl, 0));
+                _mm_storeu_epi32((ptr + 4), _mm256_extracti128_si256(uph, 0));
+                _mm_storeu_epi32((ptr + 8), _mm256_extracti128_si256(upl, 1));
+                _mm_storeu_epi32((ptr + 12), _mm256_extracti128_si256(uph, 1));
             }
         }
-        if (!(any_odd_set || any_even_set)) break;
     }
 
     memcpy_s(t, (n) * sizeof(int), a, (n) * sizeof(int));
@@ -254,25 +225,8 @@ const int po512[] = { 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 
 const int pe512[] = { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30 };
 const int pt512[] = { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 };
 
-
-__m256i Make256(__m128i& low, __m128i& high) {
-    __m256i_m128i m = { 0 };
-    m.m128s.low = low;
-    m.m128s.high = high;
-    return m.m256;
-}
-__m512i Make512(__m256i& low, __m256i& high) {
-    __m512i_m256i m = { 0 };
-    m.m256s.low = low;
-    m.m256s.high = high;
-    return m.m512;
-}
-
 int* FastOddEvenSort512(int* t, int n)
 {
-    __m512i_m256i mixl = { 0 };
-    __m512i_m256i mixh = { 0 };
-
     const int size = sizeof(__m512i) / sizeof(int);
     const int last = size - 1;
     const int half = size >> 1;
@@ -298,9 +252,6 @@ int* FastOddEvenSort512(int* t, int n)
 
     for (int repeat = 0; repeat < n / 2; repeat++)
     {
-        bool any_even_set = false;
-        bool any_odd_set = false;
-
         for (int part = 0; part < n; part += dbls)
         {
             int* ptr = a + part;
@@ -329,8 +280,6 @@ int* FastOddEvenSort512(int* t, int n)
                 _mm_storeu_epi32((ptr + 20), _mm256_extracti128_si256(uphh, 0));
                 _mm_storeu_epi32((ptr + 24), _mm256_extracti128_si256(uplh, 1));
                 _mm_storeu_epi32((ptr + 28), _mm256_extracti128_si256(uphh, 1));
-
-                any_even_set |= true;
             }
         }
         for (int part = 0; part < n; part += dbls)
@@ -350,6 +299,8 @@ int* FastOddEvenSort512(int* t, int n)
             __m512i veven = _mm512_i32gather_epi32(ipt, ptr, skip);
             __m512i vodd_ = _mm512_i32gather_epi32(ipo, ptr, skip);
 
+            ptr = pur;
+
             __m512i min = _mm512_min_epi32(vodd_, veven);
             __m512i max = _mm512_max_epi32(vodd_, veven);
 
@@ -361,7 +312,6 @@ int* FastOddEvenSort512(int* t, int n)
             __m256i uphl = _mm512_extracti32x8_epi32(uph, 0);
             __m256i uphh = _mm512_extracti32x8_epi32(uph, 1);
 
-            ptr = pur;
             {
                 _mm_storeu_epi32((ptr + 0), _mm256_extracti128_si256(upll, 0));
                 _mm_storeu_epi32((ptr + 4), _mm256_extracti128_si256(uphl, 0));
@@ -371,10 +321,8 @@ int* FastOddEvenSort512(int* t, int n)
                 _mm_storeu_epi32((ptr + 20), _mm256_extracti128_si256(uphh, 0));
                 _mm_storeu_epi32((ptr + 24), _mm256_extracti128_si256(uplh, 1));
                 _mm_storeu_epi32((ptr + 28), _mm256_extracti128_si256(uphh, 1));
-                any_odd_set |= true;
             }
         }
-        if (!(any_odd_set || any_even_set)) break;
     }
 
     memcpy_s(t, (n) * sizeof(int), a, (n) * sizeof(int));
