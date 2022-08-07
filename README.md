@@ -15,6 +15,15 @@ Double Selection Sort Algorithm
   
   the selections 5 times faster.
 
+NEW:
+Almost all kinds of sorting algorithms included.
+Mostly in C#. 
+Timing is used to compare the speed efficiency.
+
+NEW:
+AVX2 verson of Odd Even Sort in C#, and
+AVX2 and AVX512 versions of Odd Even Sort algorithm added in C++ project.
+
 
 Please check the source code.
 
