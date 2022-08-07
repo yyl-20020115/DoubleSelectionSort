@@ -538,29 +538,30 @@ Console.WriteLine("Fast Single Selection Sort Efficiency Boost:{0:F2}%", ef2 * 1
 ///
 ///Quick Sort
 ///
-void QuickSort(int[] data, int low, int high)
-{
-    if (low >= high) return;
 
-    int x = low, y = high;
-    int key = data[x];
-    while (x < y)
+void QuickSort(int[] data, int low = -1, int high = -1)
+{
+    low = low < 0 ? 0 : low;
+    high = high < 0 ? data.Length - 1 : high;
+
+    if (low < high)
     {
-        while (data[y] >= key && y > x)
-            --y;
-        data[x] = data[y];
-        while (data[x] <= key && y > x)
-            ++x;
-        data[y] = data[x];
-    }
-    data[x] = key;
-    if (low < x - 1)
-    {
-        QuickSort(data, low, x - 1);
-    }
-    if (x + 1 < high)
-    {
-        QuickSort(data, x + 1, high);
+        int i = low, j = high;
+        int k = data[i];
+        while (i < j)
+        {
+            while (i < j && data[j] > k)
+                --j;
+            if (i < j)
+                data[i++] = data[j];
+            while (i < j && data[i] <= k)
+                ++i;
+            if (i < j)
+                data[j--] = data[i];
+        }
+        data[i] = k;
+        QuickSort(data, low, i - 1);
+        QuickSort(data, i + 1, high);
     }
 }
 void DoubleQuickSort(int[] data, int lower, int upper)
