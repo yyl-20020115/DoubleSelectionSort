@@ -744,6 +744,81 @@ inline int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
     return -1;
 }
 
+int AVX2_Sum(int data[], size_t size)
+{
+    const int stride = sizeof(__m256i) / sizeof(int);
+    int sum[stride] = { 0 };
+    __m256i sum256 = _mm256_setzero_si256();
+    __m256i load256 = _mm256_setzero_si256();
+    for (size_t i = 0; i < size; i += stride)
+    {
+        load256 = _mm256_loadu_si256((__m256i*) & data[i]);
+        sum256 = _mm256_add_epi32(sum256, load256);
+    }
+    sum256 = _mm256_hadd_epi32(sum256, sum256);
+    sum256 = _mm256_hadd_epi32(sum256, sum256);
+    _mm256_storeu_si256((__m256i*)sum, sum256);
+    return sum[0] + sum[4];
+}
+int AVX2_SUM(long long data[], size_t size)
+{
+    const int stride = sizeof(__m256i) / sizeof(int);
+    long long sum[stride] = { 0 };
+    __m256i sum256 = _mm256_setzero_si256();
+    __m256i load256 = _mm256_setzero_si256();
+    for (size_t i = 0; i < size; i += stride)
+    {
+        load256 = _mm256_loadu_si256((__m256i*) & data[i]);
+        sum256 = _mm256_add_epi64(sum256, load256);
+    }
+    _mm256_storeu_si256((__m256i*)sum, sum256);
+    return sum[0] + sum[1] + sum[2] + sum[3];
+}
+
+int AVX512_Sum(int data[], size_t size)
+{
+    const int stride = sizeof(__m512i) / sizeof(int);
+    int sum[stride] = { 0 };
+    __m512i sum512 = _mm512_setzero_si512();
+    __m512i load512 = _mm512_setzero_si512();
+    for (size_t i = 0; i < size; i += stride)
+    {
+        load512 = _mm512_loadu_si512((__m512i*) & data[i]);
+        sum512 = _mm512_add_epi32(sum512, load512);
+    }
+    __m256i sum256_low = _mm512_extracti32x8_epi32(sum512, 0);
+    __m256i sum256_high = _mm512_extracti32x8_epi32(sum512, 1);
+
+    sum256_low = _mm256_hadd_epi32(sum256_low, sum256_low);
+    sum256_low = _mm256_hadd_epi32(sum256_low, sum256_low);
+    
+    sum256_high = _mm256_hadd_epi32(sum256_high, sum256_high);
+    sum256_high = _mm256_hadd_epi32(sum256_high, sum256_high);
+
+    __m256i sum256_full = _mm256_add_epi32(sum256_low, sum256_high);
+    _mm256_storeu_si256((__m256i*)sum, sum256_full);
+    
+    return sum[0] + sum[4];
+}
+int AVX512_SUM(long long data[], size_t size)
+{
+    const int stride = sizeof(__m512i) / sizeof(int);
+    int sum[stride>>1] = { 0 };
+    __m512i sum512 = _mm512_setzero_si512();
+    __m512i load512 = _mm512_setzero_si512();
+    for (size_t i = 0; i < size; i += stride)
+    {
+        load512 = _mm512_loadu_si512((__m512i*) & data[i]);
+        sum512 = _mm512_add_epi64(sum512, load512);
+    }
+    __m256i sum256_low = _mm512_extracti64x4_epi64(sum512, 0);
+    __m256i sum256_high = _mm512_extracti64x4_epi64(sum512, 1);
+    __m256i sum256_full = _mm256_add_epi64(sum256_low, sum256_high);
+    _mm256_storeu_si256((__m256i*)sum, sum256_full);
+
+    return sum[0] + sum[1] + sum[2] + sum[3];
+}
+
 
 const int po256[] = { 1, 3, 5, 7, 9, 11, 13, 15 };
 const int pe256[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
