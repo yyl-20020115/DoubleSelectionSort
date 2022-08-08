@@ -261,7 +261,7 @@ inline int HorizentalMin8(__m128i data, unsigned char* p) {
     unsigned short hv = 0;
     int li = HorizentalMin16(low, &lv);
     int hi = HorizentalMin16(high, &hv);
-    if (li <= hi) {
+    if (lv <= hv) {
         if (p != 0) *p = (unsigned char)(lv&0xff);
         return li;
     }
@@ -278,7 +278,7 @@ inline int HorizentalMax8(__m128i data, unsigned char* p) {
     unsigned short hv = 0;
     int li = HorizentalMax16(low, &lv);
     int hi = HorizentalMax16(high, &hv);
-    if (li >= hi) {
+    if (lv >= hv) {
         if (p != 0) *p = (unsigned char)(lv & 0xff);
         return li;
     }
@@ -296,7 +296,7 @@ inline int HorizentalMin8(__m256i data, unsigned char* p) {
     unsigned short hv = 0;
     int li = HorizentalMin16(low, &lv);
     int hi = HorizentalMin16(high, &hv);
-    if (li <= hi) {
+    if (lv <= hv) {
         if (p != 0) *p = (unsigned char)(lv & 0xff);
         return li;
     }
@@ -313,7 +313,7 @@ inline int HorizentalMax8(__m256i data, unsigned char* p) {
     unsigned short hv = 0;
     int li = HorizentalMax16(low, &lv);
     int hi = HorizentalMax16(high, &hv);
-    if (li >= hi) {
+    if (lv >= hv) {
         if (p != 0) *p = (unsigned char)(lv & 0xff);
         return li;
     }
@@ -330,7 +330,7 @@ inline int HorizentalMin8(__m512i data, unsigned char* p) {
     unsigned char hv = 0;
     int li = HorizentalMin8(low, &lv);
     int hi = HorizentalMin8(high, &hv);
-    if (li <= hi) {
+    if (lv <= hv) {
         if (p != 0) *p = lv;
         return li;
     }
@@ -346,7 +346,7 @@ inline int HorizentalMax8(__m512i data, unsigned char* p) {
     unsigned char hv = 0;
     int li = HorizentalMax8(low, &lv);
     int hi = HorizentalMax8(high, &hv);
-    if (li <= hi) {
+    if (lv >= hv) {
         if (p != 0) *p = lv;
         return li;
     }
@@ -429,40 +429,40 @@ inline int HorizentalMax32(__m512i data, unsigned int* p)
 
     int li = HorizentalMax32(low, &lv);
     int hi = HorizentalMax32(low, &hv);
-    if (lv < hv) {
-        if (p != 0)*p = hv;
-        return hi;
-    }
-    else //hv<=lv
-    {
+    if (lv >= hv) {
         if (p != 0)*p = lv;
-        return 8 + li;
+        return li;
+    }
+    else
+    {
+        if (p != 0)*p = hv;
+        return 8 + hi;
     }
 }
 
 inline int HorizentalMin64(__m128i data, unsigned long long* p)
 {
-    unsigned long long low = _mm_extract_epi64(data, 0);
-    unsigned long long high = _mm_extract_epi64(data, 1);
-    if (low <= high) {
-        if (p != 0) *p = low;
+    unsigned long long lv = _mm_extract_epi64(data, 0);
+    unsigned long long hv = _mm_extract_epi64(data, 1);
+    if (lv <= hv) {
+        if (p != 0) *p = lv;
         return 0;
     }
     else {
-        if (p != 0) *p = high;
+        if (p != 0) *p = hv;
         return 1;
     }
 }
 inline int HorizentalMax64(__m128i data, unsigned long long* p)
 {
-    unsigned long long low = _mm_extract_epi64(data, 0);
-    unsigned long long high = _mm_extract_epi64(data, 1);
-    if (low >= high) {
-        if (p != 0) *p = low;
+    unsigned long long lv = _mm_extract_epi64(data, 0);
+    unsigned long long hv = _mm_extract_epi64(data, 1);
+    if (lv >= hv) {
+        if (p != 0) *p = lv;
         return 0;
     }
     else {
-        if (p != 0) *p = high;
+        if (p != 0) *p = hv;
         return 1;
     }
 }
@@ -902,6 +902,7 @@ bool CheckSequence(int a[], int b[], int n) {
 }
 int main()
 {
+    __m128i data8 = _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
     __m128i data16 = _mm_set_epi16(5, 3, 1, 4, 2, 9, 7, 6); //0 is last
     __m256i data32 = _mm256_set_epi32(
         0x00050055, 
@@ -913,10 +914,17 @@ int main()
         0x00170077,
         0x00030033
         );
+    unsigned char r8 = 0;
     unsigned short r16 = 0;
     unsigned int r32 = 0;
     unsigned long long r64 = 0;
     int i = 0;
+
+    i = HorizentalMin8(data8, &r8);
+    
+    i = HorizentalMax8(data8, &r8);
+
+
     i = HorizentalMin16(data16, &r16);
 
     i = HorizentalMax16(data16, &r16);
