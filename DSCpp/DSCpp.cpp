@@ -296,10 +296,10 @@ int* FastOddEvenSort256(int* t, int n)
 			__m256i minhighs256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(min, 1));
 			__m256i maxlows256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(max, 0));
 			__m256i maxhighs256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(max, 1));
-
+			//AVX512 used
 			__m256i lows = _mm256_mask_alignr_epi32(
 				minlows256, 0b10101010, maxlows256, maxhighs256, 7);
-
+			//AVX512 used
 			__m256i highs = _mm256_mask_alignr_epi32(
 				minhighs256, 0b10101010, maxhighs256, maxlows256, 7);
 
@@ -542,19 +542,42 @@ int HorizentalMin32(__m256i data, unsigned int* p = 0) {
 	short high_index = high_result.m128i_i16[1] & 0b00000111;
 	__m128i all_high = _mm_set1_epi16(high_value);
 	__mmask8 mask = _mm_cmpeq_epi16_mask(high, all_high);
-
-	__m128i low_compressed = _mm_maskz_compress_epi16(mask, _low);
-	__m128i low_result = _mm_minpos_epu16(low_compressed);
-	short low_value = low_result.m128i_i16[0];
-	if (p != 0) {
-		*p = low_value;
+	unsigned int c = __popcnt(mask);
+	if (c == stride) { //all highs are same, only dif in lows
+		__m128i low_result = _mm_minpos_epu16(_low);
+		short low_value = low_result.m128i_i16[0];
+		if (p != 0) {
+			*p = low_value;
+		}
+		return index = low_result.m128i_i16[1];
 	}
-	__m128i all_lows = _mm_set1_epi16(low_value);
-	mask = _mm_cmpeq_epi16_mask(_low, all_lows);
-	if (_BitScanForward(&index, mask)) {
-		return index;
+	else if (c == 1) { //this high is special, no need to check lows
+		if (p != 0) {
+			*p = data.m256i_i32[high_index];
+		}
+		return high_index;
 	}
-
+	else { //multiple lows for same highs
+		//try replace unrelated shorts with 0xffff
+		__m128i tries = ones;
+		__m128i maxlevel = _mm_mask_blend_epi16(mask,tries, _low);
+		__m128i low_result = _mm_minpos_epu16(maxlevel);
+		if (low_result.m128i_i16[0] == (short)0xffff) {
+			//if found 0xffff, change replacement with 0
+			tries = zero;
+			maxlevel = _mm_mask_blend_epi16(mask, tries, _low);
+			mask = _mm_cmpeq_epi16_mask(maxlevel, ones);
+			//the first found non-zero bit index is the index
+			//for original 0xffff value
+			low_result = _mm_minpos_epu16(maxlevel);
+			if (_BitScanForward(&index, mask)) {
+				if (p != 0) {
+					*p = data.m256i_i32[index];
+				}
+				return index;
+			}
+		}
+	}
 	return index;
 }
 int HorizentalMax32(__m256i data, unsigned int* p = 0) {
@@ -773,29 +796,28 @@ bool FastMergeSort256(int data[], int n) {
 			if (gap == stride) {
 				__m256i values = _mm256_loadu_epi32(data + i);
 				__m256i sorted = HorizentalSort32(values);
-					
+
 				_mm256_storeu_epi32(data + i, sorted);
 
 				values = _mm256_loadu_epi32(data + i + stride);
 				sorted = HorizentalSort32(values);
 
 				_mm256_storeu_epi32(data + i + stride, sorted);
+			}
 
+			int i_left = i;
+			int i_middle = i + gap;
+			int i_right = i_middle + gap;
+			for (int j = i_left; j < i_middle; j += stride) {
+				__m256i left = _mm256_loadu_epi32(data + j);
+				__m256i right = _mm256_loadu_epi32(data + j + i_middle);
+				__m256i min = _mm256_min_epi32(left, right);
+				__m256i max = _mm256_max_epi32(left, right);
+				_mm256_storeu_epi32(buffer + j, min);
+				_mm256_storeu_epi32(buffer + j + i_middle, max);
 			}
-			else {
-				int i_left = i;
-				int i_middle = i + gap;
-				int i_right = i_middle + gap;
-				for (int j = i_left; j < i_middle; j += stride) {
-					__m256i left = _mm256_loadu_epi32(data + j);
-					__m256i right = _mm256_loadu_epi32(data + j + i_middle);
-					__m256i min = _mm256_min_epi32(left, right);
-					__m256i max = _mm256_min_epi32(left, right);
-					_mm256_storeu_epi32(buffer + j, min);
-					_mm256_storeu_epi32(buffer + j + i_middle, min);
-				}
-				memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
-			}
+			memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
+
 		}
 		gap = gap2;
 	}
@@ -1479,25 +1501,25 @@ int main()
 	__m256i _data32 = _mm256_setr_epi32(
 		0x00050055,
 		0x00240044,
-		0x00060066,
-		0x00090099,
-		0x00010033,
-		0x00020011,
+		0x0002ffff,
+		0x0002ffff,
+		0x00050033,
+		0x0002ffff,
 		0x00170077,
 		0x00030033
 	);
-	//unsigned char r8 = 0;
-	//unsigned short r16 = 0;
-	//unsigned int r32 = 0;
-	//unsigned long long r64 = 0;
-	//int i = 0;
+	unsigned char r8 = 0;
+	unsigned short r16 = 0;
+	unsigned int r32 = 0;
+	unsigned long long r64 = 0;
+	int i = 0;
 
 	//i = HorizentalMin8(__data8, &r8);
 	//i = HorizentalMax8(__data8, &r8);
 	//i = HorizentalMin16(_data16, &r16);
 	//i = HorizentalMax16(_data16, &r16);
-	//i = HorizentalMin32(_data32, &r32);
-	//i = HorizentalMax32(_data32, &r32);
+	i = HorizentalMin32(_data32, &r32);
+	i = HorizentalMax32(_data32, &r32);
 	//i = HorizentalMin64(_data32, &r64);
 	//i = HorizentalMax64(_data32, &r64);
 
