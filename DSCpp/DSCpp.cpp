@@ -234,6 +234,7 @@ bool FastQuickSort256(int data[], int n)
 
     return FastQuickSortImpl512(data, 0, n - 1);
 }
+
 inline int HorizentalMin16(__m128i data, unsigned short* p) {
     __m128i result = _mm_minpos_epu16(data);
     if (p != 0) {
@@ -252,6 +253,109 @@ inline int HorizentalMax16(__m128i data, unsigned short* p) {
     }
     return result.m128i_i16[1] & 0x7;
 }
+inline int HorizentalMin8(__m128i data, unsigned char* p) {
+    __m128i zero = _mm_setzero_si128();
+    __m128i low = _mm_unpacklo_epi8(data, zero);
+    __m128i high = _mm_unpackhi_epi8(data, zero);
+    unsigned short lv = 0;
+    unsigned short hv = 0;
+    int li = HorizentalMin16(low, &lv);
+    int hi = HorizentalMin16(high, &hv);
+    if (li <= hi) {
+        if (p != 0) *p = (unsigned char)(lv&0xff);
+        return li;
+    }
+    else {
+        if (p != 0) *p = (unsigned char)(hv & 0xff);
+        return 8 + hi;
+    }
+}
+inline int HorizentalMax8(__m128i data, unsigned char* p) {
+    __m128i zero = _mm_setzero_si128();
+    __m128i low = _mm_unpacklo_epi8(data, zero);
+    __m128i high = _mm_unpackhi_epi8(data, zero);
+    unsigned short lv = 0;
+    unsigned short hv = 0;
+    int li = HorizentalMax16(low, &lv);
+    int hi = HorizentalMax16(high, &hv);
+    if (li >= hi) {
+        if (p != 0) *p = (unsigned char)(lv & 0xff);
+        return li;
+    }
+    else {
+        if (p != 0) *p = (unsigned char)(hv & 0xff);
+        return 8 + hi;
+    }
+}
+
+inline int HorizentalMin8(__m256i data, unsigned char* p) {
+    __m128i zero = _mm_setzero_si128();
+    __m128i low = _mm256_extracti128_si256(data,0);
+    __m128i high = _mm256_extracti128_si256(data, 1);
+    unsigned short lv = 0;
+    unsigned short hv = 0;
+    int li = HorizentalMin16(low, &lv);
+    int hi = HorizentalMin16(high, &hv);
+    if (li <= hi) {
+        if (p != 0) *p = (unsigned char)(lv & 0xff);
+        return li;
+    }
+    else {
+        if (p != 0) *p = (unsigned char)(hv & 0xff);
+        return 16 + hi;
+    }
+}
+inline int HorizentalMax8(__m256i data, unsigned char* p) {
+    __m128i zero = _mm_setzero_si128();
+    __m128i low = _mm256_extractf128_si256(data, 0);
+    __m128i high = _mm256_extractf128_si256(data, 1);
+    unsigned short lv = 0;
+    unsigned short hv = 0;
+    int li = HorizentalMax16(low, &lv);
+    int hi = HorizentalMax16(high, &hv);
+    if (li >= hi) {
+        if (p != 0) *p = (unsigned char)(lv & 0xff);
+        return li;
+    }
+    else {
+        if (p != 0) *p = (unsigned char)(hv & 0xff);
+        return 16 + hi;
+    }
+}
+
+inline int HorizentalMin8(__m512i data, unsigned char* p) {
+    __m256i low = _mm512_extracti64x4_epi64(data, 0);
+    __m256i high = _mm512_extracti64x4_epi64(data, 1);
+    unsigned char lv = 0;
+    unsigned char hv = 0;
+    int li = HorizentalMin8(low, &lv);
+    int hi = HorizentalMin8(high, &hv);
+    if (li <= hi) {
+        if (p != 0) *p = lv;
+        return li;
+    }
+    else {
+        if (p != 0) *p = hv;
+        return 32 + hi;
+    }
+}
+inline int HorizentalMax8(__m512i data, unsigned char* p) {
+    __m256i low = _mm512_extracti64x4_epi64(data, 0);
+    __m256i high = _mm512_extracti64x4_epi64(data, 1);
+    unsigned char lv = 0;
+    unsigned char hv = 0;
+    int li = HorizentalMax8(low, &lv);
+    int hi = HorizentalMax8(high, &hv);
+    if (li <= hi) {
+        if (p != 0) *p = lv;
+        return li;
+    }
+    else {
+        if (p != 0) *p = hv;
+        return 32 + hi;
+    }
+}
+
 inline int HorizentalMin32(__m256i data, unsigned int* p) {
     __m128i zero = _mm_setzero_si128();
     __m128i ones = _mm_cmpeq_epi32(zero, zero);
