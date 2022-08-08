@@ -798,11 +798,6 @@ int AVX512_SUM(long long data[], size_t size)
 	return sum[0] + sum[1] + sum[2] + sum[3];
 }
 
-
-const int po256[] = { 1, 3, 5, 7, 9, 11, 13, 15 };
-const int pe256[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
-const int pt256[] = { 2, 4, 6, 8, 10, 12, 14, 16 };
-
 int* FastOddEvenSort256(int* t, int n)
 {
 	const int size = sizeof(__m256i) / sizeof(int);
@@ -822,9 +817,9 @@ int* FastOddEvenSort256(int* t, int n)
 
 	__m256i zeros = _mm256_setzero_si256();
 	__m256i ones = _mm256_cmpeq_epi32(zeros, zeros);
-	__m256i ipo = _mm256_loadu_epi32(po256);
-	__m256i ipe = _mm256_loadu_epi32(pe256);
-	__m256i ipt = _mm256_loadu_epi32(pt256);
+	__m256i ipo = _mm256_setr_epi32(1, 3, 5, 7, 9, 11, 13, 15);
+	__m256i ipe = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
+	__m256i ipt = _mm256_setr_epi32(2, 4, 6, 8, 10, 12, 14, 16);
 
 	for (int repeat = 0; repeat < n / 2; repeat++)
 	{
@@ -872,10 +867,6 @@ int* FastOddEvenSort256(int* t, int n)
 	return t;
 }
 
-const int po512[] = { 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 };
-const int pe512[] = { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30 };
-const int pt512[] = { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 };
-
 int* FastOddEvenSort512(int* t, int n)
 {
 	const int size = sizeof(__m512i) / sizeof(int);
@@ -895,9 +886,9 @@ int* FastOddEvenSort512(int* t, int n)
 
 	__m256i zeros = _mm256_setzero_si256();
 	__m256i ones = _mm256_cmpeq_epi32(zeros, zeros);
-	__m512i ipo = _mm512_loadu_epi32(po512);
-	__m512i ipe = _mm512_loadu_epi32(pe512);
-	__m512i ipt = _mm512_loadu_epi32(pt512);
+	__m512i ipo = _mm512_setr_epi32(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31);
+	__m512i ipe = _mm512_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30);
+	__m512i ipt = _mm512_setr_epi32(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32);
 
 	for (int repeat = 0; repeat < n / 2; repeat++)
 	{
@@ -962,9 +953,9 @@ bool CheckSequence(int a[], int b[], int n) {
 }
 int main()
 {
-	__m128i __data8 = _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-	__m128i _data16 = _mm_set_epi16(5, 3, 1, 4, 2, 9, 7, 6); //0 is last
-	__m256i _data32 = _mm256_set_epi32(
+	__m128i __data8 = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+	__m128i _data16 = _mm_setr_epi16(5, 3, 1, 4, 2, 9, 7, 6); //0 is last
+	__m256i _data32 = _mm256_setr_epi32(
 		0x00050055,
 		0x00240044,
 		0x00060066,
@@ -983,7 +974,6 @@ int main()
 	i = HorizentalMin8(__data8, &r8);
 
 	i = HorizentalMax8(__data8, &r8);
-
 
 	i = HorizentalMin16(_data16, &r16);
 
