@@ -550,6 +550,97 @@ inline size_t AVX512_StringLength(wchar_t* s)
     return len;
 }
 
+
+inline int AVX2_StringIndexOf(char* s,char c)
+{
+    if (s != 0) {
+        const int stride = sizeof(__m256i) / sizeof(int);
+        unsigned long index = 0;
+        __m256i _chs = _mm256_set1_epi8(c);
+        __m256i part = { 0 };
+        size_t length = AVX2_StringLength(s);
+
+        for(int i = 0;i<length;i+=stride)
+        {
+            part = _mm256_loadu_epi8(s+i);
+            __mmask32 result = _mm256_cmpeq_epi8_mask(part, _chs);
+            if (_BitScanForward(&index, result))
+            {
+                return i + index;
+            }
+        }
+    }
+
+    return -1;
+}
+inline int AVX512_StringIndexOf(char* s, char c)
+{
+    if (s != 0) {
+        const int stride = sizeof(__m512i) / sizeof(int);
+        unsigned long index = 0;
+        __m512i _chs = _mm512_set1_epi8(c);
+        __m512i part = { 0 };
+        size_t length = AVX512_StringLength(s);
+
+        for (int i = 0; i < length; i += stride)
+        {
+            part = _mm512_loadu_epi8(s+i);
+            __mmask64 result = _mm512_cmpeq_epi8_mask(part, _chs);
+            if (_BitScanForward64(&index, result))
+            {
+                return i + index;
+            }
+        }
+    }
+
+    return -1;
+}
+inline int AVX2_StringIndexOf(wchar_t* s, wchar_t c)
+{
+    if (s != 0) {
+        const int stride = sizeof(__m256i) / sizeof(int);
+        unsigned long index = 0;
+        __m256i _chs = _mm256_set1_epi16(c);
+        __m256i part = { 0 };
+        size_t length = AVX2_StringLength(s);
+
+        for(int i = 0;i<length;i+=stride)
+        {
+            part = _mm256_loadu_epi16(s+i);
+            __mmask16 result = _mm256_cmpeq_epi16_mask(part, _chs);
+            if (_BitScanForward(&index, result))
+            {
+                return i + index;
+            }
+        }
+    }
+
+    return -1;
+}
+inline int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
+{
+    if (s != 0) {
+        const int stride = sizeof(__m512i) / sizeof(int);
+        unsigned long index = 0;
+        __m512i _chs = _mm512_set1_epi16(c);
+        __m512i part = { 0 };
+        size_t length = AVX512_StringLength(s);
+
+        for (int i = 0; i < length; i += stride)
+        {
+            part = _mm512_loadu_epi16(s+i);
+            __mmask32 result = _mm512_cmpeq_epi16_mask(part, _chs);
+            if (_BitScanForward(&index, result))
+            {
+                return i + index;
+            }
+        }
+    }
+
+    return -1;
+}
+
+
 const int po256[] = { 1, 3, 5, 7, 9, 11, 13, 15 };
 const int pe256[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
 const int pt256[] = { 2, 4, 6, 8, 10, 12, 14, 16 };
