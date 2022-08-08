@@ -740,7 +740,7 @@ int AVX2_SUM(int data[], size_t size)
 	_mm256_storeu_si256((__m256i*)sum, sum256);
 	return sum[0] + sum[4];
 }
-int AVX2_SUM(long long data[], size_t size)
+long long AVX2_SUM(long long data[], size_t size)
 {
 	const int stride = sizeof(__m256i) / sizeof(int);
 	long long sum[stride] = { 0 };
@@ -779,10 +779,10 @@ int AVX512_SUM(int data[], size_t size)
 
 	return sum[0] + sum[4];
 }
-int AVX512_SUM(long long data[], size_t size)
+long long AVX512_SUM(long long data[], size_t size)
 {
 	const int stride = sizeof(__m512i) / sizeof(int);
-	int sum[stride >> 1] = { 0 };
+	long long sum[stride >> 1] = { 0 };
 	__m512i sum512 = _mm512_setzero_si512();
 	__m512i load512 = _mm512_setzero_si512();
 	for (size_t i = 0; i < size; i += stride)
@@ -814,9 +814,10 @@ inline int AVX2_StringCompare(char* s1, char* s2)
 	else {
 		size_t l1 = AVX2_StringLength(s1);
 		size_t l2 = AVX2_StringLength(s2);
+		if (l1 == l2 && l2 == 0) return 0;
 		size_t ln = l1 > l2 ? l1 : l2;
 
-		for (int i = 0; i < ln; i += stride)
+		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long igt = 0;
 			unsigned long ilt = 0;
@@ -860,9 +861,10 @@ inline int AVX512_StringCompare(char* s1, char* s2)
 	else {
 		size_t l1 = AVX512_StringLength(s1);
 		size_t l2 = AVX512_StringLength(s2);
+		if (l1 == l2 && l2 == 0) return 0;
 		size_t ln = l1 > l2 ? l1 : l2;
 
-		for (int i = 0; i < ln; i += stride)
+		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long igt = 0;
 			unsigned long ilt = 0;
@@ -906,9 +908,10 @@ inline int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
 	else {
 		size_t l1 = AVX2_StringLength(s1);
 		size_t l2 = AVX2_StringLength(s2);
+		if (l1 == l2 && l2 == 0) return 0;
 		size_t ln = l1 > l2 ? l1 : l2;
 
-		for (int i = 0; i < ln; i += stride)
+		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long igt = 0;
 			unsigned long ilt = 0;
@@ -952,9 +955,10 @@ inline int AVX512_StringCompare(wchar_t* s1, wchar_t* s2)
 	else {
 		size_t l1 = AVX512_StringLength(s1);
 		size_t l2 = AVX512_StringLength(s2);
+		if (l1 == l2 && l2 == 0) return 0;
 		size_t ln = l1 > l2 ? l1 : l2;
 
-		for (int i = 0; i < ln; i += stride)
+		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long igt = 0;
 			unsigned long ilt = 0;
@@ -999,10 +1003,11 @@ inline bool AVX2_StringEqual(char* s1, char* s2)
 	else {
 		size_t l1 = AVX2_StringLength(s1);
 		size_t l2 = AVX2_StringLength(s2);
+		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
 
-		for (int i = 0; i < ln; i += stride)
+		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long iet = 0;
 			unsigned long most = i + stride < ln ? stride : ln - i;
@@ -1031,17 +1036,18 @@ inline bool AVX512_StringEqual(char* s1, char* s2)
 	else {
 		size_t l1 = AVX512_StringLength(s1);
 		size_t l2 = AVX512_StringLength(s2);
+		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
 
-		for (int i = 0; i < ln; i += stride)
+		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long iet = 0;
 			unsigned long most = i + stride < ln ? stride : ln - i;
 			__m512i part1 = _mm512_loadu_epi8(s1 + i);
 			__m512i part2 = _mm512_loadu_epi8(s2 + i);
 			__mmask64 neqt = _mm512_cmpneq_epi8_mask(part1, part2);
-			unsigned char bet = _BitScanForward(&iet, neqt);
+			unsigned char bet = _BitScanForward64(&iet, neqt);
 			if (bet && iet < most) return false;
 		}
 		return true;//all the same
@@ -1063,16 +1069,16 @@ inline bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
 	else {
 		size_t l1 = AVX2_StringLength(s1);
 		size_t l2 = AVX2_StringLength(s2);
+		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
 
-		for (int i = 0; i < ln; i += stride)
+		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long iet = 0;
 			unsigned long most = i + stride < ln ? stride : ln - i;
 			__m256i part1 = _mm256_loadu_epi16(s1 + i);
 			__m256i part2 = _mm256_loadu_epi16(s2 + i);
-
 			__mmask16 neqt = _mm256_cmpneq_epi16_mask(part1, part2);
 			unsigned char bet = _BitScanForward(&iet, neqt);
 			if (bet && iet < most) return false;
@@ -1096,10 +1102,11 @@ inline bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
 	else {
 		size_t l1 = AVX512_StringLength(s1);
 		size_t l2 = AVX512_StringLength(s2);
+		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
 
-		for (int i = 0; i < ln; i += stride)
+		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long iet = 0;
 			unsigned long most = i + stride < ln ? stride : ln - i;
