@@ -66,7 +66,7 @@ void QuickSortImpl(int* data, int low, int high)
 				--j;
 			if (i < j)
 				data[i++] = data[j];
-			while (i < j && data[i] <= k)
+			while (i < j && data[i] < k)
 				++i;
 			if (i < j)
 				data[j--] = data[i];
@@ -80,93 +80,9 @@ void QuickSort(int data[], int n)
 {
 	QuickSortImpl(data, 0, n - 1);
 }
-void Swap(int* a, int i, int j)
-{
-	int t = a[i];
-	a[i] = a[j];
-	a[j] = t;
-}
-void OddEvenSort(int* a, int n)
-{
-	for (int c = 0; c < n; c++)
-	{
-		int p = c % 2;
-		for (int d = 0; d < n - p - p; d += 2)
-		{
-			//this is for odd length
-			if (d + p + 1 >= n) break;
-			//this step should be in parallel
-			if (a[d + p + 0] > a[d + p + 1])
-			{
-				Swap(a, d + p + 0, d + p + 1);
-			}
-		}
-	}
-}
 //Fast Quick Sort:
 //  using AVX512 long stride to achive a faster speed than common quick sort
 //
-bool FastQuickSortImpl512(int data[], int low, int high) {
-	const int stride = sizeof(__m512i) / sizeof(int);
-	if (low < high)
-	{
-		unsigned long index = 0;
-		unsigned long i = low, j = high;
-		int delta = 0;
-		int k = data[i];
-		__m512i t = _mm512_set1_epi32(data[i]);
-		while (i < j)
-		{
-			while (i < j)
-			{
-				__m512i ds = _mm512_loadu_epi32(data + j - stride + 1);
-				__mmask16 rt = _mm512_cmple_epi32_mask(ds, t);
-
-				if (rt == 0) {
-					j = j - stride < i ? i : j - stride;
-				}
-				else {
-					if (_BitScanReverse(&index, rt)) {
-						delta = stride - index - 1;
-						j = j - delta < i ? i : j - delta;
-					}
-					break;
-				}
-			}
-
-			if (i < j)
-				data[i++] = data[j];
-
-			while (i < j)
-			{
-				__m512i ds = _mm512_loadu_epi32(data + i);
-				__mmask16 rt = _mm512_cmpgt_epi32_mask(ds, t);
-				if (rt == 0) {
-					i = i + stride > j ? j : i + stride;
-				}
-				else {
-					if (_BitScanForward(&index, rt)) {
-						i = i + index > j ? j : i + index;
-					}
-					break;
-				}
-			}
-			if (i < j)
-				data[j--] = data[i];
-		}
-		data[i] = k;
-		FastQuickSortImpl512(data, low, i - 1);
-		FastQuickSortImpl512(data, i + 1, high);
-	}
-	return true;
-}
-bool FastQuickSort512(int data[], int n)
-{
-	const int stride = sizeof(__m512i) / sizeof(int);
-	if (n % stride > 0) return false;
-
-	return FastQuickSortImpl512(data, 0, n - 1);
-}
 bool FastQuickSortImpl256(int data[], int low, int high) {
 	const int stride = sizeof(__m256i) / sizeof(int);
 	if (low < high)
@@ -201,7 +117,7 @@ bool FastQuickSortImpl256(int data[], int low, int high) {
 			while (i < j)
 			{
 				__m256i ds = _mm256_loadu_epi32(data + i);
-				__mmask16 rt = _mm256_cmpgt_epi32_mask(ds, t);
+				__mmask16 rt = _mm256_cmpge_epi32_mask(ds, t);
 				if (rt == 0) {
 					i = i + stride > j ? j : i + stride;
 				}
@@ -226,7 +142,91 @@ bool FastQuickSort256(int data[], int n)
 	const int stride = sizeof(__m256i) / sizeof(int);
 	if (n % stride > 0) return false;
 
+	return FastQuickSortImpl256(data, 0, n - 1);
+}
+bool FastQuickSortImpl512(int data[], int low, int high) {
+	const int stride = sizeof(__m512i) / sizeof(int);
+	if (low < high)
+	{
+		unsigned long index = 0;
+		unsigned long i = low, j = high;
+		int delta = 0;
+		int k = data[i];
+		__m512i t = _mm512_set1_epi32(data[i]);
+		while (i < j)
+		{
+			while (i < j)
+			{
+				__m512i ds = _mm512_loadu_epi32(data + j - stride + 1);
+				__mmask16 rt = _mm512_cmple_epi32_mask(ds, t);
+
+				if (rt == 0) {
+					j = j - stride < i ? i : j - stride;
+				}
+				else {
+					if (_BitScanReverse(&index, rt)) {
+						delta = stride - index - 1;
+						j = j - delta < i ? i : j - delta;
+					}
+					break;
+				}
+			}
+
+			if (i < j)
+				data[i++] = data[j];
+
+			while (i < j)
+			{
+				__m512i ds = _mm512_loadu_epi32(data + i);
+				__mmask16 rt = _mm512_cmpge_epi32_mask(ds, t);
+				if (rt == 0) {
+					i = i + stride > j ? j : i + stride;
+				}
+				else {
+					if (_BitScanForward(&index, rt)) {
+						i = i + index > j ? j : i + index;
+					}
+					break;
+				}
+			}
+			if (i < j)
+				data[j--] = data[i];
+		}
+		data[i] = k;
+		FastQuickSortImpl512(data, low, i - 1);
+		FastQuickSortImpl512(data, i + 1, high);
+	}
+	return true;
+}
+bool FastQuickSort512(int data[], int n)
+{
+	const int stride = sizeof(__m512i) / sizeof(int);
+	if (n % stride > 0) return false;
+
 	return FastQuickSortImpl512(data, 0, n - 1);
+}
+void Swap(int* a, int i, int j)
+{
+	int t = a[i];
+	a[i] = a[j];
+	a[j] = t;
+}
+void OddEvenSort(int* a, int n)
+{
+	for (int c = 0; c < n; c++)
+	{
+		int p = c % 2;
+		for (int d = 0; d < n - p - p; d += 2)
+		{
+			//this is for odd length
+			if (d + p + 1 >= n) break;
+			//this step should be in parallel
+			if (a[d + p + 0] > a[d + p + 1])
+			{
+				Swap(a, d + p + 0, d + p + 1);
+			}
+		}
+	}
 }
 int* FastOddEvenSort256(int* t, int n)
 {
@@ -263,24 +263,51 @@ int* FastOddEvenSort256(int* t, int n)
 			__m256i min = _mm256_min_epi32(vodd_, veven);
 			__m256i max = _mm256_max_epi32(vodd_, veven);
 
-			_mm256_i32scatter_epi32(ptr, ipe, min, skip);
-			_mm256_i32scatter_epi32(ptr, ipo, max, skip);
+			__m256i minlows256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(min, 0));
+			__m256i minhighs256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(min, 1));
+			__m256i maxlows256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(max, 0));
+			__m256i maxhighs256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(max, 1));
+
+			__m256i lows = _mm256_mask_alignr_epi32(
+				minlows256, 0b10101010, maxlows256, maxhighs256, 7);
+
+			__m256i highs = _mm256_mask_alignr_epi32(
+				minhighs256, 0b10101010, maxhighs256, maxlows256, 7);
+
+			_mm256_storeu_epi32(ptr, lows);
+			_mm256_storeu_epi32(ptr+ size, highs);
+
+			//_mm256_i32scatter_epi32(ptr, ipe, min, skip);
+			//_mm256_i32scatter_epi32(ptr, ipo, max, skip);
 		}
 		for (int part = 0; part < n; part += dbls)
 		{
 			if (dbls >= n - part - 1) a[n] = a[n - 1];
 
-			int* par = a + part;
+			int* ptr = a + part;
 
-			__m256i veven = _mm256_i32gather_epi32(par, ipt, skip);
-			__m256i vodd_ = _mm256_i32gather_epi32(par, ipo, skip);
+			__m256i veven = _mm256_i32gather_epi32(ptr, ipt, skip);
+			__m256i vodd_ = _mm256_i32gather_epi32(ptr, ipo, skip);
 
 			__m256i min = _mm256_min_epi32(vodd_, veven);
 			__m256i max = _mm256_max_epi32(vodd_, veven);
 
-			_mm256_i32scatter_epi32(par, ipo, min, skip);
-			_mm256_i32scatter_epi32(par, ipt, max, skip);
+			__m256i minlows256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(min, 0));
+			__m256i minhighs256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(min, 1));
+			__m256i maxlows256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(max, 0));
+			__m256i maxhighs256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(max, 1));
 
+			__m256i lows = _mm256_mask_alignr_epi32(
+				minlows256, 0b10101010, maxlows256, maxhighs256, 7);
+
+			__m256i highs = _mm256_mask_alignr_epi32(
+				minhighs256, 0b10101010, maxhighs256, maxlows256, 7);
+
+			_mm256_storeu_epi32(ptr + 1, lows);
+			_mm256_storeu_epi32(ptr + 1 + size, highs);
+
+			//_mm256_i32scatter_epi32(ptr, ipo, min, skip);
+			//_mm256_i32scatter_epi32(ptr, ipt, max, skip);
 		}
 	}
 
@@ -325,23 +352,51 @@ int* FastOddEvenSort512(int* t, int n)
 			__m512i min = _mm512_min_epi32(vodd_, veven);
 			__m512i max = _mm512_max_epi32(vodd_, veven);
 
-			_mm512_i32scatter_epi32(ptr, ipe, min, skip);
-			_mm512_i32scatter_epi32(ptr, ipo, max, skip);
+			__m512i minlows512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(min, 0));
+			__m512i minhighs512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(min, 1));
+			__m512i maxlows512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(max, 0));
+			__m512i maxhighs512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(max, 1));
+
+			__m512i lows = _mm512_mask_alignr_epi32(
+				minlows512, 0b1010101010101010, maxlows512, maxhighs512, 15);
+
+			__m512i highs = _mm512_mask_alignr_epi32(
+				minhighs512, 0b1010101010101010, maxhighs512, maxlows512, 15);
+
+			_mm512_storeu_epi32(ptr, lows);
+			_mm512_storeu_epi32(ptr + size, highs);
+
+			//_mm512_i32scatter_epi32(ptr, ipe, min, skip);
+			//_mm512_i32scatter_epi32(ptr, ipo, max, skip);
 		}
 		for (int part = 0; part < n; part += dbls)
 		{
 			if (dbls >= n - part - 1) a[n] = a[n - 1];
 
-			int* par = a + part;
+			int* ptr = a + part;
 
-			__m512i veven = _mm512_i32gather_epi32(ipt, par, skip);
-			__m512i vodd_ = _mm512_i32gather_epi32(ipo, par, skip);
+			__m512i veven = _mm512_i32gather_epi32(ipt, ptr, skip);
+			__m512i vodd_ = _mm512_i32gather_epi32(ipo, ptr, skip);
 
 			__m512i min = _mm512_min_epi32(vodd_, veven);
 			__m512i max = _mm512_max_epi32(vodd_, veven);
 
-			_mm512_i32scatter_epi32(par, ipo, min, skip);
-			_mm512_i32scatter_epi32(par, ipt, max, skip);
+			__m512i minlows512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(min, 0));
+			__m512i minhighs512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(min, 1));
+			__m512i maxlows512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(max, 0));
+			__m512i maxhighs512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(max, 1));
+
+			__m512i lows = _mm512_mask_alignr_epi32(
+				minlows512, 0b1010101010101010, maxlows512, maxhighs512, 15);
+
+			__m512i highs = _mm512_mask_alignr_epi32(
+				minhighs512, 0b1010101010101010, maxhighs512, maxlows512, 15);
+
+			_mm512_storeu_epi32(ptr + 1, lows);
+			_mm512_storeu_epi32(ptr + 1 + size, highs);
+
+			//_mm512_i32scatter_epi32(ptr, ipo, min, skip);
+			//_mm512_i32scatter_epi32(ptr, ipt, max, skip);
 		}
 	}
 
@@ -1373,7 +1428,7 @@ int main()
 				= data3[i]
 				= data2[i]
 				= data1[i]
-				= data0[i] //
+				= data0[i]
 				= (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
 			if (show) {
 				printf("%d ", data0[i]);

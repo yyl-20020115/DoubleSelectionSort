@@ -554,7 +554,7 @@ void QuickSortImpl(int[] data, int low, int high)
                 --j;
             if (i < j)
                 data[i++] = data[j];
-            while (i < j && data[i] <= k)
+            while (i < j && data[i] < k)
                 ++i;
             if (i < j)
                 data[j--] = data[i];
