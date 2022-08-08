@@ -54,29 +54,6 @@ void do_print(int data[], int N, bool nl = false) {
 	printf("]");
 	if (nl)printf("\n");
 }
-void Swap(int* a, int i, int j)
-{
-	int t = a[i];
-	a[i] = a[j];
-	a[j] = t;
-}
-void OddEvenSort(int* a, int n)
-{
-	for (int c = 0; c < n; c++)
-	{
-		int p = c % 2;
-		for (int d = 0; d < n - p - p; d += 2)
-		{
-			//this is for odd length
-			if (d + p + 1 >= n) break;
-			//this step should be in parallel
-			if (a[d + p + 0] > a[d + p + 1])
-			{
-				Swap(a, d + p + 0, d + p + 1);
-			}
-		}
-	}
-}
 void QuickSortImpl(int* data, int low, int high)
 {
 	if (low < high)
@@ -102,6 +79,29 @@ void QuickSortImpl(int* data, int low, int high)
 void QuickSort(int data[], int n)
 {
 	QuickSortImpl(data, 0, n - 1);
+}
+void Swap(int* a, int i, int j)
+{
+	int t = a[i];
+	a[i] = a[j];
+	a[j] = t;
+}
+void OddEvenSort(int* a, int n)
+{
+	for (int c = 0; c < n; c++)
+	{
+		int p = c % 2;
+		for (int d = 0; d < n - p - p; d += 2)
+		{
+			//this is for odd length
+			if (d + p + 1 >= n) break;
+			//this step should be in parallel
+			if (a[d + p + 0] > a[d + p + 1])
+			{
+				Swap(a, d + p + 0, d + p + 1);
+			}
+		}
+	}
 }
 //Fast Quick Sort:
 //  using AVX512 long stride to achive a faster speed than common quick sort
@@ -228,14 +228,139 @@ bool FastQuickSort256(int data[], int n)
 
 	return FastQuickSortImpl512(data, 0, n - 1);
 }
-inline int HorizentalMin16(__m128i data, unsigned short* p) {
+int* FastOddEvenSort256(int* t, int n)
+{
+	const int size = sizeof(__m256i) / sizeof(int);
+	const int last = size - 1;
+	const int half = size >> 1;
+	const int skip = sizeof(int);
+	const int dbls = (size << 1);
+	const int quad = dbls << 1;
+
+	if (n < dbls || n % dbls>0) {
+		std::sort(t, t + n);
+		return t;
+	}
+	int* a = new int[n + 1];
+	memcpy_s(a, (n) * sizeof(int), t, (n) * sizeof(int));
+	a[n] = 0;
+
+	__m256i zeros = _mm256_setzero_si256();
+	__m256i ones = _mm256_cmpeq_epi32(zeros, zeros);
+	__m256i ipo = _mm256_setr_epi32(1, 3, 5, 7, 9, 11, 13, 15);
+	__m256i ipe = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
+	__m256i ipt = _mm256_setr_epi32(2, 4, 6, 8, 10, 12, 14, 16);
+
+	for (int repeat = 0; repeat < n / 2; repeat++)
+	{
+		for (int part = 0; part < n; part += dbls)
+		{
+			int* ptr = a + part;
+
+			__m256i veven = _mm256_i32gather_epi32(ptr, ipe, skip);
+			__m256i vodd_ = _mm256_i32gather_epi32(ptr, ipo, skip);
+
+			__m256i min = _mm256_min_epi32(vodd_, veven);
+			__m256i max = _mm256_max_epi32(vodd_, veven);
+
+			_mm256_i32scatter_epi32(ptr, ipe, min, skip);
+			_mm256_i32scatter_epi32(ptr, ipo, max, skip);
+		}
+		for (int part = 0; part < n; part += dbls)
+		{
+			if (dbls >= n - part - 1) a[n] = a[n - 1];
+
+			int* par = a + part;
+
+			__m256i veven = _mm256_i32gather_epi32(par, ipt, skip);
+			__m256i vodd_ = _mm256_i32gather_epi32(par, ipo, skip);
+
+			__m256i min = _mm256_min_epi32(vodd_, veven);
+			__m256i max = _mm256_max_epi32(vodd_, veven);
+
+			_mm256_i32scatter_epi32(par, ipo, min, skip);
+			_mm256_i32scatter_epi32(par, ipt, max, skip);
+
+		}
+	}
+
+	memcpy_s(t, (n) * sizeof(int), a, (n) * sizeof(int));
+
+	delete[] a;
+
+	return t;
+}
+int* FastOddEvenSort512(int* t, int n)
+{
+	const int size = sizeof(__m512i) / sizeof(int);
+	const int last = size - 1;
+	const int half = size >> 1;
+	const int skip = sizeof(int);
+	const int dbls = (size << 1);
+	const int quad = dbls << 1;
+
+	if (n < dbls || n % dbls>0) {
+		std::sort(t, t + n);
+		return t;
+	}
+	int* a = new int[n + 1];
+	memcpy_s(a, (n) * sizeof(int), t, (n) * sizeof(int));
+	a[n] = 0;
+
+	__m256i zeros = _mm256_setzero_si256();
+	__m256i ones = _mm256_cmpeq_epi32(zeros, zeros);
+	__m512i ipo = _mm512_setr_epi32(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31);
+	__m512i ipe = _mm512_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30);
+	__m512i ipt = _mm512_setr_epi32(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32);
+
+	for (int repeat = 0; repeat < n / 2; repeat++)
+	{
+		for (int part = 0; part < n; part += dbls)
+		{
+			int* ptr = a + part;
+
+			__m512i veven = _mm512_i32gather_epi32(ipe, ptr, skip);
+			__m512i vodd_ = _mm512_i32gather_epi32(ipo, ptr, skip);
+
+			__m512i min = _mm512_min_epi32(vodd_, veven);
+			__m512i max = _mm512_max_epi32(vodd_, veven);
+
+			_mm512_i32scatter_epi32(ptr, ipe, min, skip);
+			_mm512_i32scatter_epi32(ptr, ipo, max, skip);
+		}
+		for (int part = 0; part < n; part += dbls)
+		{
+			if (dbls >= n - part - 1) a[n] = a[n - 1];
+
+			int* par = a + part;
+
+			__m512i veven = _mm512_i32gather_epi32(ipt, par, skip);
+			__m512i vodd_ = _mm512_i32gather_epi32(ipo, par, skip);
+
+			__m512i min = _mm512_min_epi32(vodd_, veven);
+			__m512i max = _mm512_max_epi32(vodd_, veven);
+
+			_mm512_i32scatter_epi32(par, ipo, min, skip);
+			_mm512_i32scatter_epi32(par, ipt, max, skip);
+		}
+	}
+
+	memcpy_s(t, (n) * sizeof(int), a, (n) * sizeof(int));
+
+	delete[] a;
+
+	return t;
+
+}
+
+inline int HorizentalMin16(__m128i data, unsigned short* p = 0) {
 	__m128i result = _mm_minpos_epu16(data);
 	if (p != 0) {
 		*p = result.m128i_i16[0];
 	}
 	return result.m128i_i16[1] & 0x7;
 }
-inline int HorizentalMax16(__m128i data, unsigned short* p) {
+inline int HorizentalMax16(__m128i data, unsigned short* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i ones = _mm_cmpeq_epi32(zero, zero);
 	__m128i subs = _mm_subs_epu16(ones, data);
@@ -246,7 +371,7 @@ inline int HorizentalMax16(__m128i data, unsigned short* p) {
 	}
 	return result.m128i_i16[1] & 0x7;
 }
-inline int HorizentalMin8(__m128i data, unsigned char* p) {
+inline int HorizentalMin8(__m128i data, unsigned char* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm_unpacklo_epi8(data, zero);
 	__m128i high = _mm_unpackhi_epi8(data, zero);
@@ -263,7 +388,7 @@ inline int HorizentalMin8(__m128i data, unsigned char* p) {
 		return 8 + hi;
 	}
 }
-inline int HorizentalMax8(__m128i data, unsigned char* p) {
+inline int HorizentalMax8(__m128i data, unsigned char* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm_unpacklo_epi8(data, zero);
 	__m128i high = _mm_unpackhi_epi8(data, zero);
@@ -280,7 +405,7 @@ inline int HorizentalMax8(__m128i data, unsigned char* p) {
 		return 8 + hi;
 	}
 }
-inline int HorizentalMin8(__m256i data, unsigned char* p) {
+inline int HorizentalMin8(__m256i data, unsigned char* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm256_extracti128_si256(data, 0);
 	__m128i high = _mm256_extracti128_si256(data, 1);
@@ -297,7 +422,7 @@ inline int HorizentalMin8(__m256i data, unsigned char* p) {
 		return 16 + hi;
 	}
 }
-inline int HorizentalMax8(__m256i data, unsigned char* p) {
+inline int HorizentalMax8(__m256i data, unsigned char* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm256_extractf128_si256(data, 0);
 	__m128i high = _mm256_extractf128_si256(data, 1);
@@ -314,7 +439,7 @@ inline int HorizentalMax8(__m256i data, unsigned char* p) {
 		return 16 + hi;
 	}
 }
-inline int HorizentalMin8(__m512i data, unsigned char* p) {
+inline int HorizentalMin8(__m512i data, unsigned char* p = 0) {
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
 	unsigned char lv = 0;
@@ -330,7 +455,7 @@ inline int HorizentalMin8(__m512i data, unsigned char* p) {
 		return 32 + hi;
 	}
 }
-inline int HorizentalMax8(__m512i data, unsigned char* p) {
+inline int HorizentalMax8(__m512i data, unsigned char* p = 0) {
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
 	unsigned char lv = 0;
@@ -346,7 +471,7 @@ inline int HorizentalMax8(__m512i data, unsigned char* p) {
 		return 32 + hi;
 	}
 }
-inline int HorizentalMin32(__m256i data, unsigned int* p) {
+inline int HorizentalMin32(__m256i data, unsigned int* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i ones = _mm_cmpeq_epi32(zero, zero);
 	__m256i idx = _mm256_setr_epi16(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
@@ -366,7 +491,7 @@ inline int HorizentalMin32(__m256i data, unsigned int* p) {
 	}
 	return lower_index + 8;
 }
-inline int HorizentalMax32(__m256i data, unsigned int* p) {
+inline int HorizentalMax32(__m256i data, unsigned int* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i ones = _mm_cmpeq_epi32(zero, zero);
 	__m256i zero_ = _mm256_setzero_si256();
@@ -389,7 +514,7 @@ inline int HorizentalMax32(__m256i data, unsigned int* p) {
 	}
 	return 8 - 1 - lower_index;
 }
-inline int HorizentalMin32(__m512i data, unsigned int* p)
+inline int HorizentalMin32(__m512i data, unsigned int* p = 0)
 {
 	__m256i low = _mm512_extracti32x8_epi32(data, 0);
 	__m256i high = _mm512_extracti32x8_epi32(data, 1);
@@ -409,7 +534,7 @@ inline int HorizentalMin32(__m512i data, unsigned int* p)
 		return 8 + hi;
 	}
 }
-inline int HorizentalMax32(__m512i data, unsigned int* p)
+inline int HorizentalMax32(__m512i data, unsigned int* p = 0)
 {
 	__m256i low = _mm512_extracti32x8_epi32(data, 0);
 	__m256i high = _mm512_extracti32x8_epi32(data, 1);
@@ -429,7 +554,7 @@ inline int HorizentalMax32(__m512i data, unsigned int* p)
 		return 8 + hi;
 	}
 }
-inline int HorizentalMin64(__m128i data, unsigned long long* p)
+inline int HorizentalMin64(__m128i data, unsigned long long* p = 0)
 {
 	unsigned long long lv = _mm_extract_epi64(data, 0);
 	unsigned long long hv = _mm_extract_epi64(data, 1);
@@ -442,7 +567,7 @@ inline int HorizentalMin64(__m128i data, unsigned long long* p)
 		return 1;
 	}
 }
-inline int HorizentalMax64(__m128i data, unsigned long long* p)
+inline int HorizentalMax64(__m128i data, unsigned long long* p = 0)
 {
 	unsigned long long lv = _mm_extract_epi64(data, 0);
 	unsigned long long hv = _mm_extract_epi64(data, 1);
@@ -455,7 +580,7 @@ inline int HorizentalMax64(__m128i data, unsigned long long* p)
 		return 1;
 	}
 }
-inline int HorizentalMin64(__m256i data, unsigned long long* p)
+inline int HorizentalMin64(__m256i data, unsigned long long* p = 0)
 {
 	__m128i low = _mm256_extracti64x2_epi64(data, 0);
 	__m128i high = _mm256_extracti64x2_epi64(data, 0);
@@ -474,7 +599,7 @@ inline int HorizentalMin64(__m256i data, unsigned long long* p)
 		return hi + 2;
 	}
 }
-inline int HorizentalMax64(__m256i data, unsigned long long* p)
+inline int HorizentalMax64(__m256i data, unsigned long long* p = 0)
 {
 	__m128i low = _mm256_extracti64x2_epi64(data, 0);
 	__m128i high = _mm256_extracti64x2_epi64(data, 0);
@@ -494,7 +619,7 @@ inline int HorizentalMax64(__m256i data, unsigned long long* p)
 	}
 
 }
-inline int HorizentalMin64(__m512i data, unsigned long long* p)
+inline int HorizentalMin64(__m512i data, unsigned long long* p = 0)
 {
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
@@ -513,7 +638,7 @@ inline int HorizentalMin64(__m512i data, unsigned long long* p)
 		return hi + 4;
 	}
 }
-inline int HorizentalMax64(__m512i data, unsigned long long* p)
+inline int HorizentalMax64(__m512i data, unsigned long long* p = 0)
 {
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
@@ -532,6 +657,80 @@ inline int HorizentalMax64(__m512i data, unsigned long long* p)
 		return hi + 4;
 	}
 }
+
+int AVX2_SUM(int data[], size_t size)
+{
+	const int stride = sizeof(__m256i) / sizeof(int);
+	int sum[stride] = { 0 };
+	__m256i sum256 = _mm256_setzero_si256();
+	__m256i load256 = _mm256_setzero_si256();
+	for (size_t i = 0; i < size; i += stride)
+	{
+		load256 = _mm256_loadu_si256((__m256i*) & data[i]);
+		sum256 = _mm256_add_epi32(sum256, load256);
+	}
+	sum256 = _mm256_hadd_epi32(sum256, sum256);
+	sum256 = _mm256_hadd_epi32(sum256, sum256);
+	_mm256_storeu_si256((__m256i*)sum, sum256);
+	return sum[0] + sum[4];
+}
+int AVX512_SUM(int data[], size_t size)
+{
+	const int stride = sizeof(__m512i) / sizeof(int);
+	int sum[stride] = { 0 };
+	__m512i sum512 = _mm512_setzero_si512();
+	__m512i load512 = _mm512_setzero_si512();
+	for (size_t i = 0; i < size; i += stride)
+	{
+		load512 = _mm512_loadu_si512((__m512i*)&data[i]);
+		sum512 = _mm512_add_epi32(sum512, load512);
+	}
+	__m256i sum256_low = _mm512_extracti32x8_epi32(sum512, 0);
+	__m256i sum256_high = _mm512_extracti32x8_epi32(sum512, 1);
+
+	sum256_low = _mm256_hadd_epi32(sum256_low, sum256_low);
+	sum256_low = _mm256_hadd_epi32(sum256_low, sum256_low);
+
+	sum256_high = _mm256_hadd_epi32(sum256_high, sum256_high);
+	sum256_high = _mm256_hadd_epi32(sum256_high, sum256_high);
+
+	__m256i sum256_full = _mm256_add_epi32(sum256_low, sum256_high);
+	_mm256_storeu_si256((__m256i*)sum, sum256_full);
+
+	return sum[0] + sum[4];
+}
+long long AVX2_SUM(long long data[], size_t size)
+{
+	const int stride = sizeof(__m256i) / sizeof(int);
+	long long sum[stride] = { 0 };
+	__m256i sum256 = _mm256_setzero_si256();
+	__m256i load256 = _mm256_setzero_si256();
+	for (size_t i = 0; i < size; i += stride)
+	{
+		load256 = _mm256_loadu_si256((__m256i*) & data[i]);
+		sum256 = _mm256_add_epi64(sum256, load256);
+	}
+	_mm256_storeu_si256((__m256i*)sum, sum256);
+	return sum[0] + sum[1] + sum[2] + sum[3];
+}
+long long AVX512_SUM(long long data[], size_t size)
+{
+	const int stride = sizeof(__m512i) / sizeof(int);
+	long long sum[stride >> 1] = { 0 };
+	__m512i sum512 = _mm512_setzero_si512();
+	__m512i load512 = _mm512_setzero_si512();
+	for (size_t i = 0; i < size; i += stride)
+	{
+		load512 = _mm512_loadu_si512((__m512i*)&data[i]);
+		sum512 = _mm512_add_epi64(sum512, load512);
+	}
+	__m256i sum256_low = _mm512_extracti64x4_epi64(sum512, 0);
+	__m256i sum256_high = _mm512_extracti64x4_epi64(sum512, 1);
+	__m256i sum256_full = _mm256_add_epi64(sum256_low, sum256_high);
+	_mm256_storeu_si256((__m256i*)sum, sum256_full);
+
+	return sum[0] + sum[1] + sum[2] + sum[3];
+}
 inline size_t AVX2_StringLength(char* s)
 {
 	size_t len = 0;
@@ -544,6 +743,32 @@ inline size_t AVX2_StringLength(char* s)
 		while (len <= (~0LL) - stride) {
 			part = _mm256_loadu_epi8(p);
 			__mmask32 result = _mm256_cmpeq_epi8_mask(part, zero);
+			if (_BitScanForward(&index, result))
+			{
+				len += index;
+				break;
+			}
+			else {
+				len += stride;
+				p += stride;
+			}
+		}
+	}
+
+	return len;
+}
+inline size_t AVX2_StringLength(wchar_t* s)
+{
+	size_t len = 0;
+	if (s != 0) {
+		const int stride = sizeof(__m256i) / sizeof(int);
+		unsigned long index = 0;
+		__m256i zero = _mm256_setzero_si256();
+		__m256i part = { 0 };
+		wchar_t* p = s;
+		while (len <= (~0LL) - stride) {
+			part = _mm256_loadu_epi16(p);
+			__mmask16 result = _mm256_cmpeq_epi16_mask(part, zero);
 			if (_BitScanForward(&index, result))
 			{
 				len += index;
@@ -584,32 +809,6 @@ inline size_t AVX512_StringLength(char* s)
 
 	return len;
 }
-inline size_t AVX2_StringLength(wchar_t* s)
-{
-	size_t len = 0;
-	if (s != 0) {
-		const int stride = sizeof(__m256i) / sizeof(int);
-		unsigned long index = 0;
-		__m256i zero = _mm256_setzero_si256();
-		__m256i part = { 0 };
-		wchar_t* p = s;
-		while (len <= (~0LL) - stride) {
-			part = _mm256_loadu_epi16(p);
-			__mmask16 result = _mm256_cmpeq_epi16_mask(part, zero);
-			if (_BitScanForward(&index, result))
-			{
-				len += index;
-				break;
-			}
-			else {
-				len += stride;
-				p += stride;
-			}
-		}
-	}
-
-	return len;
-}
 inline size_t AVX512_StringLength(wchar_t* s)
 {
 	size_t len = 0;
@@ -635,167 +834,6 @@ inline size_t AVX512_StringLength(wchar_t* s)
 	}
 
 	return len;
-}
-inline int AVX2_StringIndexOf(char* s, char c)
-{
-	if (s != 0) {
-		const int stride = sizeof(__m256i) / sizeof(int);
-		unsigned long index = 0;
-		__m256i _chs = _mm256_set1_epi8(c);
-		__m256i part = { 0 };
-		size_t length = AVX2_StringLength(s);
-
-		for (int i = 0; i < length; i += stride)
-		{
-			part = _mm256_loadu_epi8(s + i);
-			__mmask32 result = _mm256_cmpeq_epi8_mask(part, _chs);
-			if (_BitScanForward(&index, result))
-			{
-				return i + index;
-			}
-		}
-	}
-
-	return -1;
-}
-inline int AVX512_StringIndexOf(char* s, char c)
-{
-	if (s != 0) {
-		const int stride = sizeof(__m512i) / sizeof(int);
-		unsigned long index = 0;
-		__m512i _chs = _mm512_set1_epi8(c);
-		__m512i part = { 0 };
-		size_t length = AVX512_StringLength(s);
-
-		for (int i = 0; i < length; i += stride)
-		{
-			part = _mm512_loadu_epi8(s + i);
-			__mmask64 result = _mm512_cmpeq_epi8_mask(part, _chs);
-			if (_BitScanForward64(&index, result))
-			{
-				return i + index;
-			}
-		}
-	}
-
-	return -1;
-}
-inline int AVX2_StringIndexOf(wchar_t* s, wchar_t c)
-{
-	if (s != 0) {
-		const int stride = sizeof(__m256i) / sizeof(int);
-		unsigned long index = 0;
-		__m256i _chs = _mm256_set1_epi16(c);
-		__m256i part = { 0 };
-		size_t length = AVX2_StringLength(s);
-
-		for (int i = 0; i < length; i += stride)
-		{
-			part = _mm256_loadu_epi16(s + i);
-			__mmask16 result = _mm256_cmpeq_epi16_mask(part, _chs);
-			if (_BitScanForward(&index, result))
-			{
-				return i + index;
-			}
-		}
-	}
-
-	return -1;
-}
-inline int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
-{
-	if (s != 0) {
-		const int stride = sizeof(__m512i) / sizeof(int);
-		unsigned long index = 0;
-		__m512i _chs = _mm512_set1_epi16(c);
-		__m512i part = { 0 };
-		size_t length = AVX512_StringLength(s);
-
-		for (int i = 0; i < length; i += stride)
-		{
-			part = _mm512_loadu_epi16(s + i);
-			__mmask32 result = _mm512_cmpeq_epi16_mask(part, _chs);
-			if (_BitScanForward(&index, result))
-			{
-				return i + index;
-			}
-		}
-	}
-
-	return -1;
-}
-int AVX2_SUM(int data[], size_t size)
-{
-	const int stride = sizeof(__m256i) / sizeof(int);
-	int sum[stride] = { 0 };
-	__m256i sum256 = _mm256_setzero_si256();
-	__m256i load256 = _mm256_setzero_si256();
-	for (size_t i = 0; i < size; i += stride)
-	{
-		load256 = _mm256_loadu_si256((__m256i*) & data[i]);
-		sum256 = _mm256_add_epi32(sum256, load256);
-	}
-	sum256 = _mm256_hadd_epi32(sum256, sum256);
-	sum256 = _mm256_hadd_epi32(sum256, sum256);
-	_mm256_storeu_si256((__m256i*)sum, sum256);
-	return sum[0] + sum[4];
-}
-long long AVX2_SUM(long long data[], size_t size)
-{
-	const int stride = sizeof(__m256i) / sizeof(int);
-	long long sum[stride] = { 0 };
-	__m256i sum256 = _mm256_setzero_si256();
-	__m256i load256 = _mm256_setzero_si256();
-	for (size_t i = 0; i < size; i += stride)
-	{
-		load256 = _mm256_loadu_si256((__m256i*) & data[i]);
-		sum256 = _mm256_add_epi64(sum256, load256);
-	}
-	_mm256_storeu_si256((__m256i*)sum, sum256);
-	return sum[0] + sum[1] + sum[2] + sum[3];
-}
-int AVX512_SUM(int data[], size_t size)
-{
-	const int stride = sizeof(__m512i) / sizeof(int);
-	int sum[stride] = { 0 };
-	__m512i sum512 = _mm512_setzero_si512();
-	__m512i load512 = _mm512_setzero_si512();
-	for (size_t i = 0; i < size; i += stride)
-	{
-		load512 = _mm512_loadu_si512((__m512i*)&data[i]);
-		sum512 = _mm512_add_epi32(sum512, load512);
-	}
-	__m256i sum256_low = _mm512_extracti32x8_epi32(sum512, 0);
-	__m256i sum256_high = _mm512_extracti32x8_epi32(sum512, 1);
-
-	sum256_low = _mm256_hadd_epi32(sum256_low, sum256_low);
-	sum256_low = _mm256_hadd_epi32(sum256_low, sum256_low);
-
-	sum256_high = _mm256_hadd_epi32(sum256_high, sum256_high);
-	sum256_high = _mm256_hadd_epi32(sum256_high, sum256_high);
-
-	__m256i sum256_full = _mm256_add_epi32(sum256_low, sum256_high);
-	_mm256_storeu_si256((__m256i*)sum, sum256_full);
-
-	return sum[0] + sum[4];
-}
-long long AVX512_SUM(long long data[], size_t size)
-{
-	const int stride = sizeof(__m512i) / sizeof(int);
-	long long sum[stride >> 1] = { 0 };
-	__m512i sum512 = _mm512_setzero_si512();
-	__m512i load512 = _mm512_setzero_si512();
-	for (size_t i = 0; i < size; i += stride)
-	{
-		load512 = _mm512_loadu_si512((__m512i*)&data[i]);
-		sum512 = _mm512_add_epi64(sum512, load512);
-	}
-	__m256i sum256_low = _mm512_extracti64x4_epi64(sum512, 0);
-	__m256i sum256_high = _mm512_extracti64x4_epi64(sum512, 1);
-	__m256i sum256_full = _mm256_add_epi64(sum256_low, sum256_high);
-	_mm256_storeu_si256((__m256i*)sum, sum256_full);
-
-	return sum[0] + sum[1] + sum[2] + sum[3];
 }
 
 inline int AVX2_StringCompare(char* s1, char* s2)
@@ -845,53 +883,6 @@ inline int AVX2_StringCompare(char* s1, char* s2)
 		return 0;//all the same
 	}
 }
-inline int AVX512_StringCompare(char* s1, char* s2)
-{
-	const int stride = sizeof(__m512i) / sizeof(int);
-	
-	if (s1 == 0 && s2 == 0) {
-		return 0;
-	}
-	else if (s2 == 0) {
-		return +1;
-	}
-	else if (s1 == 0) {
-		return -1;
-	}
-	else {
-		size_t l1 = AVX512_StringLength(s1);
-		size_t l2 = AVX512_StringLength(s2);
-		if (l1 == l2 && l2 == 0) return 0;
-		size_t ln = l1 > l2 ? l1 : l2;
-
-		for (unsigned long i = 0; i < ln; i += stride)
-		{
-			unsigned long igt = 0;
-			unsigned long ilt = 0;
-			unsigned long most = i + stride < ln ? stride : ln - i;
-			__m512i part1 = _mm512_loadu_epi8(s1 + i);
-			__m512i part2 = _mm512_loadu_epi8(s2 + i);
-			__mmask64 rgt = _mm512_cmpgt_epi8_mask(part1, part2);
-			__mmask64 rlt = _mm512_cmplt_epi8_mask(part1, part2);
-			unsigned char bgt = _BitScanForward64(&igt, rgt);
-			unsigned char blt = _BitScanForward64(&ilt, rlt);
-			if (!bgt && !blt) continue;
-
-			ilt = ilt > most ? most : ilt;
-			igt = igt > most ? most : igt;
-			if (bgt && !blt) {
-				return i + igt;
-			}
-			else if (!bgt && blt) {
-				return i + ilt;
-			}
-			else {
-				return igt < ilt ? igt : ilt;
-			}
-		}
-		return 0;//all the same
-	}
-}
 inline int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
 {
 	const int stride = sizeof(__m256i) / sizeof(int);
@@ -922,6 +913,53 @@ inline int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
 			__mmask16 rlt = _mm256_cmplt_epi16_mask(part1, part2);
 			unsigned char bgt = _BitScanForward(&igt, rgt);
 			unsigned char blt = _BitScanForward(&ilt, rlt);
+			if (!bgt && !blt) continue;
+
+			ilt = ilt > most ? most : ilt;
+			igt = igt > most ? most : igt;
+			if (bgt && !blt) {
+				return i + igt;
+			}
+			else if (!bgt && blt) {
+				return i + ilt;
+			}
+			else {
+				return igt < ilt ? igt : ilt;
+			}
+		}
+		return 0;//all the same
+	}
+}
+inline int AVX512_StringCompare(char* s1, char* s2)
+{
+	const int stride = sizeof(__m512i) / sizeof(int);
+	
+	if (s1 == 0 && s2 == 0) {
+		return 0;
+	}
+	else if (s2 == 0) {
+		return +1;
+	}
+	else if (s1 == 0) {
+		return -1;
+	}
+	else {
+		size_t l1 = AVX512_StringLength(s1);
+		size_t l2 = AVX512_StringLength(s2);
+		if (l1 == l2 && l2 == 0) return 0;
+		size_t ln = l1 > l2 ? l1 : l2;
+
+		for (unsigned long i = 0; i < ln; i += stride)
+		{
+			unsigned long igt = 0;
+			unsigned long ilt = 0;
+			unsigned long most = i + stride < ln ? stride : ln - i;
+			__m512i part1 = _mm512_loadu_epi8(s1 + i);
+			__m512i part2 = _mm512_loadu_epi8(s2 + i);
+			__mmask64 rgt = _mm512_cmpgt_epi8_mask(part1, part2);
+			__mmask64 rlt = _mm512_cmplt_epi8_mask(part1, part2);
+			unsigned char bgt = _BitScanForward64(&igt, rgt);
+			unsigned char blt = _BitScanForward64(&ilt, rlt);
 			if (!bgt && !blt) continue;
 
 			ilt = ilt > most ? most : ilt;
@@ -1020,39 +1058,6 @@ inline bool AVX2_StringEqual(char* s1, char* s2)
 		return true;//all the same
 	}
 }
-inline bool AVX512_StringEqual(char* s1, char* s2)
-{
-	const int stride = sizeof(__m512i) / sizeof(int);
-
-	if (s1 == 0 && s2 == 0) {
-		return true;
-	}
-	else if (s2 == 0) {
-		return false;
-	}
-	else if (s1 == 0) {
-		return false;
-	}
-	else {
-		size_t l1 = AVX512_StringLength(s1);
-		size_t l2 = AVX512_StringLength(s2);
-		if (l1 == l2 && l2 == 0) return true;
-		if (l1 != l2) return false;
-		size_t ln = l1;
-
-		for (unsigned long i = 0; i < ln; i += stride)
-		{
-			unsigned long iet = 0;
-			unsigned long most = i + stride < ln ? stride : ln - i;
-			__m512i part1 = _mm512_loadu_epi8(s1 + i);
-			__m512i part2 = _mm512_loadu_epi8(s2 + i);
-			__mmask64 neqt = _mm512_cmpneq_epi8_mask(part1, part2);
-			unsigned char bet = _BitScanForward64(&iet, neqt);
-			if (bet && iet < most) return false;
-		}
-		return true;//all the same
-	}
-}
 inline bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
 {
 	const int stride = sizeof(__m256i) / sizeof(int);
@@ -1081,6 +1086,39 @@ inline bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
 			__m256i part2 = _mm256_loadu_epi16(s2 + i);
 			__mmask16 neqt = _mm256_cmpneq_epi16_mask(part1, part2);
 			unsigned char bet = _BitScanForward(&iet, neqt);
+			if (bet && iet < most) return false;
+		}
+		return true;//all the same
+	}
+}
+inline bool AVX512_StringEqual(char* s1, char* s2)
+{
+	const int stride = sizeof(__m512i) / sizeof(int);
+
+	if (s1 == 0 && s2 == 0) {
+		return true;
+	}
+	else if (s2 == 0) {
+		return false;
+	}
+	else if (s1 == 0) {
+		return false;
+	}
+	else {
+		size_t l1 = AVX512_StringLength(s1);
+		size_t l2 = AVX512_StringLength(s2);
+		if (l1 == l2 && l2 == 0) return true;
+		if (l1 != l2) return false;
+		size_t ln = l1;
+
+		for (unsigned long i = 0; i < ln; i += stride)
+		{
+			unsigned long iet = 0;
+			unsigned long most = i + stride < ln ? stride : ln - i;
+			__m512i part1 = _mm512_loadu_epi8(s1 + i);
+			__m512i part2 = _mm512_loadu_epi8(s2 + i);
+			__mmask64 neqt = _mm512_cmpneq_epi8_mask(part1, part2);
+			unsigned char bet = _BitScanForward64(&iet, neqt);
 			if (bet && iet < most) return false;
 		}
 		return true;//all the same
@@ -1120,131 +1158,150 @@ inline bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
 	}
 }
 
-
-int* FastOddEvenSort256(int* t, int n)
+inline int AVX2_StringIndexOf(char* s, char c)
 {
-	const int size = sizeof(__m256i) / sizeof(int);
-	const int last = size - 1;
-	const int half = size >> 1;
-	const int skip = sizeof(int);
-	const int dbls = (size << 1);
-	const int quad = dbls << 1;
+	if (s != 0) {
+		const int stride = sizeof(__m256i) / sizeof(int);
+		unsigned long index = 0;
+		__m256i _chs = _mm256_set1_epi8(c);
+		__m256i part = { 0 };
+		size_t length = AVX2_StringLength(s);
 
-	if (n < dbls || n % dbls>0) {
-		std::sort(t, t + n);
-		return t;
-	}
-	int* a = new int[n + 1];
-	memcpy_s(a, (n) * sizeof(int), t, (n) * sizeof(int));
-	a[n] = 0;
-
-	__m256i zeros = _mm256_setzero_si256();
-	__m256i ones = _mm256_cmpeq_epi32(zeros, zeros);
-	__m256i ipo = _mm256_setr_epi32(1, 3, 5, 7, 9, 11, 13, 15);
-	__m256i ipe = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14);
-	__m256i ipt = _mm256_setr_epi32(2, 4, 6, 8, 10, 12, 14, 16);
-
-	for (int repeat = 0; repeat < n / 2; repeat++)
-	{
-		for (int part = 0; part < n; part += dbls)
+		for (int i = 0; i < length; i += stride)
 		{
-			int* ptr = a + part;
-
-			__m256i veven = _mm256_i32gather_epi32(ptr, ipe, skip);
-			__m256i vodd_ = _mm256_i32gather_epi32(ptr, ipo, skip);
-
-			__m256i min = _mm256_min_epi32(vodd_, veven);
-			__m256i max = _mm256_max_epi32(vodd_, veven);
-
-			_mm256_i32scatter_epi32(ptr, ipe, min, skip);
-			_mm256_i32scatter_epi32(ptr, ipo, max, skip);
-		}
-		for (int part = 0; part < n; part += dbls)
-		{
-			if (dbls >= n - part - 1) a[n] = a[n - 1];
-
-			int* par = a + part;
-
-			__m256i veven = _mm256_i32gather_epi32(par, ipt, skip);
-			__m256i vodd_ = _mm256_i32gather_epi32(par, ipo, skip);
-
-			__m256i min = _mm256_min_epi32(vodd_, veven);
-			__m256i max = _mm256_max_epi32(vodd_, veven);
-
-			_mm256_i32scatter_epi32(par, ipo, min, skip);
-			_mm256_i32scatter_epi32(par, ipt, max, skip);
-
+			part = _mm256_loadu_epi8(s + i);
+			__mmask32 result = _mm256_cmpeq_epi8_mask(part, _chs);
+			if (_BitScanForward(&index, result))
+			{
+				return i + index;
+			}
 		}
 	}
 
-	memcpy_s(t, (n) * sizeof(int), a, (n) * sizeof(int));
+	return -1;
+}
+inline int AVX2_StringIndexOf(wchar_t* s, wchar_t c)
+{
+	if (s != 0) {
+		const int stride = sizeof(__m256i) / sizeof(int);
+		unsigned long index = 0;
+		__m256i _chs = _mm256_set1_epi16(c);
+		__m256i part = { 0 };
+		size_t length = AVX2_StringLength(s);
 
-	delete[] a;
+		for (int i = 0; i < length; i += stride)
+		{
+			part = _mm256_loadu_epi16(s + i);
+			__mmask16 result = _mm256_cmpeq_epi16_mask(part, _chs);
+			if (_BitScanForward(&index, result))
+			{
+				return i + index;
+			}
+		}
+	}
 
-	return t;
+	return -1;
+}
+inline int AVX512_StringIndexOf(char* s, char c)
+{
+	if (s != 0) {
+		const int stride = sizeof(__m512i) / sizeof(int);
+		unsigned long index = 0;
+		__m512i _chs = _mm512_set1_epi8(c);
+		__m512i part = { 0 };
+		size_t length = AVX512_StringLength(s);
+
+		for (int i = 0; i < length; i += stride)
+		{
+			part = _mm512_loadu_epi8(s + i);
+			__mmask64 result = _mm512_cmpeq_epi8_mask(part, _chs);
+			if (_BitScanForward64(&index, result))
+			{
+				return i + index;
+			}
+		}
+	}
+
+	return -1;
+}
+inline int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
+{
+	if (s != 0) {
+		const int stride = sizeof(__m512i) / sizeof(int);
+		unsigned long index = 0;
+		__m512i _chs = _mm512_set1_epi16(c);
+		__m512i part = { 0 };
+		size_t length = AVX512_StringLength(s);
+
+		for (int i = 0; i < length; i += stride)
+		{
+			part = _mm512_loadu_epi16(s + i);
+			__mmask32 result = _mm512_cmpeq_epi16_mask(part, _chs);
+			if (_BitScanForward(&index, result))
+			{
+				return i + index;
+			}
+		}
+	}
+
+	return -1;
 }
 
-int* FastOddEvenSort512(int* t, int n)
+inline int AVX2_StringIndexOf(char* s, char* cs)
 {
-	const int size = sizeof(__m512i) / sizeof(int);
-	const int last = size - 1;
-	const int half = size >> 1;
-	const int skip = sizeof(int);
-	const int dbls = (size << 1);
-	const int quad = dbls << 1;
+	if (s == 0) return -1;
+	if (cs == 0) return -1;
+	size_t l1 = AVX2_StringLength(s);
+	size_t l2 = AVX2_StringLength(cs);
+	if (l1 == 0 && l2 == 0) return 0;
+	if (l1 == 0 && l2 > 0) return -1;
+	if (l1 < l2) return -1;
 
-	if (n < dbls || n % dbls>0) {
-		std::sort(t, t + n);
-		return t;
-	}
-	int* a = new int[n + 1];
-	memcpy_s(a, (n) * sizeof(int), t, (n) * sizeof(int));
-	a[n] = 0;
+	//TODO:find needle in hystack
 
-	__m256i zeros = _mm256_setzero_si256();
-	__m256i ones = _mm256_cmpeq_epi32(zeros, zeros);
-	__m512i ipo = _mm512_setr_epi32(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31);
-	__m512i ipe = _mm512_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30);
-	__m512i ipt = _mm512_setr_epi32(2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32);
+	return -1;
+}
+inline int AVX2_StringIndexOf(wchar_t* s, wchar_t* cs)
+{
+	if (s == 0) return -1;
+	if (cs == 0) return -1;
+	size_t l1 = AVX2_StringLength(s);
+	size_t l2 = AVX2_StringLength(cs);
+	if (l1 == 0 && l2 == 0) return 0;
+	if (l1 == 0 && l2 > 0) return -1;
+	if (l1 < l2) return -1;
 
-	for (int repeat = 0; repeat < n / 2; repeat++)
-	{
-		for (int part = 0; part < n; part += dbls)
-		{
-			int* ptr = a + part;
+	//TODO:find needle in hystack
 
-			__m512i veven = _mm512_i32gather_epi32(ipe, ptr, skip);
-			__m512i vodd_ = _mm512_i32gather_epi32(ipo, ptr, skip);
+	return -1;
+}
+inline int AVX512_StringIndexOf(char* s, char* cs)
+{
+	if (s == 0) return -1;
+	if (cs == 0) return -1;
+	size_t l1 = AVX512_StringLength(s);
+	size_t l2 = AVX2_StringLength(cs);
+	if (l1 == 0 && l2 == 0) return 0;
+	if (l1 == 0 && l2 > 0) return -1;
+	if (l1 < l2) return -1;
 
-			__m512i min = _mm512_min_epi32(vodd_, veven);
-			__m512i max = _mm512_max_epi32(vodd_, veven);
+	//TODO:find needle in hystack
 
-			_mm512_i32scatter_epi32(ptr, ipe, min, skip);
-			_mm512_i32scatter_epi32(ptr, ipo, max, skip);
-		}
-		for (int part = 0; part < n; part += dbls)
-		{
-			if (dbls >= n - part - 1) a[n] = a[n - 1];
+	return -1;
+}
+inline int AVX512_StringIndexOf(wchar_t* s, wchar_t *cs)
+{
+	if (s == 0) return -1;
+	if (cs == 0) return -1;
+	size_t l1 = AVX512_StringLength(s);
+	size_t l2 = AVX512_StringLength(cs);
+	if (l1 == 0 && l2 == 0) return 0;
+	if (l1 == 0 && l2 > 0) return -1;
+	if (l1 < l2) return -1;
 
-			int* par = a + part;
+	//TODO:find needle in hystack
 
-			__m512i veven = _mm512_i32gather_epi32(ipt, par, skip);
-			__m512i vodd_ = _mm512_i32gather_epi32(ipo, par, skip);
-
-			__m512i min = _mm512_min_epi32(vodd_, veven);
-			__m512i max = _mm512_max_epi32(vodd_, veven);
-
-			_mm512_i32scatter_epi32(par, ipo, min, skip);
-			_mm512_i32scatter_epi32(par, ipt, max, skip);
-		}
-	}
-
-	memcpy_s(t, (n) * sizeof(int), a, (n) * sizeof(int));
-
-	delete[] a;
-
-	return t;
-
+	return -1;
 }
 
 const int DATA_SIZE = 4096;
