@@ -977,9 +977,9 @@ bool CheckSequence(int a[], int b[], int n) {
 }
 int main()
 {
-    __m128i data8 = _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-    __m128i data16 = _mm_set_epi16(5, 3, 1, 4, 2, 9, 7, 6); //0 is last
-    __m256i data32 = _mm256_set_epi32(
+    __m128i __data8 = _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+    __m128i _data16 = _mm_set_epi16(5, 3, 1, 4, 2, 9, 7, 6); //0 is last
+    __m256i _data32 = _mm256_set_epi32(
         0x00050055, 
         0x00240044, 
         0x00060066, 
@@ -995,22 +995,22 @@ int main()
     unsigned long long r64 = 0;
     int i = 0;
 
-    i = HorizentalMin8(data8, &r8);
+    i = HorizentalMin8(__data8, &r8);
     
-    i = HorizentalMax8(data8, &r8);
+    i = HorizentalMax8(__data8, &r8);
 
 
-    i = HorizentalMin16(data16, &r16);
+    i = HorizentalMin16(_data16, &r16);
 
-    i = HorizentalMax16(data16, &r16);
+    i = HorizentalMax16(_data16, &r16);
 
-    i = HorizentalMin32(data32, &r32);
+    i = HorizentalMin32(_data32, &r32);
 
-    i = HorizentalMax32(data32, &r32);
+    i = HorizentalMax32(_data32, &r32);
 
-    i = HorizentalMin64(data32, &r64);
+    i = HorizentalMin64(_data32, &r64);
 
-    i = HorizentalMax64(data32, &r64);
+    i = HorizentalMax64(_data32, &r64);
 
     bool show = false;
     long long t0;
