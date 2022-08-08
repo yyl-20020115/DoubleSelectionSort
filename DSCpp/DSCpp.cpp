@@ -724,7 +724,7 @@ inline int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
 
 	return -1;
 }
-int AVX2_Sum(int data[], size_t size)
+int AVX2_SUM(int data[], size_t size)
 {
 	const int stride = sizeof(__m256i) / sizeof(int);
 	int sum[stride] = { 0 };
@@ -754,7 +754,7 @@ int AVX2_SUM(long long data[], size_t size)
 	_mm256_storeu_si256((__m256i*)sum, sum256);
 	return sum[0] + sum[1] + sum[2] + sum[3];
 }
-int AVX512_Sum(int data[], size_t size)
+int AVX512_SUM(int data[], size_t size)
 {
 	const int stride = sizeof(__m512i) / sizeof(int);
 	int sum[stride] = { 0 };
@@ -798,6 +798,322 @@ int AVX512_SUM(long long data[], size_t size)
 	return sum[0] + sum[1] + sum[2] + sum[3];
 }
 
+inline int AVX2_StringCompare(char* s1, char* s2)
+{
+	const int stride = sizeof(__m256i) / sizeof(int);
+
+	if (s1 == 0 && s2 == 0) {
+		return 0;
+	}
+	else if (s2 == 0) {
+		return +1;
+	}
+	else if (s1 == 0) {
+		return -1;
+	}
+	else {
+		size_t l1 = AVX2_StringLength(s1);
+		size_t l2 = AVX2_StringLength(s2);
+		size_t ln = l1 > l2 ? l1 : l2;
+
+		for (int i = 0; i < ln; i += stride)
+		{
+			unsigned long igt = 0;
+			unsigned long ilt = 0;
+			unsigned long most = i + stride < ln ? stride : ln - i;
+			__m256i part1 = _mm256_loadu_epi8(s1 + i);
+			__m256i part2 = _mm256_loadu_epi8(s2 + i);
+			__mmask32 rgt = _mm256_cmpgt_epi8_mask(part1, part2);
+			__mmask32 rlt = _mm256_cmplt_epi8_mask(part1, part2);
+			unsigned char bgt = _BitScanForward(&igt, rgt);
+			unsigned char blt = _BitScanForward(&ilt, rlt);
+			if (!bgt && !blt) continue;
+			
+			ilt = ilt > most ? most : ilt;
+			igt = igt > most ? most : igt;
+			if (bgt && !blt) {
+				return i + igt;
+			}
+			else if (!bgt && blt) {
+				return i + ilt;
+			}
+			else {
+				return igt < ilt ? igt : ilt;
+			}
+		}
+		return 0;//all the same
+	}
+}
+inline int AVX512_StringCompare(char* s1, char* s2)
+{
+	const int stride = sizeof(__m512i) / sizeof(int);
+	
+	if (s1 == 0 && s2 == 0) {
+		return 0;
+	}
+	else if (s2 == 0) {
+		return +1;
+	}
+	else if (s1 == 0) {
+		return -1;
+	}
+	else {
+		size_t l1 = AVX512_StringLength(s1);
+		size_t l2 = AVX512_StringLength(s2);
+		size_t ln = l1 > l2 ? l1 : l2;
+
+		for (int i = 0; i < ln; i += stride)
+		{
+			unsigned long igt = 0;
+			unsigned long ilt = 0;
+			unsigned long most = i + stride < ln ? stride : ln - i;
+			__m512i part1 = _mm512_loadu_epi8(s1 + i);
+			__m512i part2 = _mm512_loadu_epi8(s2 + i);
+			__mmask64 rgt = _mm512_cmpgt_epi8_mask(part1, part2);
+			__mmask64 rlt = _mm512_cmplt_epi8_mask(part1, part2);
+			unsigned char bgt = _BitScanForward64(&igt, rgt);
+			unsigned char blt = _BitScanForward64(&ilt, rlt);
+			if (!bgt && !blt) continue;
+
+			ilt = ilt > most ? most : ilt;
+			igt = igt > most ? most : igt;
+			if (bgt && !blt) {
+				return i + igt;
+			}
+			else if (!bgt && blt) {
+				return i + ilt;
+			}
+			else {
+				return igt < ilt ? igt : ilt;
+			}
+		}
+		return 0;//all the same
+	}
+}
+inline int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
+{
+	const int stride = sizeof(__m256i) / sizeof(int);
+
+	if (s1 == 0 && s2 == 0) {
+		return 0;
+	}
+	else if (s2 == 0) {
+		return +1;
+	}
+	else if (s1 == 0) {
+		return -1;
+	}
+	else {
+		size_t l1 = AVX2_StringLength(s1);
+		size_t l2 = AVX2_StringLength(s2);
+		size_t ln = l1 > l2 ? l1 : l2;
+
+		for (int i = 0; i < ln; i += stride)
+		{
+			unsigned long igt = 0;
+			unsigned long ilt = 0;
+			unsigned long most = i + stride < ln ? stride : ln - i;
+			__m256i part1 = _mm256_loadu_epi16(s1 + i);
+			__m256i part2 = _mm256_loadu_epi16(s2 + i);
+			__mmask16 rgt = _mm256_cmpgt_epi16_mask(part1, part2);
+			__mmask16 rlt = _mm256_cmplt_epi16_mask(part1, part2);
+			unsigned char bgt = _BitScanForward(&igt, rgt);
+			unsigned char blt = _BitScanForward(&ilt, rlt);
+			if (!bgt && !blt) continue;
+
+			ilt = ilt > most ? most : ilt;
+			igt = igt > most ? most : igt;
+			if (bgt && !blt) {
+				return i + igt;
+			}
+			else if (!bgt && blt) {
+				return i + ilt;
+			}
+			else {
+				return igt < ilt ? igt : ilt;
+			}
+		}
+		return 0;//all the same
+	}
+}
+inline int AVX512_StringCompare(wchar_t* s1, wchar_t* s2)
+{
+	const int stride = sizeof(__m512i) / sizeof(int);
+
+	if (s1 == 0 && s2 == 0) {
+		return 0;
+	}
+	else if (s2 == 0) {
+		return +1;
+	}
+	else if (s1 == 0) {
+		return -1;
+	}
+	else {
+		size_t l1 = AVX512_StringLength(s1);
+		size_t l2 = AVX512_StringLength(s2);
+		size_t ln = l1 > l2 ? l1 : l2;
+
+		for (int i = 0; i < ln; i += stride)
+		{
+			unsigned long igt = 0;
+			unsigned long ilt = 0;
+			unsigned long most = i + stride < ln ? stride : ln - i;
+			__m512i part1 = _mm512_loadu_epi16(s1 + i);
+			__m512i part2 = _mm512_loadu_epi16(s2 + i);
+			__mmask32 rgt = _mm512_cmpgt_epi16_mask(part1, part2);
+			__mmask32 rlt = _mm512_cmplt_epi16_mask(part1, part2);
+			unsigned char bgt = _BitScanForward(&igt, rgt);
+			unsigned char blt = _BitScanForward(&ilt, rlt);
+			if (!bgt && !blt) continue;
+
+			ilt = ilt > most ? most : ilt;
+			igt = igt > most ? most : igt;
+			if (bgt && !blt) {
+				return i + igt;
+			}
+			else if (!bgt && blt) {
+				return i + ilt;
+			}
+			else {
+				return igt < ilt ? igt : ilt;
+			}
+		}
+		return 0;//all the same
+	}
+}
+
+inline bool AVX2_StringEqual(char* s1, char* s2)
+{
+	const int stride = sizeof(__m256i) / sizeof(int);
+
+	if (s1 == 0 && s2 == 0) {
+		return true;
+	}
+	else if (s2 == 0) {
+		return false;
+	}
+	else if (s1 == 0) {
+		return false;
+	}
+	else {
+		size_t l1 = AVX2_StringLength(s1);
+		size_t l2 = AVX2_StringLength(s2);
+		if (l1 != l2) return false;
+		size_t ln = l1;
+
+		for (int i = 0; i < ln; i += stride)
+		{
+			unsigned long iet = 0;
+			unsigned long most = i + stride < ln ? stride : ln - i;
+			__m256i part1 = _mm256_loadu_epi8(s1 + i);
+			__m256i part2 = _mm256_loadu_epi8(s2 + i);
+			__mmask32 neqt = _mm256_cmpneq_epi8_mask(part1, part2);
+			unsigned char bet = _BitScanForward(&iet, neqt);
+			if (bet && iet<most) return false;
+		}
+		return true;//all the same
+	}
+}
+inline bool AVX512_StringEqual(char* s1, char* s2)
+{
+	const int stride = sizeof(__m512i) / sizeof(int);
+
+	if (s1 == 0 && s2 == 0) {
+		return true;
+	}
+	else if (s2 == 0) {
+		return false;
+	}
+	else if (s1 == 0) {
+		return false;
+	}
+	else {
+		size_t l1 = AVX512_StringLength(s1);
+		size_t l2 = AVX512_StringLength(s2);
+		if (l1 != l2) return false;
+		size_t ln = l1;
+
+		for (int i = 0; i < ln; i += stride)
+		{
+			unsigned long iet = 0;
+			unsigned long most = i + stride < ln ? stride : ln - i;
+			__m512i part1 = _mm512_loadu_epi8(s1 + i);
+			__m512i part2 = _mm512_loadu_epi8(s2 + i);
+			__mmask64 neqt = _mm512_cmpneq_epi8_mask(part1, part2);
+			unsigned char bet = _BitScanForward(&iet, neqt);
+			if (bet && iet < most) return false;
+		}
+		return true;//all the same
+	}
+}
+inline bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
+{
+	const int stride = sizeof(__m256i) / sizeof(int);
+
+	if (s1 == 0 && s2 == 0) {
+		return true;
+	}
+	else if (s2 == 0) {
+		return false;
+	}
+	else if (s1 == 0) {
+		return false;
+	}
+	else {
+		size_t l1 = AVX2_StringLength(s1);
+		size_t l2 = AVX2_StringLength(s2);
+		if (l1 != l2) return false;
+		size_t ln = l1;
+
+		for (int i = 0; i < ln; i += stride)
+		{
+			unsigned long iet = 0;
+			unsigned long most = i + stride < ln ? stride : ln - i;
+			__m256i part1 = _mm256_loadu_epi16(s1 + i);
+			__m256i part2 = _mm256_loadu_epi16(s2 + i);
+
+			__mmask16 neqt = _mm256_cmpneq_epi16_mask(part1, part2);
+			unsigned char bet = _BitScanForward(&iet, neqt);
+			if (bet && iet < most) return false;
+		}
+		return true;//all the same
+	}
+}
+inline bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
+{
+	const int stride = sizeof(__m512i) / sizeof(int);
+
+	if (s1 == 0 && s2 == 0) {
+		return true;
+	}
+	else if (s2 == 0) {
+		return false;
+	}
+	else if (s1 == 0) {
+		return false;
+	}
+	else {
+		size_t l1 = AVX512_StringLength(s1);
+		size_t l2 = AVX512_StringLength(s2);
+		if (l1 != l2) return false;
+		size_t ln = l1;
+
+		for (int i = 0; i < ln; i += stride)
+		{
+			unsigned long iet = 0;
+			unsigned long most = i + stride < ln ? stride : ln - i;
+			__m512i part1 = _mm512_loadu_epi16(s1 + i);
+			__m512i part2 = _mm512_loadu_epi16(s2 + i);
+			__mmask32 neqt = _mm512_cmpneq_epi16_mask(part1, part2);
+			unsigned char bet = _BitScanForward(&iet, neqt);
+			if (bet && iet < most) return false;
+		}
+		return true;//all the same
+	}
+}
+
+
 int* FastOddEvenSort256(int* t, int n)
 {
 	const int size = sizeof(__m256i) / sizeof(int);
@@ -832,12 +1148,6 @@ int* FastOddEvenSort256(int* t, int n)
 
 			__m256i min = _mm256_min_epi32(vodd_, veven);
 			__m256i max = _mm256_max_epi32(vodd_, veven);
-
-			//__m128i minl = _mm256_extracti32x4_epi32(min, 0);
-			//__m128i minh = _mm256_extracti32x4_epi32(min, 1);
-			//
-			//__m128i maxl = _mm256_extracti32x4_epi32(max, 0);
-			//__m128i maxh = _mm256_extracti32x4_epi32(max, 1);
 
 			_mm256_i32scatter_epi32(ptr, ipe, min, skip);
 			_mm256_i32scatter_epi32(ptr, ipo, max, skip);
