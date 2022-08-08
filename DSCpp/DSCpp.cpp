@@ -280,18 +280,18 @@ int HorizentalMin32(__m256i data, unsigned int* p) {
     }
     return lower_index+8;
 }
-int HorizentalMax32(__m256i _data, unsigned int* p) {
+int HorizentalMax32(__m256i data, unsigned int* p) {
     __m128i zero = _mm_setzero_si128();
     __m128i ones = _mm_cmpeq_epi32(zero, zero);
 
     __m256i zero_ = _mm256_setzero_si256();
     __m256i ones_ = _mm256_cmpeq_epi32(zero_, zero_);
 
-    __m256i data = _mm256_sub_epi32(ones_, _data);
+    __m256i _data_ = _mm256_sub_epi32(ones_, data);
     
     __m256i idx = _mm256_setr_epi16(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
 
-    __m256i r = _mm256_permutexvar_epi16(idx, data);
+    __m256i r = _mm256_permutexvar_epi16(idx, _data_);
 
     __m128i low = _mm256_extracti128_si256(r, 0);
     __m128i high = _mm256_extracti128_si256(r, 1);
@@ -313,10 +313,10 @@ int HorizentalMax32(__m256i _data, unsigned int* p) {
     }
     return 8 - 1 - lower_index;
 }
-int HorizentalMin32(__m512i _data, unsigned int* p)
+int HorizentalMin32(__m512i data, unsigned int* p)
 {
-    __m256i low = _mm512_extracti32x8_epi32(_data, 0);
-    __m256i high = _mm512_extracti32x8_epi32(_data, 1);
+    __m256i low = _mm512_extracti32x8_epi32(data, 0);
+    __m256i high = _mm512_extracti32x8_epi32(data, 1);
 
     unsigned int lv = 0;
     unsigned int hv = 0;
@@ -333,10 +333,10 @@ int HorizentalMin32(__m512i _data, unsigned int* p)
         return hi;
     }
 }
-int HorizentalMax32(__m512i _data, unsigned int* p)
+int HorizentalMax32(__m512i data, unsigned int* p)
 {
-    __m256i low = _mm512_extracti32x8_epi32(_data, 0);
-    __m256i high = _mm512_extracti32x8_epi32(_data, 1);
+    __m256i low = _mm512_extracti32x8_epi32(data, 0);
+    __m256i high = _mm512_extracti32x8_epi32(data, 1);
 
     unsigned int lv = 0;
     unsigned int hv = 0;
