@@ -408,25 +408,25 @@ int* FastOddEvenSort512(int* t, int n)
 
 }
 
-inline int HorizentalMin16(__m128i data, unsigned short* p = 0) {
+int HorizentalMin16(__m128i data, unsigned short* p = 0) {
 	__m128i result = _mm_minpos_epu16(data);
 	if (p != 0) {
 		*p = result.m128i_i16[0];
 	}
 	return result.m128i_i16[1] & 0x7;
 }
-inline int HorizentalMax16(__m128i data, unsigned short* p = 0) {
+int HorizentalMax16(__m128i data, unsigned short* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i ones = _mm_cmpeq_epi32(zero, zero);
 	__m128i subs = _mm_subs_epu16(ones, data);
-
 	__m128i result = _mm_minpos_epu16(subs);
+	int index = result.m128i_i16[1] & 0x7;
 	if (p != 0) {
-		*p = (0xffff - result.m128i_i16[0]);
+		*p = data.m128i_i16[index];
 	}
-	return result.m128i_i16[1] & 0x7;
+	return index;
 }
-inline int HorizentalMin8(__m128i data, unsigned char* p = 0) {
+int HorizentalMin8(__m128i data, unsigned char* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm_unpacklo_epi8(data, zero);
 	__m128i high = _mm_unpackhi_epi8(data, zero);
@@ -443,7 +443,7 @@ inline int HorizentalMin8(__m128i data, unsigned char* p = 0) {
 		return 8 + hi;
 	}
 }
-inline int HorizentalMax8(__m128i data, unsigned char* p = 0) {
+int HorizentalMax8(__m128i data, unsigned char* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm_unpacklo_epi8(data, zero);
 	__m128i high = _mm_unpackhi_epi8(data, zero);
@@ -460,7 +460,7 @@ inline int HorizentalMax8(__m128i data, unsigned char* p = 0) {
 		return 8 + hi;
 	}
 }
-inline int HorizentalMin8(__m256i data, unsigned char* p = 0) {
+int HorizentalMin8(__m256i data, unsigned char* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm256_extracti128_si256(data, 0);
 	__m128i high = _mm256_extracti128_si256(data, 1);
@@ -477,7 +477,7 @@ inline int HorizentalMin8(__m256i data, unsigned char* p = 0) {
 		return 16 + hi;
 	}
 }
-inline int HorizentalMax8(__m256i data, unsigned char* p = 0) {
+int HorizentalMax8(__m256i data, unsigned char* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm256_extractf128_si256(data, 0);
 	__m128i high = _mm256_extractf128_si256(data, 1);
@@ -494,7 +494,7 @@ inline int HorizentalMax8(__m256i data, unsigned char* p = 0) {
 		return 16 + hi;
 	}
 }
-inline int HorizentalMin8(__m512i data, unsigned char* p = 0) {
+int HorizentalMin8(__m512i data, unsigned char* p = 0) {
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
 	unsigned char lv = 0;
@@ -510,7 +510,7 @@ inline int HorizentalMin8(__m512i data, unsigned char* p = 0) {
 		return 32 + hi;
 	}
 }
-inline int HorizentalMax8(__m512i data, unsigned char* p = 0) {
+int HorizentalMax8(__m512i data, unsigned char* p = 0) {
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
 	unsigned char lv = 0;
@@ -526,50 +526,51 @@ inline int HorizentalMax8(__m512i data, unsigned char* p = 0) {
 		return 32 + hi;
 	}
 }
-inline int HorizentalMin32(__m256i data, unsigned int* p = 0) {
+int HorizentalMin32(__m256i data, unsigned int* p = 0) {
+	const int stride = sizeof(__m256i) / sizeof(int);
+	unsigned long index = stride; //8 is out of range
 	__m128i zero = _mm_setzero_si128();
-	__m128i ones = _mm_cmpeq_epi32(zero, zero);
-	__m256i idx = _mm256_setr_epi16(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
-	__m256i r = _mm256_permutexvar_epi16(idx, data);
-	__m128i low = _mm256_extracti128_si256(r, 0);
-	__m128i high = _mm256_extracti128_si256(r, 1);
-	__m128i higher_value = _mm_minpos_epu16(high);
-	__m128i t = _mm_set1_epi16(higher_value.m128i_i16[0]);
-	__m128i mask = _mm_cmpeq_epi16(high, t);
-	__m128i _low = _mm_and_si128(low, mask);
-	__m128i _low_sub = _mm_sub_epi16(zero, _low);
-	__m128i _low_sub_inv = _mm_andnot_si128(_low_sub, ones);
-	__m128i lower_value = _mm_minpos_epu16(_low_sub_inv);
-	unsigned short lower_index = lower_value.m128i_i16[1];
+	__m128i ones = _mm_cmpeq_epi32(zero, zero);	
+	__m256i indices = _mm256_setr_epi16(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
+	__m256i permution = _mm256_permutexvar_epi16(indices, data);	
+	__m128i _low = _mm256_extracti128_si256(permution, 0);
+	__m128i high = _mm256_extracti128_si256(permution, 1);
+	
+	__m128i high_result = _mm_minpos_epu16(high);
+
+	short high_value = high_result.m128i_i16[0];
+	short high_index = high_result.m128i_i16[1] & 0b00000111;
+	__m128i all_high = _mm_set1_epi16(high_value);
+	__mmask8 mask = _mm_cmpeq_epi16_mask(high, all_high);
+
+	__m128i low_compressed = _mm_maskz_compress_epi16(mask, _low);
+	__m128i low_result = _mm_minpos_epu16(low_compressed);
+	short low_value = low_result.m128i_i16[0];
 	if (p != 0) {
-		*p = (r.m256i_i16[lower_index]) | (higher_value.m128i_i16[0] << 16);
+		*p = low_value;
 	}
-	return lower_index + 8;
+	__m128i all_lows = _mm_set1_epi16(low_value);
+	mask = _mm_cmpeq_epi16_mask(_low, all_lows);
+	if (_BitScanForward(&index, mask)) {
+		return index;
+	}
+
+	return index;
 }
-inline int HorizentalMax32(__m256i data, unsigned int* p = 0) {
+int HorizentalMax32(__m256i data, unsigned int* p = 0) {
 	__m128i zero = _mm_setzero_si128();
 	__m128i ones = _mm_cmpeq_epi32(zero, zero);
 	__m256i zero_ = _mm256_setzero_si256();
 	__m256i ones_ = _mm256_cmpeq_epi32(zero_, zero_);
-	__m256i _data_ = _mm256_sub_epi32(ones_, data);
-	__m256i idx = _mm256_setr_epi16(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
-	__m256i r = _mm256_permutexvar_epi16(idx, _data_);
-	__m128i low = _mm256_extracti128_si256(r, 0);
-	__m128i high = _mm256_extracti128_si256(r, 1);
-	__m128i higher_value = _mm_minpos_epu16(high);
-	__m128i t = _mm_set1_epi16(higher_value.m128i_i16[0]);
-	__m128i mask = _mm_cmpeq_epi16(high, t);
-	__m128i _low = _mm_and_si128(low, mask);
-	__m128i _low_sub_inv = _mm_andnot_si128(_low, ones);
-	__m128i lower_value = _mm_minpos_epu16(_low_sub_inv);
-	unsigned short lower_index = lower_value.m128i_i16[1];
 
+	__m256i result = _mm256_andnot_si256(data, ones_);
+	int index = HorizentalMin32(result,p);
 	if (p != 0) {
-		*p = (~r.m256i_i16[lower_index]) | (~higher_value.m128i_i16[0] << 16);
+		*p = data.m256i_u32[index];
 	}
-	return 8 - 1 - lower_index;
+	return index;
 }
-inline int HorizentalMin32(__m512i data, unsigned int* p = 0)
+int HorizentalMin32(__m512i data, unsigned int* p = 0)
 {
 	__m256i low = _mm512_extracti32x8_epi32(data, 0);
 	__m256i high = _mm512_extracti32x8_epi32(data, 1);
@@ -589,7 +590,7 @@ inline int HorizentalMin32(__m512i data, unsigned int* p = 0)
 		return 8 + hi;
 	}
 }
-inline int HorizentalMax32(__m512i data, unsigned int* p = 0)
+int HorizentalMax32(__m512i data, unsigned int* p = 0)
 {
 	__m256i low = _mm512_extracti32x8_epi32(data, 0);
 	__m256i high = _mm512_extracti32x8_epi32(data, 1);
@@ -609,7 +610,7 @@ inline int HorizentalMax32(__m512i data, unsigned int* p = 0)
 		return 8 + hi;
 	}
 }
-inline int HorizentalMin64(__m128i data, unsigned long long* p = 0)
+int HorizentalMin64(__m128i data, unsigned long long* p = 0)
 {
 	unsigned long long lv = _mm_extract_epi64(data, 0);
 	unsigned long long hv = _mm_extract_epi64(data, 1);
@@ -622,7 +623,7 @@ inline int HorizentalMin64(__m128i data, unsigned long long* p = 0)
 		return 1;
 	}
 }
-inline int HorizentalMax64(__m128i data, unsigned long long* p = 0)
+int HorizentalMax64(__m128i data, unsigned long long* p = 0)
 {
 	unsigned long long lv = _mm_extract_epi64(data, 0);
 	unsigned long long hv = _mm_extract_epi64(data, 1);
@@ -635,7 +636,7 @@ inline int HorizentalMax64(__m128i data, unsigned long long* p = 0)
 		return 1;
 	}
 }
-inline int HorizentalMin64(__m256i data, unsigned long long* p = 0)
+int HorizentalMin64(__m256i data, unsigned long long* p = 0)
 {
 	__m128i low = _mm256_extracti64x2_epi64(data, 0);
 	__m128i high = _mm256_extracti64x2_epi64(data, 0);
@@ -654,7 +655,7 @@ inline int HorizentalMin64(__m256i data, unsigned long long* p = 0)
 		return hi + 2;
 	}
 }
-inline int HorizentalMax64(__m256i data, unsigned long long* p = 0)
+int HorizentalMax64(__m256i data, unsigned long long* p = 0)
 {
 	__m128i low = _mm256_extracti64x2_epi64(data, 0);
 	__m128i high = _mm256_extracti64x2_epi64(data, 0);
@@ -674,7 +675,7 @@ inline int HorizentalMax64(__m256i data, unsigned long long* p = 0)
 	}
 
 }
-inline int HorizentalMin64(__m512i data, unsigned long long* p = 0)
+int HorizentalMin64(__m512i data, unsigned long long* p = 0)
 {
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
@@ -693,7 +694,7 @@ inline int HorizentalMin64(__m512i data, unsigned long long* p = 0)
 		return hi + 4;
 	}
 }
-inline int HorizentalMax64(__m512i data, unsigned long long* p = 0)
+int HorizentalMax64(__m512i data, unsigned long long* p = 0)
 {
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
@@ -711,6 +712,95 @@ inline int HorizentalMax64(__m512i data, unsigned long long* p = 0)
 		if (p != 0)*p = hv;
 		return hi + 4;
 	}
+}
+__m256i HorizentalSort32(__m256i data, unsigned int* pmin = 0, unsigned int* pmax = 0) {
+	const int stride = sizeof(__m256i) / sizeof(int);
+	__m256i result = { 0 };
+	unsigned int min = 0;
+	unsigned int max = 0;
+
+	int imin = HorizentalMin32(data, &min);
+	int imax = HorizentalMax32(data, &max);
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m256i_u32[0] = min;
+	result.m256i_u32[stride - 1] = max;
+	data.m256i_u32[imin] = max;
+	//min is set to max, we can find next min
+	for (int i = 1; i < stride - 1; i++)
+	{
+		imin = HorizentalMin32(data, &min);
+		result.m256i_u32[i] = min;
+		data.m256i_u32[imin] = max;
+	}
+
+	return result;
+}
+__m512i HorizentalSort32(__m512i data, unsigned int* pmin = 0, unsigned int* pmax = 0) {
+	const int stride = sizeof(__m512i) / sizeof(int);
+	__m512i result = { 0 };
+	int imin = HorizentalMin32(data, pmin);
+	int imax = HorizentalMax32(data, pmax);
+	unsigned int min = data.m512i_u32[imin];
+	unsigned int max = data.m512i_u32[imax];
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m512i_u32[0] = min;
+	result.m512i_u32[stride - 1] = max;
+	data.m512i_u32[imin] = max;
+	//min is set to max, we can find next min
+	for (int i = 1; i <  stride - 1; i++)
+	{
+		imin = HorizentalMin32(data, &min);
+		result.m512i_u32[i] = min;
+		data.m512i_u32[imin] = max;
+	}
+
+	return result;
+}
+
+bool FastMergeSort256(int data[], int n) {
+	const int stride = sizeof(__m256i) / sizeof(int);
+	const int dual = stride << 1;
+	if (data == 0 || n<dual || n % dual > 0)
+		return false;
+	int* buffer = new int[n];
+
+	int gap = stride;
+	while (gap < n) {
+		int gap2 = gap << 1;
+		for (int i = 0; i < n; i += gap2) {
+			if (gap == stride) {
+				__m256i values = _mm256_loadu_epi32(data + i);
+				__m256i sorted = HorizentalSort32(values);
+					
+				_mm256_storeu_epi32(data + i, sorted);
+
+				values = _mm256_loadu_epi32(data + i + stride);
+				sorted = HorizentalSort32(values);
+
+				_mm256_storeu_epi32(data + i + stride, sorted);
+
+			}
+			else {
+				int i_left = i;
+				int i_middle = i + gap;
+				int i_right = i_middle + gap;
+				for (int j = i_left; j < i_middle; j += stride) {
+					__m256i left = _mm256_loadu_epi32(data + j);
+					__m256i right = _mm256_loadu_epi32(data + j + i_middle);
+					__m256i min = _mm256_min_epi32(left, right);
+					__m256i max = _mm256_min_epi32(left, right);
+					_mm256_storeu_epi32(buffer + j, min);
+					_mm256_storeu_epi32(buffer + j + i_middle, min);
+				}
+				memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
+			}
+		}
+		gap = gap2;
+	}
+	delete[] buffer;
+	return true;
 }
 
 int AVX2_SUM(int data[], size_t size)
@@ -786,7 +876,7 @@ long long AVX512_SUM(long long data[], size_t size)
 
 	return sum[0] + sum[1] + sum[2] + sum[3];
 }
-inline size_t AVX2_StringLength(char* s)
+size_t AVX2_StringLength(char* s)
 {
 	size_t len = 0;
 	if (s != 0) {
@@ -812,7 +902,7 @@ inline size_t AVX2_StringLength(char* s)
 
 	return len;
 }
-inline size_t AVX2_StringLength(wchar_t* s)
+size_t AVX2_StringLength(wchar_t* s)
 {
 	size_t len = 0;
 	if (s != 0) {
@@ -838,7 +928,7 @@ inline size_t AVX2_StringLength(wchar_t* s)
 
 	return len;
 }
-inline size_t AVX512_StringLength(char* s)
+size_t AVX512_StringLength(char* s)
 {
 	size_t len = 0;
 	if (s != 0) {
@@ -864,7 +954,7 @@ inline size_t AVX512_StringLength(char* s)
 
 	return len;
 }
-inline size_t AVX512_StringLength(wchar_t* s)
+size_t AVX512_StringLength(wchar_t* s)
 {
 	size_t len = 0;
 	if (s != 0) {
@@ -891,7 +981,7 @@ inline size_t AVX512_StringLength(wchar_t* s)
 	return len;
 }
 
-inline int AVX2_StringCompare(char* s1, char* s2)
+int AVX2_StringCompare(char* s1, char* s2)
 {
 	const int stride = sizeof(__m256i) / sizeof(int);
 
@@ -938,7 +1028,7 @@ inline int AVX2_StringCompare(char* s1, char* s2)
 		return 0;//all the same
 	}
 }
-inline int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
+int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
 {
 	const int stride = sizeof(__m256i) / sizeof(int);
 
@@ -985,7 +1075,7 @@ inline int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
 		return 0;//all the same
 	}
 }
-inline int AVX512_StringCompare(char* s1, char* s2)
+int AVX512_StringCompare(char* s1, char* s2)
 {
 	const int stride = sizeof(__m512i) / sizeof(int);
 	
@@ -1032,7 +1122,7 @@ inline int AVX512_StringCompare(char* s1, char* s2)
 		return 0;//all the same
 	}
 }
-inline int AVX512_StringCompare(wchar_t* s1, wchar_t* s2)
+int AVX512_StringCompare(wchar_t* s1, wchar_t* s2)
 {
 	const int stride = sizeof(__m512i) / sizeof(int);
 
@@ -1080,7 +1170,7 @@ inline int AVX512_StringCompare(wchar_t* s1, wchar_t* s2)
 	}
 }
 
-inline bool AVX2_StringEqual(char* s1, char* s2)
+bool AVX2_StringEqual(char* s1, char* s2)
 {
 	const int stride = sizeof(__m256i) / sizeof(int);
 
@@ -1113,7 +1203,7 @@ inline bool AVX2_StringEqual(char* s1, char* s2)
 		return true;//all the same
 	}
 }
-inline bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
+bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
 {
 	const int stride = sizeof(__m256i) / sizeof(int);
 
@@ -1146,7 +1236,7 @@ inline bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
 		return true;//all the same
 	}
 }
-inline bool AVX512_StringEqual(char* s1, char* s2)
+bool AVX512_StringEqual(char* s1, char* s2)
 {
 	const int stride = sizeof(__m512i) / sizeof(int);
 
@@ -1179,7 +1269,7 @@ inline bool AVX512_StringEqual(char* s1, char* s2)
 		return true;//all the same
 	}
 }
-inline bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
+bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
 {
 	const int stride = sizeof(__m512i) / sizeof(int);
 
@@ -1213,7 +1303,7 @@ inline bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
 	}
 }
 
-inline int AVX2_StringIndexOf(char* s, char c)
+int AVX2_StringIndexOf(char* s, char c)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m256i) / sizeof(int);
@@ -1235,7 +1325,7 @@ inline int AVX2_StringIndexOf(char* s, char c)
 
 	return -1;
 }
-inline int AVX2_StringIndexOf(wchar_t* s, wchar_t c)
+int AVX2_StringIndexOf(wchar_t* s, wchar_t c)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m256i) / sizeof(int);
@@ -1257,7 +1347,7 @@ inline int AVX2_StringIndexOf(wchar_t* s, wchar_t c)
 
 	return -1;
 }
-inline int AVX512_StringIndexOf(char* s, char c)
+int AVX512_StringIndexOf(char* s, char c)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m512i) / sizeof(int);
@@ -1279,7 +1369,7 @@ inline int AVX512_StringIndexOf(char* s, char c)
 
 	return -1;
 }
-inline int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
+int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m512i) / sizeof(int);
@@ -1302,7 +1392,7 @@ inline int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
 	return -1;
 }
 
-inline int AVX2_StringIndexOf(char* s, char* cs)
+int AVX2_StringIndexOf(char* s, char* cs)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
@@ -1316,7 +1406,7 @@ inline int AVX2_StringIndexOf(char* s, char* cs)
 
 	return -1;
 }
-inline int AVX2_StringIndexOf(wchar_t* s, wchar_t* cs)
+int AVX2_StringIndexOf(wchar_t* s, wchar_t* cs)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
@@ -1330,7 +1420,7 @@ inline int AVX2_StringIndexOf(wchar_t* s, wchar_t* cs)
 
 	return -1;
 }
-inline int AVX512_StringIndexOf(char* s, char* cs)
+int AVX512_StringIndexOf(char* s, char* cs)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
@@ -1344,7 +1434,7 @@ inline int AVX512_StringIndexOf(char* s, char* cs)
 
 	return -1;
 }
-inline int AVX512_StringIndexOf(wchar_t* s, wchar_t *cs)
+int AVX512_StringIndexOf(wchar_t* s, wchar_t *cs)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
@@ -1359,19 +1449,21 @@ inline int AVX512_StringIndexOf(wchar_t* s, wchar_t *cs)
 	return -1;
 }
 
-const int DATA_SIZE = 4096;
+const int DATA_SIZE = 16;
 
-int data0[DATA_SIZE] = { 0 };
+//int data0[DATA_SIZE] = { 0 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63 };
 //int data0[DATA_SIZE] = { 12,2,23,25,17,1,16,19,31,19,1,23,31,19,13,25,26,14,10,28,31,25,7,14,17,3,25,24,21,22,8,14 };
+int data0[DATA_SIZE] = { 15,2,1,4,3,9,8,6,7,10,12,11,0,5,14,13 };
 int data1[DATA_SIZE] = { 0 };
 int data2[DATA_SIZE] = { 0 };
 int data3[DATA_SIZE] = { 0 };
 int data4[DATA_SIZE] = { 0 };
 int data5[DATA_SIZE] = { 0 };
 int data6[DATA_SIZE] = { 0 };
+int data7[DATA_SIZE] = { 0 };
 
 bool CheckSequence(int a[], int b[], int n) {
 	for (int i = 0; i < n; i++) {
@@ -1394,42 +1486,37 @@ int main()
 		0x00170077,
 		0x00030033
 	);
-	unsigned char r8 = 0;
-	unsigned short r16 = 0;
-	unsigned int r32 = 0;
-	unsigned long long r64 = 0;
-	int i = 0;
+	//unsigned char r8 = 0;
+	//unsigned short r16 = 0;
+	//unsigned int r32 = 0;
+	//unsigned long long r64 = 0;
+	//int i = 0;
 
-	i = HorizentalMin8(__data8, &r8);
+	//i = HorizentalMin8(__data8, &r8);
+	//i = HorizentalMax8(__data8, &r8);
+	//i = HorizentalMin16(_data16, &r16);
+	//i = HorizentalMax16(_data16, &r16);
+	//i = HorizentalMin32(_data32, &r32);
+	//i = HorizentalMax32(_data32, &r32);
+	//i = HorizentalMin64(_data32, &r64);
+	//i = HorizentalMax64(_data32, &r64);
 
-	i = HorizentalMax8(__data8, &r8);
-
-	i = HorizentalMin16(_data16, &r16);
-
-	i = HorizentalMax16(_data16, &r16);
-
-	i = HorizentalMin32(_data32, &r32);
-
-	i = HorizentalMax32(_data32, &r32);
-
-	i = HorizentalMin64(_data32, &r64);
-
-	i = HorizentalMax64(_data32, &r64);
-
-	bool show = false;
+	bool show = true;
 	long long t0;
 	srand((unsigned)time(0));
+	if (true)
 	{
 		printf("original data(count = %d):\n", DATA_SIZE);
 		for (int i = 0; i < DATA_SIZE; i++) {
-			data6[i]
+			data7[i]
+				= data6[i]
 				= data5[i]
 				= data4[i]
 				= data3[i]
 				= data2[i]
 				= data1[i]
 				= data0[i]
-				= (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
+				;// = (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
 			if (show) {
 				printf("%d ", data0[i]);
 			}
@@ -1437,6 +1524,7 @@ int main()
 		printf("\n\n");
 	}
 
+	if (true)
 	{
 		printf("for system quick sort:\n");
 		t0 = _Query_perf_counter();
@@ -1453,6 +1541,7 @@ int main()
 		printf("\n\n");
 	}
 
+	if (true)
 	{
 		printf("for quick sort:\n");
 		t0 = _Query_perf_counter();
@@ -1472,6 +1561,7 @@ int main()
 		printf("\n\n");
 	}
 
+	if (true)
 	{
 		printf("for fast quick sort 256:\n");
 		t0 = _Query_perf_counter();
@@ -1490,6 +1580,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	if (true)
 	{
 		printf("for fast quick sort 512:\n");
 		t0 = _Query_perf_counter();
@@ -1569,5 +1660,46 @@ int main()
 		}
 		printf("\n\n");
 	}
+
+	if (true)
+	{
+		printf("for fast odd even sort 512:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastOddEvenSort512(data4, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data4, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data4[i]);
+			}
+		}
+		printf("\n\n");
+	}
+
+	if (true)
+	{
+		printf("for fast merge sort 256:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastMergeSort256(data7, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data7, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data7[i]);
+			}
+		}
+		printf("\n\n");
+	}
+
 	return 0;
 }

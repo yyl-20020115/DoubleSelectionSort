@@ -52,6 +52,56 @@ data0.CopyTo(data11, 0);
 
 Console.WriteLine("Array Size = {0}", SampleDataSize);
 
+
+//void PartialSortTest()
+//{
+//    var datax = new int[SampleDataSize];
+
+//    for (int i = 0; i < datax.Length; i++)
+//    {
+//        datax[i] = Random.Shared.Next(data0.Length);
+//    }
+
+//    var datax0 = new int[datax.Length >> 2];
+//    var datax1 = new int[datax.Length >> 2];
+//    var datax2 = new int[datax.Length >> 2];
+//    var datax3 = new int[datax.Length >> 2];
+//    Array.Copy(datax, 0, datax0, 0, datax0.Length);
+//    Array.Copy(datax, datax0.Length,  datax1, 0, datax1.Length);
+//    Array.Copy(datax, datax0.Length + datax1.Length, datax2, 0, datax2.Length);
+//    Array.Copy(datax, datax0.Length + datax1.Length + datax2.Length, datax3, 0, datax3.Length);
+
+//    var datay = new int[SampleDataSize];
+//    datax.CopyTo(datay, 0);
+
+//    Array.Sort(datay);
+
+//    Array.Sort(datax0);
+//    Array.Sort(datax1);
+//    Array.Sort(datax2);
+//    Array.Sort(datax3);
+
+//    var dataz = new int[SampleDataSize];
+//    Array.Copy(datax0, 0, dataz, 0, datax0.Length);
+//    Array.Copy(datax1, 0, dataz, datax0.Length, datax1.Length);
+//    Array.Copy(datax2, 0, dataz, datax0.Length + datax1.Length, datax2.Length);
+//    Array.Copy(datax3, 0, dataz, datax0.Length + datax1.Length + datax2.Length, datax3.Length);
+
+//    var datam = DoCollect(dataz, dataz.Length >> 2, true);
+
+//    bool r = SequenceEqual(datay, datam);
+//    if (r)
+//    {
+//        Console.WriteLine("EQUAL");
+//    }
+
+//}
+
+//PartialSortTest();
+
+
+
+
 bool SequenceEqual(int[] a, int[] b)
 {
     if (a == null) throw new ArgumentNullException(nameof(a));
@@ -120,7 +170,6 @@ int[] DoCollect(int[] data, int width, bool copy_tail)
     }
     return result;
 }
-
 
 void SingleSelectionSort(int[] data)
 {
@@ -1051,6 +1100,12 @@ double ef5 = (1.0 / t11 - 1.0 / t10) / (1.0 / t10);
 Console.WriteLine("Fast Odd Even Sort Efficiency Boost:{0:F2}%", ef5 * 100.0);
 
 
+
+
+
+
+
 Console.WriteLine("Finished.");
+
 Console.ReadKey();
 
