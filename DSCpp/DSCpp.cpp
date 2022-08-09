@@ -1853,6 +1853,76 @@ bool FastDoubleSelectionSort512(int data[], int n)
 	DoMerge512(data, n);
 	return true;
 }
+void BubbleSort(int data[], int n) {
+
+	bool swapped = false;
+	for (int i = 0; i < n; i++) {
+		swapped = false;
+		for (int j = i + 1; j < n; j++) {
+			if (data[i] > data[j]) {
+				Swap(data, i, j);
+				swapped = true;
+			}
+		}
+		if (!swapped)break;
+	}
+}
+bool FastBubbleSort256(int data[], int n) {
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
+	if (data == 0 || n < stride || n % stride > 0)
+		return false;
+
+	bool swapped = false;
+	for (int i = 0; i < n; i += stride) {
+		swapped = false;
+		__m256i data_i = _mm256_loadu_epi32(data + i);
+		for (int j = i + stride; j < n; j += stride) {
+			__m256i data_j = _mm256_loadu_epi32(data + j);
+			__mmask8 gt = _mm256_cmpgt_epi32_mask(data_i, data_j);
+			if (gt != 0) {
+				__m256i min = _mm256_min_epi32(data_i, data_j);
+				__m256i max = _mm256_max_epi32(data_i, data_j);
+				data_i = min;
+				data_j = max;
+				_mm256_storeu_epi32(data + i, data_i);
+				_mm256_storeu_epi32(data + j, data_j);
+
+				swapped = true;
+			}
+		}
+		if (!swapped)break;
+	}
+	DoMerge256(data, n);
+	return true;
+}
+bool FastBubbleSort512(int data[], int n) {
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
+	if (data == 0 || n < stride || n % stride > 0)
+		return false;
+
+	bool swapped = false;
+	for (int i = 0; i < n; i += stride) {
+		swapped = false;
+		__m512i data_i = _mm512_loadu_epi32(data + i);
+		for (int j = i + stride; j < n; j += stride) {
+			__m512i data_j = _mm512_loadu_epi32(data + j);
+			__mmask16 gt = _mm512_cmpgt_epi32_mask(data_i, data_j);
+			if (gt != 0) {
+				__m512i min = _mm512_min_epi32(data_i, data_j);
+				__m512i max = _mm512_max_epi32(data_i, data_j);
+				data_i = min;
+				data_j = max;
+				_mm512_storeu_epi32(data + i, data_i);
+				_mm512_storeu_epi32(data + j, data_j);
+
+				swapped = true;
+			}
+		}
+		if (!swapped)break;
+	}
+	DoMerge512(data, n);
+	return true;
+}
 
 int AVX2_SUM(int data[], size_t size)
 {
@@ -1927,7 +1997,7 @@ long long AVX512_SUM(long long data[], size_t size)
 
 	return sum[0] + sum[1] + sum[2] + sum[3];
 }
-size_t AVX2_StringLength(char* s)
+size_t AVX2_StringLength(const char* s)
 {
 	size_t len = 0;
 	if (s != 0) {
@@ -1935,7 +2005,7 @@ size_t AVX2_StringLength(char* s)
 		unsigned long index = 0;
 		__m256i zero = _mm256_setzero_si256();
 		__m256i part = { 0 };
-		char* p = s;
+		char* p = (char*)s;
 		while (len <= (~0LL) - stride) {
 			part = _mm256_loadu_epi8(p);
 			__mmask32 result = _mm256_cmpeq_epi8_mask(part, zero);
@@ -1953,7 +2023,7 @@ size_t AVX2_StringLength(char* s)
 
 	return len;
 }
-size_t AVX2_StringLength(wchar_t* s)
+size_t AVX2_StringLength(const wchar_t* s)
 {
 	size_t len = 0;
 	if (s != 0) {
@@ -1961,7 +2031,7 @@ size_t AVX2_StringLength(wchar_t* s)
 		unsigned long index = 0;
 		__m256i zero = _mm256_setzero_si256();
 		__m256i part = { 0 };
-		wchar_t* p = s;
+		wchar_t* p = (wchar_t*)s;
 		while (len <= (~0LL) - stride) {
 			part = _mm256_loadu_epi16(p);
 			__mmask16 result = _mm256_cmpeq_epi16_mask(part, zero);
@@ -1979,7 +2049,7 @@ size_t AVX2_StringLength(wchar_t* s)
 
 	return len;
 }
-size_t AVX512_StringLength(char* s)
+size_t AVX512_StringLength(const char* s)
 {
 	size_t len = 0;
 	if (s != 0) {
@@ -1987,7 +2057,7 @@ size_t AVX512_StringLength(char* s)
 		unsigned long index = 0;
 		__m512i zero = _mm512_setzero_si512();
 		__m512i part = { 0 };
-		char* p = s;
+		char* p = (char*)s;
 		while (len <= (~0LL) - stride) {
 			part = _mm512_loadu_epi8(p);
 			__mmask64 result = _mm512_cmpeq_epi8_mask(part, zero);
@@ -2005,7 +2075,7 @@ size_t AVX512_StringLength(char* s)
 
 	return len;
 }
-size_t AVX512_StringLength(wchar_t* s)
+size_t AVX512_StringLength(const wchar_t* s)
 {
 	size_t len = 0;
 	if (s != 0) {
@@ -2013,7 +2083,7 @@ size_t AVX512_StringLength(wchar_t* s)
 		unsigned long index = 0;
 		__m512i zero = _mm512_setzero_si512();
 		__m512i part = { 0 };
-		wchar_t* p = s;
+		wchar_t* p = (wchar_t*)s;
 		while (len <= (~0LL) - stride) {
 			part = _mm512_loadu_epi16(p);
 			__mmask32 result = _mm512_cmpeq_epi16_mask(part, zero);
@@ -2032,7 +2102,7 @@ size_t AVX512_StringLength(wchar_t* s)
 	return len;
 }
 
-int AVX2_StringCompare(char* s1, char* s2)
+int AVX2_StringCompare(const char* s1, const char* s2)
 {
 	const int stride = sizeof(__m256i) / sizeof(*s1);
 
@@ -2055,7 +2125,7 @@ int AVX2_StringCompare(char* s1, char* s2)
 		{
 			unsigned long igt = 0;
 			unsigned long ilt = 0;
-			unsigned long most = i + stride < ln ? stride : ln - i;
+			unsigned long most = (unsigned long)(i + stride < ln ? stride : ln - i);
 			__m256i part1 = _mm256_loadu_epi8(s1 + i);
 			__m256i part2 = _mm256_loadu_epi8(s2 + i);
 			__mmask32 rgt = _mm256_cmpgt_epi8_mask(part1, part2);
@@ -2079,7 +2149,7 @@ int AVX2_StringCompare(char* s1, char* s2)
 		return 0;//all the same
 	}
 }
-int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
+int AVX2_StringCompare(const wchar_t* s1, const wchar_t* s2)
 {
 	const int stride = sizeof(__m256i) / sizeof(*s1);
 
@@ -2102,7 +2172,7 @@ int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
 		{
 			unsigned long igt = 0;
 			unsigned long ilt = 0;
-			unsigned long most = i + stride < ln ? stride : ln - i;
+			unsigned long most = (unsigned long)(i + stride < ln ? stride : ln - i);
 			__m256i part1 = _mm256_loadu_epi16(s1 + i);
 			__m256i part2 = _mm256_loadu_epi16(s2 + i);
 			__mmask16 rgt = _mm256_cmpgt_epi16_mask(part1, part2);
@@ -2126,7 +2196,7 @@ int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
 		return 0;//all the same
 	}
 }
-int AVX512_StringCompare(char* s1, char* s2)
+int AVX512_StringCompare(const char* s1, const char* s2)
 {
 	const int stride = sizeof(__m512i) / sizeof(*s1);
 
@@ -2149,7 +2219,7 @@ int AVX512_StringCompare(char* s1, char* s2)
 		{
 			unsigned long igt = 0;
 			unsigned long ilt = 0;
-			unsigned long most = i + stride < ln ? stride : ln - i;
+			unsigned long most = (unsigned long)(i + stride < ln ? stride : ln - i);
 			__m512i part1 = _mm512_loadu_epi8(s1 + i);
 			__m512i part2 = _mm512_loadu_epi8(s2 + i);
 			__mmask64 rgt = _mm512_cmpgt_epi8_mask(part1, part2);
@@ -2173,7 +2243,7 @@ int AVX512_StringCompare(char* s1, char* s2)
 		return 0;//all the same
 	}
 }
-int AVX512_StringCompare(wchar_t* s1, wchar_t* s2)
+int AVX512_StringCompare(const wchar_t* s1, const wchar_t* s2)
 {
 	const int stride = sizeof(__m512i) / sizeof(*s1);
 
@@ -2196,7 +2266,7 @@ int AVX512_StringCompare(wchar_t* s1, wchar_t* s2)
 		{
 			unsigned long igt = 0;
 			unsigned long ilt = 0;
-			unsigned long most = i + stride < ln ? stride : ln - i;
+			unsigned long most = (unsigned long)(i + stride < ln ? stride : ln - i);
 			__m512i part1 = _mm512_loadu_epi16(s1 + i);
 			__m512i part2 = _mm512_loadu_epi16(s2 + i);
 			__mmask32 rgt = _mm512_cmpgt_epi16_mask(part1, part2);
@@ -2221,7 +2291,7 @@ int AVX512_StringCompare(wchar_t* s1, wchar_t* s2)
 	}
 }
 
-bool AVX2_StringEqual(char* s1, char* s2)
+bool AVX2_StringEqual(const char* s1, const char* s2)
 {
 	const int stride = sizeof(__m256i) / sizeof(*s1);
 
@@ -2244,7 +2314,7 @@ bool AVX2_StringEqual(char* s1, char* s2)
 		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long iet = 0;
-			unsigned long most = i + stride < ln ? stride : ln - i;
+			unsigned long most = (unsigned long)(i + stride < ln ? stride : ln - i);
 			__m256i part1 = _mm256_loadu_epi8(s1 + i);
 			__m256i part2 = _mm256_loadu_epi8(s2 + i);
 			__mmask32 neqt = _mm256_cmpneq_epi8_mask(part1, part2);
@@ -2254,7 +2324,7 @@ bool AVX2_StringEqual(char* s1, char* s2)
 		return true;//all the same
 	}
 }
-bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
+bool AVX2_StringEqual(const wchar_t* s1, const wchar_t* s2)
 {
 	const int stride = sizeof(__m256i) / sizeof(*s1);
 
@@ -2277,7 +2347,7 @@ bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
 		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long iet = 0;
-			unsigned long most = i + stride < ln ? stride : ln - i;
+			unsigned long most = (unsigned long)(i + stride < ln ? stride : ln - i);
 			__m256i part1 = _mm256_loadu_epi16(s1 + i);
 			__m256i part2 = _mm256_loadu_epi16(s2 + i);
 			__mmask16 neqt = _mm256_cmpneq_epi16_mask(part1, part2);
@@ -2287,7 +2357,7 @@ bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
 		return true;//all the same
 	}
 }
-bool AVX512_StringEqual(char* s1, char* s2)
+bool AVX512_StringEqual(const char* s1, const char* s2)
 {
 	const int stride = sizeof(__m512i) / sizeof(*s1);
 
@@ -2310,7 +2380,7 @@ bool AVX512_StringEqual(char* s1, char* s2)
 		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long iet = 0;
-			unsigned long most = i + stride < ln ? stride : ln - i;
+			unsigned long most = (unsigned long)(i + stride < ln ? stride : ln - i);
 			__m512i part1 = _mm512_loadu_epi8(s1 + i);
 			__m512i part2 = _mm512_loadu_epi8(s2 + i);
 			__mmask64 neqt = _mm512_cmpneq_epi8_mask(part1, part2);
@@ -2320,7 +2390,7 @@ bool AVX512_StringEqual(char* s1, char* s2)
 		return true;//all the same
 	}
 }
-bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
+bool AVX512_StringEqual(const wchar_t* s1, const wchar_t* s2)
 {
 	const int stride = sizeof(__m512i) / sizeof(*s1);
 
@@ -2343,7 +2413,7 @@ bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
 		for (unsigned long i = 0; i < ln; i += stride)
 		{
 			unsigned long iet = 0;
-			unsigned long most = i + stride < ln ? stride : ln - i;
+			unsigned long most = (unsigned long)(i + stride < ln ? stride : ln - i);
 			__m512i part1 = _mm512_loadu_epi16(s1 + i);
 			__m512i part2 = _mm512_loadu_epi16(s2 + i);
 			__mmask32 neqt = _mm512_cmpneq_epi16_mask(part1, part2);
@@ -2354,7 +2424,7 @@ bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
 	}
 }
 
-int AVX2_StringIndexOf(char* s, char c)
+int AVX2_StringIndexOf(const char* s, const char c)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m256i) / sizeof(*s);
@@ -2376,7 +2446,7 @@ int AVX2_StringIndexOf(char* s, char c)
 
 	return -1;
 }
-int AVX2_StringIndexOf(wchar_t* s, wchar_t c)
+int AVX2_StringIndexOf(const wchar_t* s, const wchar_t c)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m256i) / sizeof(*s);
@@ -2398,7 +2468,7 @@ int AVX2_StringIndexOf(wchar_t* s, wchar_t c)
 
 	return -1;
 }
-int AVX512_StringIndexOf(char* s, char c)
+int AVX512_StringIndexOf(const char* s, const char c)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m512i) / sizeof(*s);
@@ -2420,7 +2490,7 @@ int AVX512_StringIndexOf(char* s, char c)
 
 	return -1;
 }
-int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
+int AVX512_StringIndexOf(const wchar_t* s, const wchar_t c)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m512i) / sizeof(*s);
@@ -2443,7 +2513,7 @@ int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
 	return -1;
 }
 
-int AVX2_StringIndexOf(char* s, char* cs)
+int AVX2_StringIndexOf(const char* s, const char* cs)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
@@ -2457,7 +2527,7 @@ int AVX2_StringIndexOf(char* s, char* cs)
 
 	return -1;
 }
-int AVX2_StringIndexOf(wchar_t* s, wchar_t* cs)
+int AVX2_StringIndexOf(const wchar_t* s, const wchar_t* cs)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
@@ -2471,7 +2541,7 @@ int AVX2_StringIndexOf(wchar_t* s, wchar_t* cs)
 
 	return -1;
 }
-int AVX512_StringIndexOf(char* s, char* cs)
+int AVX512_StringIndexOf(const char* s, const char* cs)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
@@ -2485,7 +2555,7 @@ int AVX512_StringIndexOf(char* s, char* cs)
 
 	return -1;
 }
-int AVX512_StringIndexOf(wchar_t* s, wchar_t* cs)
+int AVX512_StringIndexOf(const wchar_t* s, const wchar_t* cs)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
@@ -2507,7 +2577,7 @@ bool CheckSequence(int a[], int b[], int n) {
 	return true;
 }
 
-const int DATA_SIZE = 16384;// *16 * 16;
+const int DATA_SIZE = 1024;// *16 * 16;
 const bool use_random = true;
 const bool show = false;
 
@@ -2533,6 +2603,9 @@ int data13[DATA_SIZE] = { 0 };
 int data14[DATA_SIZE] = { 0 };
 int data15[DATA_SIZE] = { 0 };
 int data16[DATA_SIZE] = { 0 };
+int data17[DATA_SIZE] = { 0 };
+int data18[DATA_SIZE] = { 0 };
+int data19[DATA_SIZE] = { 0 };
 
 int main()
 {
@@ -2575,7 +2648,10 @@ int main()
 			if (use_random) {
 				data0[i] = (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
 			}
-			data16[i]
+			data19[i]
+				= data18[i]
+				= data17[i]
+				= data16[i]
 				= data15[i]
 				= data14[i]
 				= data13[i]
@@ -2956,5 +3032,88 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//bubble sort
+	if (false)
+	{
+		printf("for bubble sort:\n");
+		t0 = _Query_perf_counter();
+		{
+			BubbleSort(data17, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data17, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data17[i]);
+			}
+		}
+		printf("\n\n");
+	}
+	//bubble sort 256
+	if (false)
+	{
+		printf("for fast bubble sort 256:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastBubbleSort256(data18, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data18, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data18[i]);
+			}
+		}
+		printf("\n\n");
+	}
+	//bubble sort 512
+	if (false)
+	{
+		printf("for fast bubble sort 512:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastBubbleSort512(data19, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data19, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data19[i]);
+			}
+		}
+		printf("\n\n");
+	}
+
+	//string index-of 256
+	if (true)
+	{
+		printf("for string index-of:\n");
+		int index = 0;
+		t0 = _Query_perf_counter();
+		{
+			index = AVX2_StringIndexOf("abcd", "cd");
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+
+		bool b = true;
+		printf("correct:%s\n", b ? "true" : "false");
+
+
+		printf("\n\n");
+	}
+
 	return 0;
 }
