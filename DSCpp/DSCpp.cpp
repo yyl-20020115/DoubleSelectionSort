@@ -657,29 +657,38 @@ int HorizentalMax32(__m128i data, unsigned int* p = 0) {
 	}
 	return index;
 }
+//algorithm: how to find min int from __m256i with _mm_minpos_epu16
+//  0. for each k in [0,7]
+//  1. broadcast data.m256i_i32[k] to make 
+//     (data.m256i_i32[k],data.m256i_i32[k],data.m256i_i32[k],data.m256i_i32[k],
+//		data.m256i_i32[k],data.m256i_i32[k],data.m256i_i32[k],data.m256i_i32[k])
+//  2. use the former template to compare with data to genrate a mask
+//     with bit set to 1 indicatiing the value in data is greater than 
+//     data.m256i_i32[k]
+//  3. count the set bid with popcnt and make __m128i with 8 * i16 of popcnt result
+//     (popcnt of (mask8) is no more than 8, therefore i16 is enough for storing)
+//  4. use _mm_minpos_epu16 with counts to find the position and the value of
+//     min count i32 within data which is greater or equal to data.m256i_i32[k]
+//  5. the data.m256i_i32[k] with min number of greaters is the min data.m256i_i32[k]
+//
 int HorizentalMin32(__m256i data, unsigned int* p = 0) {
-#if 1
-	const int stride = sizeof(data) / sizeof(*p);
-	const int half = stride / 2;
-	__m128i low = _mm256_extracti32x4_epi32(data, 0);
-	__m128i high = _mm256_extracti32x4_epi32(data, 1);
-
-	unsigned int lv = 0;
-	unsigned int hv = 0;
-
-	int li = HorizentalMin32(low, &lv);
-	int hi = HorizentalMin32(high, &hv);
-	if (lv <= hv) {
-		if (p != 0)*p = lv;
-		return li;
+	__m128i counts = _mm_setr_epi16(
+		__popcnt(_mm256_cmpge_epi32_mask(_mm256_set1_epi32(_mm256_extract_epi32(data, 0)), data)),
+		__popcnt(_mm256_cmpge_epi32_mask(_mm256_set1_epi32(_mm256_extract_epi32(data, 1)), data)),
+		__popcnt(_mm256_cmpge_epi32_mask(_mm256_set1_epi32(_mm256_extract_epi32(data, 2)), data)),
+		__popcnt(_mm256_cmpge_epi32_mask(_mm256_set1_epi32(_mm256_extract_epi32(data, 3)), data)),
+		__popcnt(_mm256_cmpge_epi32_mask(_mm256_set1_epi32(_mm256_extract_epi32(data, 4)), data)),
+		__popcnt(_mm256_cmpge_epi32_mask(_mm256_set1_epi32(_mm256_extract_epi32(data, 5)), data)),
+		__popcnt(_mm256_cmpge_epi32_mask(_mm256_set1_epi32(_mm256_extract_epi32(data, 6)), data)),
+		__popcnt(_mm256_cmpge_epi32_mask(_mm256_set1_epi32(_mm256_extract_epi32(data, 7)), data))
+	);
+	__m128i result = _mm_minpos_epu16(counts);
+	int index = result.m128i_i16[1] & 0x7;
+	if (p != 0) {
+		*p = data.m256i_i32[index];
 	}
-	else //hv<lv
-	{
-		if (p != 0)*p = hv;
-		return half + hi;
-	}
-
-#else
+	return index;
+#if 0 //unused
 	const int stride = sizeof(data) / sizeof(*p);
 	unsigned long index = stride; //8 is out of range
 	__m128i zero = _mm_setzero_si128();
@@ -1220,14 +1229,6 @@ bool FastMergeSort256(int data[], int n) {
 					buffer[left_index++] = data[begin2++];
 				}
 			}
-#if 0
-			while (begin1 < end1) {
-				buffer[left_index++] = data[begin1++];
-			}
-			while (begin2 < end2) {
-				buffer[left_index++] = data[begin2++];
-			}
-#else
 			int delta = end1 - begin1;
 			if (delta > 0) {
 				memcpy_s(buffer + left_index, sizeof(int)*delta, data + begin1, sizeof(int) * delta);
@@ -1237,7 +1238,6 @@ bool FastMergeSort256(int data[], int n) {
 			if (delta > 0) {
 				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin2, sizeof(int) * delta);
 			}
-#endif
 			memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
 #endif
 		}
