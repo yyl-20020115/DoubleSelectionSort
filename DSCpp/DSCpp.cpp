@@ -84,7 +84,7 @@ void QuickSort(int data[], int n)
 //  using AVX512 long stride to achive a faster speed than common quick sort
 //
 bool FastQuickSortImpl256(int data[], int low, int high) {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
 	if (low < high)
 	{
 		unsigned long index = 0;
@@ -139,13 +139,13 @@ bool FastQuickSortImpl256(int data[], int low, int high) {
 }
 bool FastQuickSort256(int data[], int n)
 {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
 	if (n % stride > 0) return false;
 
 	return FastQuickSortImpl256(data, 0, n - 1);
 }
 bool FastQuickSortImpl512(int data[], int low, int high) {
-	const int stride = sizeof(__m512i) / sizeof(int);
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
 	if (low < high)
 	{
 		unsigned long index = 0;
@@ -200,7 +200,7 @@ bool FastQuickSortImpl512(int data[], int low, int high) {
 }
 bool FastQuickSort512(int data[], int n)
 {
-	const int stride = sizeof(__m512i) / sizeof(int);
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
 	if (n % stride > 0) return false;
 
 	return FastQuickSortImpl512(data, 0, n - 1);
@@ -262,7 +262,7 @@ int* FastOddEvenSort256(int* t, int n)
 
 			__m256i min = _mm256_min_epi32(vodd_, veven);
 			__m256i max = _mm256_max_epi32(vodd_, veven);
-
+#if 1
 			__m256i minlows256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(min, 0));
 			__m256i minhighs256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(min, 1));
 			__m256i maxlows256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(max, 0));
@@ -276,9 +276,10 @@ int* FastOddEvenSort256(int* t, int n)
 
 			_mm256_storeu_epi32(ptr, lows);
 			_mm256_storeu_epi32(ptr+ size, highs);
-
-			//_mm256_i32scatter_epi32(ptr, ipe, min, skip);
-			//_mm256_i32scatter_epi32(ptr, ipo, max, skip);
+#else
+			_mm256_i32scatter_epi32(ptr, ipe, min, skip);
+			_mm256_i32scatter_epi32(ptr, ipo, max, skip);
+#endif
 		}
 		for (int part = 0; part < n; part += dbls)
 		{
@@ -291,7 +292,7 @@ int* FastOddEvenSort256(int* t, int n)
 
 			__m256i min = _mm256_min_epi32(vodd_, veven);
 			__m256i max = _mm256_max_epi32(vodd_, veven);
-
+#if 1
 			__m256i minlows256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(min, 0));
 			__m256i minhighs256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(min, 1));
 			__m256i maxlows256 = _mm256_cvtepi32_epi64(_mm256_extracti32x4_epi32(max, 0));
@@ -302,12 +303,12 @@ int* FastOddEvenSort256(int* t, int n)
 			//AVX512 used
 			__m256i highs = _mm256_mask_alignr_epi32(
 				minhighs256, 0b10101010, maxhighs256, maxlows256, 7);
-
 			_mm256_storeu_epi32(ptr + 1, lows);
 			_mm256_storeu_epi32(ptr + 1 + size, highs);
-
-			//_mm256_i32scatter_epi32(ptr, ipo, min, skip);
-			//_mm256_i32scatter_epi32(ptr, ipt, max, skip);
+#else
+			_mm256_i32scatter_epi32(ptr, ipo, min, skip);
+			_mm256_i32scatter_epi32(ptr, ipt, max, skip);
+#endif
 		}
 	}
 
@@ -351,7 +352,7 @@ int* FastOddEvenSort512(int* t, int n)
 
 			__m512i min = _mm512_min_epi32(vodd_, veven);
 			__m512i max = _mm512_max_epi32(vodd_, veven);
-
+#if 1
 			__m512i minlows512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(min, 0));
 			__m512i minhighs512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(min, 1));
 			__m512i maxlows512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(max, 0));
@@ -365,9 +366,10 @@ int* FastOddEvenSort512(int* t, int n)
 
 			_mm512_storeu_epi32(ptr, lows);
 			_mm512_storeu_epi32(ptr + size, highs);
-
-			//_mm512_i32scatter_epi32(ptr, ipe, min, skip);
-			//_mm512_i32scatter_epi32(ptr, ipo, max, skip);
+#else
+			_mm512_i32scatter_epi32(ptr, ipe, min, skip);
+			_mm512_i32scatter_epi32(ptr, ipo, max, skip);
+#endif
 		}
 		for (int part = 0; part < n; part += dbls)
 		{
@@ -380,7 +382,7 @@ int* FastOddEvenSort512(int* t, int n)
 
 			__m512i min = _mm512_min_epi32(vodd_, veven);
 			__m512i max = _mm512_max_epi32(vodd_, veven);
-
+#if 1
 			__m512i minlows512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(min, 0));
 			__m512i minhighs512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(min, 1));
 			__m512i maxlows512 = _mm512_cvtepi32_epi64(_mm512_extracti32x8_epi32(max, 0));
@@ -394,9 +396,10 @@ int* FastOddEvenSort512(int* t, int n)
 
 			_mm512_storeu_epi32(ptr + 1, lows);
 			_mm512_storeu_epi32(ptr + 1 + size, highs);
-
-			//_mm512_i32scatter_epi32(ptr, ipo, min, skip);
-			//_mm512_i32scatter_epi32(ptr, ipt, max, skip);
+#else
+			_mm512_i32scatter_epi32(ptr, ipo, min, skip);
+			_mm512_i32scatter_epi32(ptr, ipt, max, skip);
+#endif
 		}
 	}
 
@@ -407,7 +410,6 @@ int* FastOddEvenSort512(int* t, int n)
 	return t;
 
 }
-
 int HorizentalMin16(__m128i data, unsigned short* p = 0) {
 	__m128i result = _mm_minpos_epu16(data);
 	if (p != 0) {
@@ -426,7 +428,83 @@ int HorizentalMax16(__m128i data, unsigned short* p = 0) {
 	}
 	return index;
 }
+int HorizentalMin16(__m256i data, unsigned short* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
+	__m128i zero = _mm_setzero_si128();
+	__m128i low = _mm256_extracti128_si256(data, 0);
+	__m128i high = _mm256_extracti128_si256(data, 1);
+	unsigned short lv = 0;
+	unsigned short hv = 0;
+	int li = HorizentalMin16(low, &lv);
+	int hi = HorizentalMin16(high, &hv);
+	if (lv <= hv) {
+		if (p != 0) *p = lv;
+		return li;
+	}
+	else {
+		if (p != 0) *p = hv;
+		return half + hi;
+	}
+}
+int HorizentalMax16(__m256i data, unsigned short* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
+	__m128i zero = _mm_setzero_si128();
+	__m128i low = _mm256_extracti128_si256(data, 0);
+	__m128i high = _mm256_extracti128_si256(data, 1);
+	unsigned short lv = 0;
+	unsigned short hv = 0;
+	int li = HorizentalMax16(low, &lv);
+	int hi = HorizentalMax16(high, &hv);
+	if (lv <= hv) {
+		if (p != 0) *p = lv;
+		return li;
+	}
+	else {
+		if (p != 0) *p = hv;
+		return half + hi;
+	}
+}
+int HorizentalMin16(__m512i data, unsigned short* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
+	__m256i low = _mm512_extracti64x4_epi64(data, 0);
+	__m256i high = _mm512_extracti64x4_epi64(data, 1);
+	unsigned short lv = 0;
+	unsigned short hv = 0;
+	int li = HorizentalMin16(low, &lv);
+	int hi = HorizentalMin16(high, &hv);
+	if (lv <= hv) {
+		if (p != 0) *p = lv;
+		return li;
+	}
+	else {
+		if (p != 0) *p = hv;
+		return half + hi;
+	}
+}
+int HorizentalMax16(__m512i data, unsigned short* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
+	__m256i low = _mm512_extracti64x4_epi64(data, 0);
+	__m256i high = _mm512_extracti64x4_epi64(data, 1);
+	unsigned short lv = 0;
+	unsigned short hv = 0;
+	int li = HorizentalMax16(low, &lv);
+	int hi = HorizentalMax16(high, &hv);
+	if (lv >= hv) {
+		if (p != 0) *p = lv;
+		return li;
+	}
+	else {
+		if (p != 0) *p = hv;
+		return half + hi;
+	}
+}
 int HorizentalMin8(__m128i data, unsigned char* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm_unpacklo_epi8(data, zero);
 	__m128i high = _mm_unpackhi_epi8(data, zero);
@@ -440,10 +518,12 @@ int HorizentalMin8(__m128i data, unsigned char* p = 0) {
 	}
 	else {
 		if (p != 0) *p = (unsigned char)(hv & 0xff);
-		return 8 + hi;
+		return half + hi;
 	}
 }
 int HorizentalMax8(__m128i data, unsigned char* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm_unpacklo_epi8(data, zero);
 	__m128i high = _mm_unpackhi_epi8(data, zero);
@@ -457,10 +537,12 @@ int HorizentalMax8(__m128i data, unsigned char* p = 0) {
 	}
 	else {
 		if (p != 0) *p = (unsigned char)(hv & 0xff);
-		return 8 + hi;
+		return half + hi;
 	}
 }
 int HorizentalMin8(__m256i data, unsigned char* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm256_extracti128_si256(data, 0);
 	__m128i high = _mm256_extracti128_si256(data, 1);
@@ -474,10 +556,12 @@ int HorizentalMin8(__m256i data, unsigned char* p = 0) {
 	}
 	else {
 		if (p != 0) *p = (unsigned char)(hv & 0xff);
-		return 16 + hi;
+		return half + hi;
 	}
 }
 int HorizentalMax8(__m256i data, unsigned char* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m128i zero = _mm_setzero_si128();
 	__m128i low = _mm256_extractf128_si256(data, 0);
 	__m128i high = _mm256_extractf128_si256(data, 1);
@@ -491,10 +575,12 @@ int HorizentalMax8(__m256i data, unsigned char* p = 0) {
 	}
 	else {
 		if (p != 0) *p = (unsigned char)(hv & 0xff);
-		return 16 + hi;
+		return half + hi;
 	}
 }
 int HorizentalMin8(__m512i data, unsigned char* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
 	unsigned char lv = 0;
@@ -507,10 +593,12 @@ int HorizentalMin8(__m512i data, unsigned char* p = 0) {
 	}
 	else {
 		if (p != 0) *p = hv;
-		return 32 + hi;
+		return half + hi;
 	}
 }
 int HorizentalMax8(__m512i data, unsigned char* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
 	unsigned char lv = 0;
@@ -523,11 +611,60 @@ int HorizentalMax8(__m512i data, unsigned char* p = 0) {
 	}
 	else {
 		if (p != 0) *p = hv;
-		return 32 + hi;
+		return half + hi;
 	}
 }
+int HorizentalMin32(__m128i data, unsigned int* p = 0) {
+	const int stride = sizeof(data) / sizeof(*p);
+	int a0 = data.m128i_i32[0];
+	int a1 = data.m128i_i32[1];
+	int a2 = data.m128i_i32[2];
+	int a3 = data.m128i_i32[3];
+	int m0 = 0;
+	int m1 = 0;
+	int p0 = 0;
+	int p1 = 0;
+
+	int index = stride;
+	if (a0 <= a1) {
+		m0 = a0;
+		p0 = 0;
+	}
+	else {
+		m0 = a1;
+		p0 = 1;
+	}
+	if (a2 <= a3) {
+		m1 = a2;
+		p1 = 2;
+	}
+	else {
+		m1 = a3;
+		p1 = 3;
+	}
+	if (m0 <= m1) {
+		index = p0;
+		if (p != 0)*p = m0;
+	}
+	else {
+		index = p1;
+		if (p != 0)*p = m1;
+	}
+
+	return index;
+}
+int HorizentalMax32(__m128i data, unsigned int* p = 0) {
+	__m128i zero = _mm_setzero_si128();
+	__m128i ones = _mm_cmpeq_epi32(zero, zero);
+	__m128i result = _mm_andnot_si128(data, ones);
+	int index = HorizentalMin32(result, p);
+	if (p != 0) {
+		*p = data.m128i_u32[index];
+	}
+	return index;
+}
 int HorizentalMin32(__m256i data, unsigned int* p = 0) {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(data) / sizeof(*p);
 	unsigned long index = stride; //8 is out of range
 	__m128i zero = _mm_setzero_si128();
 	__m128i ones = _mm_cmpeq_epi32(zero, zero);	
@@ -595,6 +732,8 @@ int HorizentalMax32(__m256i data, unsigned int* p = 0) {
 }
 int HorizentalMin32(__m512i data, unsigned int* p = 0)
 {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m256i low = _mm512_extracti32x8_epi32(data, 0);
 	__m256i high = _mm512_extracti32x8_epi32(data, 1);
 
@@ -610,11 +749,13 @@ int HorizentalMin32(__m512i data, unsigned int* p = 0)
 	else //hv<lv
 	{
 		if (p != 0)*p = hv;
-		return 8 + hi;
+		return half + hi;
 	}
 }
 int HorizentalMax32(__m512i data, unsigned int* p = 0)
 {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m256i low = _mm512_extracti32x8_epi32(data, 0);
 	__m256i high = _mm512_extracti32x8_epi32(data, 1);
 
@@ -630,11 +771,13 @@ int HorizentalMax32(__m512i data, unsigned int* p = 0)
 	else
 	{
 		if (p != 0)*p = hv;
-		return 8 + hi;
+		return half + hi;
 	}
 }
 int HorizentalMin64(__m128i data, unsigned long long* p = 0)
 {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	unsigned long long lv = _mm_extract_epi64(data, 0);
 	unsigned long long hv = _mm_extract_epi64(data, 1);
 	if (lv <= hv) {
@@ -648,6 +791,9 @@ int HorizentalMin64(__m128i data, unsigned long long* p = 0)
 }
 int HorizentalMax64(__m128i data, unsigned long long* p = 0)
 {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
+
 	unsigned long long lv = _mm_extract_epi64(data, 0);
 	unsigned long long hv = _mm_extract_epi64(data, 1);
 	if (lv >= hv) {
@@ -661,6 +807,8 @@ int HorizentalMax64(__m128i data, unsigned long long* p = 0)
 }
 int HorizentalMin64(__m256i data, unsigned long long* p = 0)
 {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m128i low = _mm256_extracti64x2_epi64(data, 0);
 	__m128i high = _mm256_extracti64x2_epi64(data, 0);
 
@@ -675,11 +823,13 @@ int HorizentalMin64(__m256i data, unsigned long long* p = 0)
 	}
 	else {
 		if (p != 0)*p = hv;
-		return hi + 2;
+		return half + hi;
 	}
 }
 int HorizentalMax64(__m256i data, unsigned long long* p = 0)
 {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m128i low = _mm256_extracti64x2_epi64(data, 0);
 	__m128i high = _mm256_extracti64x2_epi64(data, 0);
 
@@ -694,12 +844,14 @@ int HorizentalMax64(__m256i data, unsigned long long* p = 0)
 	}
 	else {
 		if (p != 0)*p = hv;
-		return hi + 2;
+		return half + hi;
 	}
 
 }
 int HorizentalMin64(__m512i data, unsigned long long* p = 0)
 {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
 
@@ -714,11 +866,13 @@ int HorizentalMin64(__m512i data, unsigned long long* p = 0)
 	}
 	else {
 		if (p != 0)*p = hv;
-		return hi + 4;
+		return half + hi;
 	}
 }
 int HorizentalMax64(__m512i data, unsigned long long* p = 0)
 {
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
 	__m256i low = _mm512_extracti64x4_epi64(data, 0);
 	__m256i high = _mm512_extracti64x4_epi64(data, 1);
 
@@ -733,11 +887,163 @@ int HorizentalMax64(__m512i data, unsigned long long* p = 0)
 	}
 	else {
 		if (p != 0)*p = hv;
-		return hi + 4;
+		return half + hi;
 	}
 }
+__m128i HorizentalSort8(__m128i data, unsigned char* pmin = 0, unsigned char* pmax = 0) {
+	const int stride = sizeof(data) / sizeof(*pmin);
+	__m128i result = { 0 };
+	unsigned char min = 0;
+	unsigned char max = 0;
+
+	int imin = HorizentalMin8(data, &min);
+	int imax = HorizentalMax8(data, &max);
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m128i_u8[0] = min;
+	result.m128i_u8[stride - 1] = max;
+	data.m128i_u8[imin] = max;
+	for (int i = 1; i < stride - 1; i++)
+	{
+		imin = HorizentalMin8(data, &min);
+		result.m128i_u8[i] = min;
+		data.m128i_u8[imin] = max;
+	}
+
+	return result;
+}
+__m256i HorizentalSort8(__m256i data, unsigned char* pmin = 0, unsigned char* pmax = 0) {
+	const int stride = sizeof(data) / sizeof(*pmin);
+	__m256i result = { 0 };
+	unsigned char min = 0;
+	unsigned char max = 0;
+
+	int imin = HorizentalMin8(data, &min);
+	int imax = HorizentalMax8(data, &max);
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m256i_u8[0] = min;
+	result.m256i_u8[stride - 1] = max;
+	data.m256i_u8[imin] = max;
+	for (int i = 1; i < stride - 1; i++)
+	{
+		imin = HorizentalMin8(data, &min);
+		result.m256i_u8[i] = min;
+		data.m256i_u8[imin] = max;
+	}
+
+	return result;
+}
+__m512i HorizentalSort8(__m512i data, unsigned char* pmin = 0, unsigned char* pmax = 0) {
+	const int stride = sizeof(data) / sizeof(*pmin);
+	__m512i result = { 0 };
+	int imin = HorizentalMin8(data, pmin);
+	int imax = HorizentalMax8(data, pmax);
+	unsigned char min = data.m512i_u8[imin];
+	unsigned char max = data.m512i_u8[imax];
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m512i_u8[0] = min;
+	result.m512i_u8[stride - 1] = max;
+	data.m512i_u8[imin] = max;
+	for (int i = 1; i < stride - 1; i++)
+	{
+		imin = HorizentalMin8(data, &min);
+		result.m512i_u8[i] = min;
+		data.m512i_u8[imin] = max;
+	}
+
+	return result;
+}
+__m128i HorizentalSort16(__m128i data, unsigned short* pmin = 0, unsigned short* pmax = 0) {
+	const int stride = sizeof(data) / sizeof(*pmin);
+	__m128i result = { 0 };
+	unsigned short min = 0;
+	unsigned short max = 0;
+
+	int imin = HorizentalMin16(data, &min);
+	int imax = HorizentalMax16(data, &max);
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m128i_u16[0] = min;
+	result.m128i_u16[stride - 1] = max;
+	data.m128i_u16[imin] = max;
+	for (int i = 1; i < stride - 1; i++)
+	{
+		imin = HorizentalMin16(data, &min);
+		result.m128i_u16[i] = min;
+		data.m128i_u16[imin] = max;
+	}
+
+	return result;
+}
+__m256i HorizentalSort16(__m256i data, unsigned short* pmin = 0, unsigned short* pmax = 0) {
+	const int stride = sizeof(data) / sizeof(*pmin);
+	__m256i result = { 0 };
+	unsigned short min = 0;
+	unsigned short max = 0;
+
+	int imin = HorizentalMin16(data, &min);
+	int imax = HorizentalMax16(data, &max);
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m256i_u16[0] = min;
+	result.m256i_u16[stride - 1] = max;
+	data.m256i_u16[imin] = max;
+	for (int i = 1; i < stride - 1; i++)
+	{
+		imin = HorizentalMin16(data, &min);
+		result.m256i_u16[i] = min;
+		data.m256i_u16[imin] = max;
+	}
+
+	return result;
+}
+__m512i HorizentalSort16(__m512i data, unsigned short* pmin = 0, unsigned short* pmax = 0) {
+	const int stride = sizeof(data) / sizeof(*pmin);
+	__m512i result = { 0 };
+	int imin = HorizentalMin16(data, pmin);
+	int imax = HorizentalMax16(data, pmax);
+	unsigned short min = data.m512i_u16[imin];
+	unsigned short max = data.m512i_u16[imax];
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m512i_u16[0] = min;
+	result.m512i_u16[stride - 1] = max;
+	data.m512i_u16[imin] = max;
+	for (int i = 1; i < stride - 1; i++)
+	{
+		imin = HorizentalMin16(data, &min);
+		result.m512i_u16[i] = min;
+		data.m512i_u16[imin] = max;
+	}
+
+	return result;
+}
+__m128i HorizentalSort32(__m128i data, unsigned int* pmin = 0, unsigned int* pmax = 0) {
+	const int stride = sizeof(data) / sizeof(*pmin);
+	__m128i result = { 0 };
+	unsigned int min = 0;
+	unsigned int max = 0;
+
+	int imin = HorizentalMin32(data, &min);
+	int imax = HorizentalMax32(data, &max);
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m128i_u32[0] = min;
+	result.m128i_u32[stride - 1] = max;
+	data.m128i_u32[imin] = max;
+	for (int i = 1; i < stride - 1; i++)
+	{
+		imin = HorizentalMin32(data, &min);
+		result.m128i_u32[i] = min;
+		data.m128i_u32[imin] = max;
+	}
+
+	return result;
+}
 __m256i HorizentalSort32(__m256i data, unsigned int* pmin = 0, unsigned int* pmax = 0) {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(data) / sizeof(*pmin);
 	__m256i result = { 0 };
 	unsigned int min = 0;
 	unsigned int max = 0;
@@ -749,7 +1055,6 @@ __m256i HorizentalSort32(__m256i data, unsigned int* pmin = 0, unsigned int* pma
 	result.m256i_u32[0] = min;
 	result.m256i_u32[stride - 1] = max;
 	data.m256i_u32[imin] = max;
-	//min is set to max, we can find next min
 	for (int i = 1; i < stride - 1; i++)
 	{
 		imin = HorizentalMin32(data, &min);
@@ -760,7 +1065,7 @@ __m256i HorizentalSort32(__m256i data, unsigned int* pmin = 0, unsigned int* pma
 	return result;
 }
 __m512i HorizentalSort32(__m512i data, unsigned int* pmin = 0, unsigned int* pmax = 0) {
-	const int stride = sizeof(__m512i) / sizeof(int);
+	const int stride = sizeof(data) / sizeof(*pmin);
 	__m512i result = { 0 };
 	int imin = HorizentalMin32(data, pmin);
 	int imax = HorizentalMax32(data, pmax);
@@ -771,7 +1076,6 @@ __m512i HorizentalSort32(__m512i data, unsigned int* pmin = 0, unsigned int* pma
 	result.m512i_u32[0] = min;
 	result.m512i_u32[stride - 1] = max;
 	data.m512i_u32[imin] = max;
-	//min is set to max, we can find next min
 	for (int i = 1; i <  stride - 1; i++)
 	{
 		imin = HorizentalMin32(data, &min);
@@ -781,9 +1085,63 @@ __m512i HorizentalSort32(__m512i data, unsigned int* pmin = 0, unsigned int* pma
 
 	return result;
 }
+__m128i HorizentalSort64(__m128i data, unsigned long long* pmin = 0, unsigned long long* pmax = 0) {
+	const int stride = sizeof(data) / sizeof(*pmin);
+	__m128i result = { 0 };
+	
+	int li = HorizentalMin64(data, pmin);
+	int hi = HorizentalMax64(data, pmax);
+	result.m128i_i64[li] = data.m128i_i64[li];
+	result.m128i_i64[hi] = data.m128i_i64[hi];
+
+	return result;
+}
+__m256i HorizentalSort64(__m256i data, unsigned long long* pmin = 0, unsigned long long* pmax = 0) {
+	const int stride = sizeof(data) / sizeof(*pmin);
+	__m256i result = { 0 };
+	unsigned long long min = 0;
+	unsigned long long max = 0;
+
+	int imin = HorizentalMin64(data, &min);
+	int imax = HorizentalMax64(data, &max);
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m256i_u64[0] = min;
+	result.m256i_u64[stride - 1] = max;
+	data.m256i_u64[imin] = max;
+	for (int i = 1; i < stride - 1; i++)
+	{
+		imin = HorizentalMin64(data, &min);
+		result.m256i_u64[i] = min;
+		data.m256i_u64[imin] = max;
+	}
+
+	return result;
+}
+__m512i HorizentalSort64(__m512i data, unsigned long long* pmin = 0, unsigned long long* pmax = 0) {
+	const int stride = sizeof(data) / sizeof(*pmin);
+	__m512i result = { 0 };
+	int imin = HorizentalMin64(data, pmin);
+	int imax = HorizentalMax64(data, pmax);
+	unsigned long long min = data.m512i_u64[imin];
+	unsigned long long max = data.m512i_u64[imax];
+	if (pmin != 0)*pmin = min;
+	if (pmax != 0)*pmax = max;
+	result.m512i_u64[0] = min;
+	result.m512i_u64[stride - 1] = max;
+	data.m512i_u64[imin] = max;
+	for (int i = 1; i < stride - 1; i++)
+	{
+		imin = HorizentalMin64(data, &min);
+		result.m512i_u64[i] = min;
+		data.m512i_u64[imin] = max;
+	}
+
+	return result;
+}
 
 bool FastMergeSort256(int data[], int n) {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
 	const int dual = stride << 1;
 	if (data == 0 || n<dual || n % dual > 0)
 		return false;
@@ -808,14 +1166,45 @@ bool FastMergeSort256(int data[], int n) {
 			int i_left = i;
 			int i_middle = i + gap;
 			int i_right = i_middle + gap;
-			for (int j = i_left; j < i_middle; j += stride) {
-				__m256i left = _mm256_loadu_epi32(data + j);
-				__m256i right = _mm256_loadu_epi32(data + j + i_middle);
-				__m256i min = _mm256_min_epi32(left, right);
-				__m256i max = _mm256_max_epi32(left, right);
-				_mm256_storeu_epi32(buffer + j, min);
-				_mm256_storeu_epi32(buffer + j + i_middle, max);
+
+			int begin1 = i_left;
+			int begin2 = i_middle;
+			int end1 = i_middle;
+			int end2 = i_right;
+
+			int index = i_left;
+			unsigned long bitidx = 0;
+
+			while (begin1 < end1 && begin2 < end2) {
+				if (data[begin1] < data[begin2]) {
+					buffer[index++] = data[begin1++];
+				}
+				else {
+					buffer[index++] = data[begin2++];
+				}
 			}
+			while (begin1 < end1) {
+				buffer[index++] = data[begin1++];
+			}
+			while (begin2 < end2) {
+				buffer[index++] = data[begin2++];
+			}
+
+			//__m256i left = _mm256_loadu_epi32(data + begin1);
+			//__m256i right = _mm256_loadu_epi32(data + begin2);
+			//long mask = _mm256_cmp_epi32_mask(left, right, 1);
+
+			//while (_BitScanForward(&bitidx, mask)) {
+			//	if (_bittestandreset(&mask, bitidx))
+			//	{
+			//		buffer[index++] = left.m256i_i32[bitidx];
+			//	}
+			//	else 
+			//	{
+			//		buffer[index++] = right.m256i_i32[bitidx];
+			//	}
+			//}
+
 			memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
 
 		}
@@ -827,7 +1216,7 @@ bool FastMergeSort256(int data[], int n) {
 
 int AVX2_SUM(int data[], size_t size)
 {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
 	int sum[stride] = { 0 };
 	__m256i sum256 = _mm256_setzero_si256();
 	__m256i load256 = _mm256_setzero_si256();
@@ -843,7 +1232,7 @@ int AVX2_SUM(int data[], size_t size)
 }
 int AVX512_SUM(int data[], size_t size)
 {
-	const int stride = sizeof(__m512i) / sizeof(int);
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
 	int sum[stride] = { 0 };
 	__m512i sum512 = _mm512_setzero_si512();
 	__m512i load512 = _mm512_setzero_si512();
@@ -868,7 +1257,7 @@ int AVX512_SUM(int data[], size_t size)
 }
 long long AVX2_SUM(long long data[], size_t size)
 {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
 	long long sum[stride] = { 0 };
 	__m256i sum256 = _mm256_setzero_si256();
 	__m256i load256 = _mm256_setzero_si256();
@@ -882,7 +1271,7 @@ long long AVX2_SUM(long long data[], size_t size)
 }
 long long AVX512_SUM(long long data[], size_t size)
 {
-	const int stride = sizeof(__m512i) / sizeof(int);
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
 	long long sum[stride >> 1] = { 0 };
 	__m512i sum512 = _mm512_setzero_si512();
 	__m512i load512 = _mm512_setzero_si512();
@@ -902,7 +1291,7 @@ size_t AVX2_StringLength(char* s)
 {
 	size_t len = 0;
 	if (s != 0) {
-		const int stride = sizeof(__m256i) / sizeof(int);
+		const int stride = sizeof(__m256i) / sizeof(*s);
 		unsigned long index = 0;
 		__m256i zero = _mm256_setzero_si256();
 		__m256i part = { 0 };
@@ -928,7 +1317,7 @@ size_t AVX2_StringLength(wchar_t* s)
 {
 	size_t len = 0;
 	if (s != 0) {
-		const int stride = sizeof(__m256i) / sizeof(int);
+		const int stride = sizeof(__m256i) / sizeof(*s);
 		unsigned long index = 0;
 		__m256i zero = _mm256_setzero_si256();
 		__m256i part = { 0 };
@@ -954,7 +1343,7 @@ size_t AVX512_StringLength(char* s)
 {
 	size_t len = 0;
 	if (s != 0) {
-		const int stride = sizeof(__m512i) / sizeof(int);
+		const int stride = sizeof(__m512i) / sizeof(*s);
 		unsigned long index = 0;
 		__m512i zero = _mm512_setzero_si512();
 		__m512i part = { 0 };
@@ -980,7 +1369,7 @@ size_t AVX512_StringLength(wchar_t* s)
 {
 	size_t len = 0;
 	if (s != 0) {
-		const int stride = sizeof(__m512i) / sizeof(int);
+		const int stride = sizeof(__m512i) / sizeof(*s);
 		unsigned long index = 0;
 		__m512i zero = _mm512_setzero_si512();
 		__m512i part = { 0 };
@@ -1005,7 +1394,7 @@ size_t AVX512_StringLength(wchar_t* s)
 
 int AVX2_StringCompare(char* s1, char* s2)
 {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(__m256i) / sizeof(*s1);
 
 	if (s1 == 0 && s2 == 0) {
 		return 0;
@@ -1052,7 +1441,7 @@ int AVX2_StringCompare(char* s1, char* s2)
 }
 int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
 {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(__m256i) / sizeof(*s1);
 
 	if (s1 == 0 && s2 == 0) {
 		return 0;
@@ -1099,7 +1488,7 @@ int AVX2_StringCompare(wchar_t* s1, wchar_t* s2)
 }
 int AVX512_StringCompare(char* s1, char* s2)
 {
-	const int stride = sizeof(__m512i) / sizeof(int);
+	const int stride = sizeof(__m512i) / sizeof(*s1);
 	
 	if (s1 == 0 && s2 == 0) {
 		return 0;
@@ -1146,7 +1535,7 @@ int AVX512_StringCompare(char* s1, char* s2)
 }
 int AVX512_StringCompare(wchar_t* s1, wchar_t* s2)
 {
-	const int stride = sizeof(__m512i) / sizeof(int);
+	const int stride = sizeof(__m512i) / sizeof(*s1);
 
 	if (s1 == 0 && s2 == 0) {
 		return 0;
@@ -1194,7 +1583,7 @@ int AVX512_StringCompare(wchar_t* s1, wchar_t* s2)
 
 bool AVX2_StringEqual(char* s1, char* s2)
 {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(__m256i) / sizeof(*s1);
 
 	if (s1 == 0 && s2 == 0) {
 		return true;
@@ -1227,7 +1616,7 @@ bool AVX2_StringEqual(char* s1, char* s2)
 }
 bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
 {
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(__m256i) / sizeof(*s1);
 
 	if (s1 == 0 && s2 == 0) {
 		return true;
@@ -1260,7 +1649,7 @@ bool AVX2_StringEqual(wchar_t* s1, wchar_t* s2)
 }
 bool AVX512_StringEqual(char* s1, char* s2)
 {
-	const int stride = sizeof(__m512i) / sizeof(int);
+	const int stride = sizeof(__m512i) / sizeof(*s1);
 
 	if (s1 == 0 && s2 == 0) {
 		return true;
@@ -1293,7 +1682,7 @@ bool AVX512_StringEqual(char* s1, char* s2)
 }
 bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
 {
-	const int stride = sizeof(__m512i) / sizeof(int);
+	const int stride = sizeof(__m512i) / sizeof(*s1);
 
 	if (s1 == 0 && s2 == 0) {
 		return true;
@@ -1328,7 +1717,7 @@ bool AVX512_StringEqual(wchar_t* s1, wchar_t* s2)
 int AVX2_StringIndexOf(char* s, char c)
 {
 	if (s != 0) {
-		const int stride = sizeof(__m256i) / sizeof(int);
+		const int stride = sizeof(__m256i) / sizeof(*s);
 		unsigned long index = 0;
 		__m256i _chs = _mm256_set1_epi8(c);
 		__m256i part = { 0 };
@@ -1350,7 +1739,7 @@ int AVX2_StringIndexOf(char* s, char c)
 int AVX2_StringIndexOf(wchar_t* s, wchar_t c)
 {
 	if (s != 0) {
-		const int stride = sizeof(__m256i) / sizeof(int);
+		const int stride = sizeof(__m256i) / sizeof(*s);
 		unsigned long index = 0;
 		__m256i _chs = _mm256_set1_epi16(c);
 		__m256i part = { 0 };
@@ -1372,7 +1761,7 @@ int AVX2_StringIndexOf(wchar_t* s, wchar_t c)
 int AVX512_StringIndexOf(char* s, char c)
 {
 	if (s != 0) {
-		const int stride = sizeof(__m512i) / sizeof(int);
+		const int stride = sizeof(__m512i) / sizeof(*s);
 		unsigned long index = 0;
 		__m512i _chs = _mm512_set1_epi8(c);
 		__m512i part = { 0 };
@@ -1394,7 +1783,7 @@ int AVX512_StringIndexOf(char* s, char c)
 int AVX512_StringIndexOf(wchar_t* s, wchar_t c)
 {
 	if (s != 0) {
-		const int stride = sizeof(__m512i) / sizeof(int);
+		const int stride = sizeof(__m512i) / sizeof(*s);
 		unsigned long index = 0;
 		__m512i _chs = _mm512_set1_epi16(c);
 		__m512i part = { 0 };
@@ -1508,20 +1897,21 @@ int main()
 		0x00170077,
 		0x00030033
 	);
+
 	unsigned char r8 = 0;
 	unsigned short r16 = 0;
 	unsigned int r32 = 0;
 	unsigned long long r64 = 0;
 	int i = 0;
 
-	//i = HorizentalMin8(__data8, &r8);
-	//i = HorizentalMax8(__data8, &r8);
-	//i = HorizentalMin16(_data16, &r16);
-	//i = HorizentalMax16(_data16, &r16);
+	i = HorizentalMin8(__data8, &r8);
+	i = HorizentalMax8(__data8, &r8);
+	i = HorizentalMin16(_data16, &r16);
+	i = HorizentalMax16(_data16, &r16);
 	i = HorizentalMin32(_data32, &r32);
 	i = HorizentalMax32(_data32, &r32);
-	//i = HorizentalMin64(_data32, &r64);
-	//i = HorizentalMax64(_data32, &r64);
+	i = HorizentalMin64(_data32, &r64);
+	i = HorizentalMax64(_data32, &r64);
 
 	bool show = true;
 	long long t0;
