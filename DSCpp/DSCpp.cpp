@@ -664,6 +664,28 @@ int HorizentalMax32(__m128i data, unsigned int* p = 0) {
 	return index;
 }
 int HorizentalMin32(__m256i data, unsigned int* p = 0) {
+#if 0
+	const int stride = sizeof(data) / sizeof(*p);
+	const int half = stride / 2;
+	__m128i low = _mm256_extracti32x4_epi32(data, 0);
+	__m128i high = _mm256_extracti32x4_epi32(data, 1);
+
+	unsigned int lv = 0;
+	unsigned int hv = 0;
+
+	int li = HorizentalMin32(low, &lv);
+	int hi = HorizentalMin32(high, &hv);
+	if (lv <= hv) {
+		if (p != 0)*p = lv;
+		return li;
+	}
+	else //hv<lv
+	{
+		if (p != 0)*p = hv;
+		return half + hi;
+	}
+
+#else
 	const int stride = sizeof(data) / sizeof(*p);
 	unsigned long index = stride; //8 is out of range
 	__m128i zero = _mm_setzero_si128();
@@ -683,10 +705,11 @@ int HorizentalMin32(__m256i data, unsigned int* p = 0) {
 	if (c == stride) { //all highs are same, only dif in lows
 		__m128i low_result = _mm_minpos_epu16(_low);
 		short low_value = low_result.m128i_i16[0];
+		index = low_result.m128i_i16[1];
 		if (p != 0) {
-			*p = low_value;
+			*p = data.m256i_i32[index];
 		}
-		return index = low_result.m128i_i16[1];
+		return index;
 	}
 	else if (c == 1) { //this high is special, no need to check lows
 		if (p != 0) {
@@ -714,8 +737,16 @@ int HorizentalMin32(__m256i data, unsigned int* p = 0) {
 				return index;
 			}
 		}
+		else {
+			index = low_result.m128i_i16[1];
+			if (p != 0) {
+				*p = data.m256i_i32[index];
+			}
+			return index;
+		}
 	}
 	return index;
+#endif
 }
 int HorizentalMax32(__m256i data, unsigned int* p = 0) {
 	__m128i zero = _mm_setzero_si128();
@@ -741,7 +772,7 @@ int HorizentalMin32(__m512i data, unsigned int* p = 0)
 	unsigned int hv = 0;
 
 	int li = HorizentalMin32(low, &lv);
-	int hi = HorizentalMin32(low, &hv);
+	int hi = HorizentalMin32(high, &hv);
 	if (lv <= hv) {
 		if (p != 0)*p = lv;
 		return li;
@@ -763,7 +794,7 @@ int HorizentalMax32(__m512i data, unsigned int* p = 0)
 	unsigned int hv = 0;
 
 	int li = HorizentalMax32(low, &lv);
-	int hi = HorizentalMax32(low, &hv);
+	int hi = HorizentalMax32(high, &hv);
 	if (lv >= hv) {
 		if (p != 0)*p = lv;
 		return li;
@@ -1152,15 +1183,96 @@ bool FastMergeSort256(int data[], int n) {
 		int gap2 = gap << 1;
 		for (int i = 0; i < n; i += gap2) {
 			if (gap == stride) {
+				//0 - stride
 				__m256i values = _mm256_loadu_epi32(data + i);
 				__m256i sorted = HorizentalSort32(values);
 
 				_mm256_storeu_epi32(data + i, sorted);
 
+				//stride - 2*stride
 				values = _mm256_loadu_epi32(data + i + stride);
 				sorted = HorizentalSort32(values);
-
 				_mm256_storeu_epi32(data + i + stride, sorted);
+			}
+
+			int i_left = i;
+			int i_middle = i + gap;
+			int i_right = i_middle + gap;
+#if 0
+			__m256i left = _mm256_loadu_epi32(data + i);
+			__m256i right = _mm256_loadu_epi32(data + stride);
+			__m256i min = _mm256_min_epi32(left, right);
+			__m256i max = _mm256_max_epi32(left, right);
+			__m256i left_result = HorizentalSort32(min);
+			__m256i right_result = HorizentalSort32(max);
+
+			_mm256_storeu_epi32(data + i, left_result);
+			_mm256_storeu_epi32(data + i + stride, right_result);
+
+#else
+			int begin1 = i_left;
+			int begin2 = i_middle;
+			int end1 = i_middle;
+			int end2 = i_right;
+
+			int left_index = i_left;
+			int right_index = i_right;
+
+			while (begin1 < end1 && begin2 < end2) {
+				if (data[begin1] < data[begin2]) {
+					buffer[left_index++] = data[begin1++];
+				}
+				else {
+					buffer[left_index++] = data[begin2++];
+				}
+			}
+#if 0
+			while (begin1 < end1) {
+				buffer[left_index++] = data[begin1++];
+			}
+			while (begin2 < end2) {
+				buffer[left_index++] = data[begin2++];
+			}
+#else
+			int delta = end1 - begin1;
+			if (delta > 0) {
+				memcpy_s(buffer + left_index, sizeof(int)*delta, data + begin1, sizeof(int) * delta);
+				left_index += delta;
+			}
+			delta = end2 - begin2;
+			if (delta > 0) {
+				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin2, sizeof(int) * delta);
+			}
+#endif
+			memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
+#endif
+		}
+		gap = gap2;
+	}
+	delete[] buffer;
+	return true;
+}
+bool FastMergeSort512(int data[], int n) {
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
+	const int dual = stride << 1;
+	if (data == 0 || n < dual || n % dual > 0)
+		return false;
+	int* buffer = new int[n];
+
+	int gap = stride;
+	while (gap < n) {
+		int gap2 = gap << 1;
+		for (int i = 0; i < n; i += gap2) {
+			if (gap == stride) {
+				//0 - stride
+				__m512i values = _mm512_loadu_epi32(data + i);
+				__m512i sorted = HorizentalSort32(values);
+				_mm512_storeu_epi32(data + i, sorted);
+
+				//stride - 2*stride
+				values = _mm512_loadu_epi32(data + i + stride);
+				sorted = HorizentalSort32(values);
+				_mm512_storeu_epi32(data + i + stride, sorted);
 			}
 
 			int i_left = i;
@@ -1172,39 +1284,35 @@ bool FastMergeSort256(int data[], int n) {
 			int end1 = i_middle;
 			int end2 = i_right;
 
-			int index = i_left;
-			unsigned long bitidx = 0;
+			int left_index = i_left;
+			int right_index = i_right;
 
 			while (begin1 < end1 && begin2 < end2) {
 				if (data[begin1] < data[begin2]) {
-					buffer[index++] = data[begin1++];
+					buffer[left_index++] = data[begin1++];
 				}
 				else {
-					buffer[index++] = data[begin2++];
+					buffer[left_index++] = data[begin2++];
 				}
 			}
+#if 0
 			while (begin1 < end1) {
-				buffer[index++] = data[begin1++];
+				buffer[left_index++] = data[begin1++];
 			}
 			while (begin2 < end2) {
-				buffer[index++] = data[begin2++];
+				buffer[left_index++] = data[begin2++];
 			}
-
-			//__m256i left = _mm256_loadu_epi32(data + begin1);
-			//__m256i right = _mm256_loadu_epi32(data + begin2);
-			//long mask = _mm256_cmp_epi32_mask(left, right, 1);
-
-			//while (_BitScanForward(&bitidx, mask)) {
-			//	if (_bittestandreset(&mask, bitidx))
-			//	{
-			//		buffer[index++] = left.m256i_i32[bitidx];
-			//	}
-			//	else 
-			//	{
-			//		buffer[index++] = right.m256i_i32[bitidx];
-			//	}
-			//}
-
+#else
+			int delta = end1 - begin1;
+			if (delta > 0) {
+				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin1, sizeof(int) * delta);
+				left_index += delta;
+			}
+			delta = end2 - begin2;
+			if (delta > 0) {
+				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin2, sizeof(int) * delta);
+			}
+#endif
 			memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
 
 		}
@@ -1860,7 +1968,7 @@ int AVX512_StringIndexOf(wchar_t* s, wchar_t *cs)
 	return -1;
 }
 
-const int DATA_SIZE = 16;
+const int DATA_SIZE = 65536;
 
 //int data0[DATA_SIZE] = { 0 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
@@ -1875,6 +1983,7 @@ int data4[DATA_SIZE] = { 0 };
 int data5[DATA_SIZE] = { 0 };
 int data6[DATA_SIZE] = { 0 };
 int data7[DATA_SIZE] = { 0 };
+int data8[DATA_SIZE] = { 0 };
 
 bool CheckSequence(int a[], int b[], int n) {
 	for (int i = 0; i < n; i++) {
@@ -1913,14 +2022,15 @@ int main()
 	i = HorizentalMin64(_data32, &r64);
 	i = HorizentalMax64(_data32, &r64);
 
-	bool show = true;
+	bool show = false;
 	long long t0;
 	srand((unsigned)time(0));
 	if (true)
 	{
 		printf("original data(count = %d):\n", DATA_SIZE);
 		for (int i = 0; i < DATA_SIZE; i++) {
-			data7[i]
+			data8[i]
+				= data7[i]
 				= data6[i]
 				= data5[i]
 				= data4[i]
@@ -1928,7 +2038,7 @@ int main()
 				= data2[i]
 				= data1[i]
 				= data0[i]
-				;// = (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
+				= (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
 			if (show) {
 				printf("%d ", data0[i]);
 			}
@@ -2012,7 +2122,7 @@ int main()
 		printf("\n\n");
 	}
 
-	if (true)
+	if (false)
 	{
 		t0 = _Query_perf_counter();
 		printf("for odd even sort:\n");
@@ -2032,7 +2142,7 @@ int main()
 		printf("\n\n");
 	}
 
-	if (true)
+	if (false)
 	{
 		printf("for fast odd even sort 256:\n");
 		t0 = _Query_perf_counter();
@@ -2053,27 +2163,7 @@ int main()
 		printf("\n\n");
 	}
 
-	if (true)
-	{
-		printf("for fast odd even sort 512:\n");
-		t0 = _Query_perf_counter();
-		{
-			FastOddEvenSort512(data4, DATA_SIZE);
-		}
-		printf("time:%lf(ms)\n",
-			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
-		bool b = CheckSequence(data0, data4, DATA_SIZE);
-		printf("correct:%s\n", b ? "true" : "false");
-		if (!b)
-		{
-			for (int i = 0; i < DATA_SIZE; i++) {
-				printf("%d ", data4[i]);
-			}
-		}
-		printf("\n\n");
-	}
-
-	if (true)
+	if (false)
 	{
 		printf("for fast odd even sort 512:\n");
 		t0 = _Query_perf_counter();
@@ -2104,10 +2194,31 @@ int main()
 			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
 		bool b = CheckSequence(data0, data7, DATA_SIZE);
 		printf("correct:%s\n", b ? "true" : "false");
+
 		if (!b)
 		{
 			for (int i = 0; i < DATA_SIZE; i++) {
 				printf("%d ", data7[i]);
+			}
+		}
+		printf("\n\n");
+	}
+	if (true)
+	{
+		printf("for fast merge sort 512:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastMergeSort512(data8, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data8, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data8[i]);
 			}
 		}
 		printf("\n\n");
