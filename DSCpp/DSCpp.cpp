@@ -1227,7 +1227,6 @@ __m512i HorizentalSort64(__m512i data, unsigned long long* pmin = 0, unsigned lo
 	return result;
 }
 
-
 void MergeData(int data[], int left, int mid, int right, int* buffer) {
 	int begin1 = left;
 	int begin2 = mid;
@@ -1262,7 +1261,6 @@ void MergeSortRecursive(int a[], int n) {
 	MergeSortRecursive(a, 0, n, buffer);
 	delete[] buffer;
 }
-
 void MergeSortNonRecursive(int data[], int n) {
 	int* buffer = new int[n];
 	int gap = 1;
@@ -1282,7 +1280,6 @@ void MergeSortNonRecursive(int data[], int n) {
 	}
 	delete[] buffer;
 }
-
 bool FastMergeSort256(int data[], int n) {
 	const int stride = sizeof(__m256i) / sizeof(data[0]);
 	const int dual = stride << 1;
@@ -1477,40 +1474,8 @@ bool SingleSelectionSort(int data[], int n) {
 	}
 	return true;
 }
-bool FastSingleSelectionSort256(int data[], int n) {
+void DoMerge256(int data[], int n) {
 	const int stride = sizeof(__m256i) / sizeof(data[0]);
-
-	if (data == 0 || n < stride || n % stride>0) return false;
-
-	for (int i = 0; i <= n - stride; i += stride) {
-
-		__m256i minValues = _mm256_loadu_epi32(data + i);
-		__m256i i_Indices = _mm256_setr_epi32(i + 0, i + 1, i + 2, i + 3, i + 4, i + 5, i + 6, i + 7);
-		__m256i minIndices = i_Indices;
-
-		for (int j = i + stride; j < n; j += stride) {
-
-			__m256i values = _mm256_loadu_epi32(data + j);
-
-			__mmask8 mask = _mm256_cmplt_epi32_mask(values, minValues);
-			minIndices = _mm256_mask_blend_epi32(mask,
-				minIndices,
-				_mm256_setr_epi32(j + 0, j + 1, j + 2, j + 3, j + 4, j + 5, j + 6, j + 7));
-
-			minValues = _mm256_i32gather_epi32(data, minIndices, 4);
-		}
-		long mask = _mm256_cmpneq_epi32_mask(
-			minIndices, i_Indices);
-
-		unsigned long idx = 0;
-		while (_BitScanForward(&idx, mask))
-		{
-			_bittestandreset(&mask, idx);
-			int tp = minIndices.m256i_i32[idx];
-			Swap(data, i + idx, tp);
-		}
-	}
-
 	//merege:
 	int merge_indices[stride] = { 0,1,2,3,4,5,6,7 };
 	int* buffer = new int[n];
@@ -1546,52 +1511,47 @@ bool FastSingleSelectionSort256(int data[], int n) {
 	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
 	delete[]buffer;
 
-
-	return true;
 }
-bool FastSingleSelectionSort512(int data[], int n) {
-	const int stride = sizeof(__m512i) / sizeof(data[0]);
+bool FastSingleSelectionSort256(int data[], int n) {
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
 
 	if (data == 0 || n < stride || n % stride>0) return false;
 
 	for (int i = 0; i <= n - stride; i += stride) {
 
-		__m512i minValues = _mm512_loadu_epi32(data + i);
-		__m512i i_Indices = _mm512_setr_epi32(
-			i + 0, i + 1, i + 2, i + 3,
-			i + 4, i + 5, i + 6, i + 7,
-			i + 8, i + 9, i + 10, i + 11,
-			i + 12, i + 13, i + 14, i + 15
-			);
-		__m512i minIndices = i_Indices;
+		__m256i minValues = _mm256_loadu_epi32(data + i);
+		__m256i i_Indices = _mm256_setr_epi32(i + 0, i + 1, i + 2, i + 3, i + 4, i + 5, i + 6, i + 7);
+		__m256i minIndices = i_Indices;
 
 		for (int j = i + stride; j < n; j += stride) {
 
-			__m512i values = _mm512_loadu_epi32(data + j);
+			__m256i values = _mm256_loadu_epi32(data + j);
 
-			__mmask16 mask = _mm512_cmplt_epi32_mask(values, minValues);
-			minIndices = _mm512_mask_blend_epi32(mask,
+			__mmask8 mask = _mm256_cmplt_epi32_mask(values, minValues);
+			minIndices = _mm256_mask_blend_epi32(mask,
 				minIndices,
-				_mm512_setr_epi32(
-					j + 0, j + 1, j + 2, j + 3,
-					j + 4, j + 5, j + 6, j + 7,
-					j + 8, j + 9, j + 10, j + 11,
-					j + 12, j + 13, j + 14, j + 15
-					));
+				_mm256_setr_epi32(j + 0, j + 1, j + 2, j + 3, j + 4, j + 5, j + 6, j + 7));
 
-			minValues = _mm512_i32gather_epi32(minIndices, data,  4);
+			minValues = _mm256_i32gather_epi32(data, minIndices, sizeof(int));
 		}
-		long mask = _mm512_cmpneq_epi32_mask(
+		long mask = _mm256_cmpneq_epi32_mask(
 			minIndices, i_Indices);
 
 		unsigned long idx = 0;
 		while (_BitScanForward(&idx, mask))
 		{
 			_bittestandreset(&mask, idx);
-			int tp = minIndices.m512i_i32[idx];
+			int tp = minIndices.m256i_i32[idx];
 			Swap(data, i + idx, tp);
 		}
 	}
+
+	DoMerge256(data, n);
+
+	return true;
+}
+void DoMerge512(int data[], int n) {
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
 
 	//merege:
 	int merge_indices[stride] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
@@ -1628,8 +1588,272 @@ bool FastSingleSelectionSort512(int data[], int n) {
 	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
 	delete[]buffer;
 
+}
+bool FastSingleSelectionSort512(int data[], int n) {
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
+
+	if (data == 0 || n < stride || n % stride>0) return false;
+
+	for (int i = 0; i <= n - stride; i += stride) {
+
+		__m512i minValues = _mm512_loadu_epi32(data + i);
+		__m512i i_Indices = _mm512_setr_epi32(
+			i + 0, i + 1, i + 2, i + 3,
+			i + 4, i + 5, i + 6, i + 7,
+			i + 8, i + 9, i + 10, i + 11,
+			i + 12, i + 13, i + 14, i + 15
+			);
+		__m512i minIndices = i_Indices;
+
+		for (int j = i + stride; j < n; j += stride) {
+
+			__m512i values = _mm512_loadu_epi32(data + j);
+
+			__mmask16 mask = _mm512_cmplt_epi32_mask(values, minValues);
+			minIndices = _mm512_mask_blend_epi32(mask,
+				minIndices,
+				_mm512_setr_epi32(
+					j + 0, j + 1, j + 2, j + 3,
+					j + 4, j + 5, j + 6, j + 7,
+					j + 8, j + 9, j + 10, j + 11,
+					j + 12, j + 13, j + 14, j + 15
+					));
+
+			minValues = _mm512_i32gather_epi32(minIndices, data, sizeof(int));
+		}
+		long mask = _mm512_cmpneq_epi32_mask(
+			minIndices, i_Indices);
+
+		unsigned long idx = 0;
+		while (_BitScanForward(&idx, mask))
+		{
+			_bittestandreset(&mask, idx);
+			int tp = minIndices.m512i_i32[idx];
+			Swap(data, i + idx, tp);
+		}
+	}
+	DoMerge512(data, n);
+
 	return true;
 }
+bool DoubleSelectionSort(int data[], int n)
+{
+	if (data == 0 || n<1)
+	{
+		return false;
+	}
+	int staIndex = 0;
+	int endIndex = n - 1;
+	while (staIndex < endIndex)
+	{
+		int minIndex = staIndex;
+		int maxIndex = endIndex;
+
+		int staValue = data[staIndex];
+		int endValue = data[endIndex];
+		int minValue = data[minIndex];
+		int maxValue = data[maxIndex];
+
+		for (int j = staIndex; j <= endIndex; j++)
+		{
+			if (data[j] < minValue)
+			{
+				minValue = data[j];
+				minIndex = j;
+			}
+			if (data[j] > maxValue)
+			{
+				maxValue = data[j];
+				maxIndex = j;
+			}
+		}
+		if (minValue == maxValue)
+		{
+			break;
+		}
+		else
+		{
+			data[staIndex] = minValue;
+			data[endIndex] = maxValue;
+
+			bool both = maxIndex == staIndex && minIndex == endIndex;
+			if (!both && maxIndex != staIndex && minIndex != endIndex)
+			{
+				data[minIndex] = staValue;
+				data[maxIndex] = endValue;
+			}
+			if (!both && maxIndex == staIndex)
+			{
+				data[minIndex] = endValue;
+			}
+			if (!both && minIndex == endIndex)
+			{
+				data[maxIndex] = staValue;
+			}
+		}
+
+		endIndex--;
+		staIndex++;
+	}
+	return true;
+}
+bool FastDoubleSelectionSort256(int data[], int n)
+{
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
+	if (data == 0 || n < stride || n % stride>0)
+	{
+		return false;
+	}
+
+	__m256i staIndex = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+	__m256i endIndex = _mm256_setr_epi32(n - 8, n - 7, n - 6, n - 5, n - 4, n - 3, n - 2, n - 1);
+
+	while (true) {
+		__mmask8 lt = _mm256_cmplt_epi32_mask(staIndex, endIndex);
+		if (lt == 0) break;
+		__m256i minIndex = staIndex;
+		__m256i maxIndex = endIndex;
+
+		__m256i staValue = _mm256_i32gather_epi32(data, staIndex, sizeof(int));
+		__m256i endValue = _mm256_i32gather_epi32(data, endIndex, sizeof(int));
+		__m256i minValue = staValue;
+		__m256i maxValue = endValue;
+
+		__m256i j = staIndex;
+		while (true) {
+			__mmask8 le = _mm256_cmple_epi32_mask(j, endIndex);
+			if (le == 0) break;//any 1, still le
+
+			__m256i data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
+
+			__mmask8 ltj = _mm256_cmplt_epi32_mask(data_j, minValue);
+
+			minValue = _mm256_mask_blend_epi32(ltj & lt, minValue, data_j);
+			minIndex = _mm256_mask_blend_epi32(ltj & lt, minIndex, j);
+
+			__mmask8 gtj = _mm256_cmpgt_epi32_mask(data_j, maxValue);
+			maxValue = _mm256_mask_blend_epi32(gtj & lt, maxValue, data_j);
+			maxIndex = _mm256_mask_blend_epi32(gtj & lt, maxIndex, j);
+
+			//only add for these having 1s
+			j = _mm256_mask_add_epi32(j, lt, j, _mm256_set1_epi32(stride));
+		}
+
+		__mmask8 neq = _mm256_cmpneq_epi32_mask(minValue, maxValue);
+		if (neq == 0) break;
+
+		//data[staIndex] = minValue;
+		//data[endIndex] = maxValue;
+		_mm256_mask_i32scatter_epi32(data, ~0, staIndex, minValue, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, ~0, endIndex, maxValue, sizeof(int));
+		
+		__mmask8 max_sta = _mm256_cmpeq_epi32_mask(maxIndex, staIndex);
+		__mmask8 min_end = _mm256_cmpeq_epi32_mask(minIndex, endIndex);
+		__mmask8 both = max_sta & min_end;
+		__mmask8 not_max_sta = ~max_sta;
+		__mmask8 not_min_end = ~min_end;
+		__mmask8 both_not = not_max_sta & not_min_end;
+
+		//if (!both && both_not)
+		//	data[minIndex] = staValue;
+		//	data[maxIndex] = endValue;
+		_mm256_mask_i32scatter_epi32(data, (~both) & both_not, minIndex, staValue, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, (~both) & both_not, maxIndex, endValue, sizeof(int));
+
+		//if (!both && maxIndex == staIndex)
+		//data[minIndex] = endValue;
+		_mm256_mask_i32scatter_epi32(data, (~both) & max_sta, minIndex, endValue, sizeof(int));
+		//if (!both && minIndex == endIndex)
+		//data[maxIndex] = staValue;
+		_mm256_mask_i32scatter_epi32(data, (~both) & min_end, maxIndex, staValue, sizeof(int));
+
+		//next
+		staIndex = _mm256_mask_add_epi32(staIndex, lt, staIndex, _mm256_set1_epi32(stride));
+		endIndex = _mm256_mask_sub_epi32(endIndex, lt, endIndex, _mm256_set1_epi32(stride));
+	}
+	DoMerge256(data, n);
+	return true;
+}
+bool FastDoubleSelectionSort512(int data[], int n)
+{
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
+	if (data == 0 || n < stride || n % stride>0)
+	{
+		return false;
+	}
+
+	__m512i staIndex = _mm512_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+	__m512i endIndex = _mm512_setr_epi32(
+		n - 16, n - 15, n - 14, n - 13, n - 12, n - 11, n - 10, n - 9,
+		n - 8, n - 7, n - 6, n - 5, n - 4, n - 3, n - 2, n - 1);
+
+	while (true) {
+		__mmask16 lt = _mm512_cmplt_epi32_mask(staIndex, endIndex);
+		if (lt == 0) break;
+		__m512i minIndex = staIndex;
+		__m512i maxIndex = endIndex;
+
+		__m512i staValue = _mm512_i32gather_epi32(staIndex, data, sizeof(int));
+		__m512i endValue = _mm512_i32gather_epi32(endIndex, data, sizeof(int));
+		__m512i minValue = staValue;
+		__m512i maxValue = endValue;
+
+		__m512i j = staIndex;
+		while (true) {
+			__mmask16 le = _mm512_cmple_epi32_mask(j, endIndex);
+			if (le == 0) break;//any 1, still le
+
+			__m512i data_j = _mm512_i32gather_epi32(j, data, sizeof(int));
+
+			__mmask16 ltj = _mm512_cmplt_epi32_mask(data_j, minValue);
+
+			minValue = _mm512_mask_blend_epi32(ltj & lt, minValue, data_j);
+			minIndex = _mm512_mask_blend_epi32(ltj & lt, minIndex, j);
+
+			__mmask16 gtj = _mm512_cmpgt_epi32_mask(data_j, maxValue);
+			maxValue = _mm512_mask_blend_epi32(gtj & lt, maxValue, data_j);
+			maxIndex = _mm512_mask_blend_epi32(gtj & lt, maxIndex, j);
+
+			//only add for these having 1s
+			j = _mm512_mask_add_epi32(j, lt, j, _mm512_set1_epi32(stride));
+		}
+
+		__mmask16 neq = _mm512_cmpneq_epi32_mask(minValue, maxValue);
+		if (neq == 0) break;
+
+		//data[staIndex] = minValue;
+		//data[endIndex] = maxValue;
+		_mm512_mask_i32scatter_epi32(data, ~0, staIndex, minValue, sizeof(int));
+		_mm512_mask_i32scatter_epi32(data, ~0, endIndex, maxValue, sizeof(int));
+
+		__mmask16 max_sta = _mm512_cmpeq_epi32_mask(maxIndex, staIndex);
+		__mmask16 min_end = _mm512_cmpeq_epi32_mask(minIndex, endIndex);
+		__mmask16 both = max_sta & min_end;
+		__mmask16 not_max_sta = ~max_sta;
+		__mmask16 not_min_end = ~min_end;
+		__mmask16 both_not = not_max_sta & not_min_end;
+
+		//if (!both && both_not)
+		//	data[minIndex] = staValue;
+		//	data[maxIndex] = endValue;
+		_mm512_mask_i32scatter_epi32(data, (~both) & both_not, minIndex, staValue, sizeof(int));
+		_mm512_mask_i32scatter_epi32(data, (~both) & both_not, maxIndex, endValue, sizeof(int));
+
+		//if (!both && maxIndex == staIndex)
+		//data[minIndex] = endValue;
+		_mm512_mask_i32scatter_epi32(data, (~both) & max_sta, minIndex, endValue, sizeof(int));
+		//if (!both && minIndex == endIndex)
+		//data[maxIndex] = staValue;
+		_mm512_mask_i32scatter_epi32(data, (~both) & min_end, maxIndex, staValue, sizeof(int));
+
+		//next
+		staIndex = _mm512_mask_add_epi32(staIndex, lt, staIndex, _mm512_set1_epi32(stride));
+		endIndex = _mm512_mask_sub_epi32(endIndex, lt, endIndex, _mm512_set1_epi32(stride));
+	}
+	DoMerge512(data, n);
+	return true;
+}
+
 int AVX2_SUM(int data[], size_t size)
 {
 	const int stride = sizeof(__m256i) / sizeof(data[0]);
@@ -2283,13 +2507,15 @@ bool CheckSequence(int a[], int b[], int n) {
 	return true;
 }
 
-const int DATA_SIZE = 4096;// *16 * 16;
+const int DATA_SIZE = 16384;// *16 * 16;
+const bool use_random = true;
+const bool show = false;
 
-int data0[DATA_SIZE] = { 0 };
+//int data0[DATA_SIZE] = { 0 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63 };
-//int data0[DATA_SIZE] = { 12,2,23,25,17,1,16,19,31,19,1,23,31,19,13,25,26,14,10,28,31,25,7,14,17,3,25,24,21,22,8,14 };
+int data0[DATA_SIZE] = { 12,2,23,25,17,1,16,19,31,19,1,23,31,19,13,25,26,14,10,28,31,25,7,14,17,3,25,24,21,22,8,14 };
 //int data0[DATA_SIZE] = { 15,2,1,4,3,9,8,6,7,10,12,11,0,5,14,13 };
 int data1[DATA_SIZE] = { 0 };
 int data2[DATA_SIZE] = { 0 };
@@ -2304,6 +2530,9 @@ int data10[DATA_SIZE] = { 0 };
 int data11[DATA_SIZE] = { 0 };
 int data12[DATA_SIZE] = { 0 };
 int data13[DATA_SIZE] = { 0 };
+int data14[DATA_SIZE] = { 0 };
+int data15[DATA_SIZE] = { 0 };
+int data16[DATA_SIZE] = { 0 };
 
 int main()
 {
@@ -2336,18 +2565,20 @@ int main()
 	i = HorizentalMin64(_data32, &r64);
 	i = HorizentalMax64(_data32, &r64);
 #endif
-	bool show = false;
-	bool use_random = true;
 	long long t0;
-	srand((unsigned)time(0));
+	//init
 	if (true)
 	{
+		srand((unsigned)time(0));
 		printf("original data(count = %d):\n", DATA_SIZE);
 		for (int i = 0; i < DATA_SIZE; i++) {
 			if (use_random) {
 				data0[i] = (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
 			}
-			data13[i]
+			data16[i]
+				= data15[i]
+				= data14[i]
+				= data13[i]
 				= data12[i]
 				= data11[i]
 				= data10[i]
@@ -2367,7 +2598,7 @@ int main()
 		}
 		printf("\n\n");
 	}
-
+	//system quick sort
 	if (true)
 	{
 		printf("for system quick sort:\n");
@@ -2384,6 +2615,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//quick sort
 	if (true)
 	{
 		printf("for quick sort:\n");
@@ -2403,6 +2635,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//fast quick sort 256
 	if (true)
 	{
 		printf("for fast quick sort 256:\n");
@@ -2422,6 +2655,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//fast quick sort 512
 	if (true)
 	{
 		printf("for fast quick sort 512:\n");
@@ -2441,6 +2675,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//odd even sort
 	if (false)
 	{
 		t0 = _Query_perf_counter();
@@ -2460,6 +2695,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//odd even sort 256
 	if (false)
 	{
 		printf("for fast odd even sort 256:\n");
@@ -2480,6 +2716,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//odd even sort 512
 	if (false)
 	{
 		printf("for fast odd even sort 512:\n");
@@ -2499,7 +2736,7 @@ int main()
 		}
 		printf("\n\n");
 	}
-	//MergeSortRecursive
+	//merge sort recursive
 	if (true)
 	{
 		printf("for merge sort recursive:\n");
@@ -2520,7 +2757,7 @@ int main()
 		}
 		printf("\n\n");
 	}
-	//MergeSortNonRecursive
+	//merge sort non recursive
 	if (true)
 	{
 		printf("for merge sort non-recursive:\n");
@@ -2541,6 +2778,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//fast merge sort 256
 	if (true)
 	{
 		printf("for fast merge sort 256:\n");
@@ -2561,6 +2799,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//fast merge sort 512
 	if (true)
 	{
 		printf("for fast merge sort 512:\n");
@@ -2581,6 +2820,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//single selection sort
 	if (true)
 	{
 		printf("for single selection sort:\n");
@@ -2601,6 +2841,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//single selection sort 256
 	if (true)
 	{
 		printf("for fast single selection sort 256:\n");
@@ -2626,6 +2867,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+	//single selection sort 512
 	if (true)
 	{
 		printf("for fast single selection sort 512:\n");
@@ -2647,6 +2889,69 @@ int main()
 				}
 				else
 					printf(", ");
+			}
+		}
+		printf("\n\n");
+	}
+	//double selection sort
+	if (true)
+	{
+		printf("for double selection sort:\n");
+		t0 = _Query_perf_counter();
+		{
+			DoubleSelectionSort(data14, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data14, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data14[i]);
+			}
+		}
+		printf("\n\n");
+	}
+	//double selection sort 256
+	if (true)
+	{
+		printf("for fast double selection sort 256:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastDoubleSelectionSort256(data15, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data15, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data15[i]);
+			}
+		}
+		printf("\n\n");
+	}
+	//double selection sort 512
+	if (true)
+	{
+		printf("for fast double selection sort 512:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastDoubleSelectionSort512(data16, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data16, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data16[i]);
 			}
 		}
 		printf("\n\n");
