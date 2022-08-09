@@ -1201,18 +1201,7 @@ bool FastMergeSort256(int data[], int n) {
 			int i_left = i;
 			int i_middle = i + gap;
 			int i_right = i_middle + gap;
-#if 0
-			__m256i left = _mm256_loadu_epi32(data + i);
-			__m256i right = _mm256_loadu_epi32(data + stride);
-			__m256i min = _mm256_min_epi32(left, right);
-			__m256i max = _mm256_max_epi32(left, right);
-			__m256i left_result = HorizentalSort32(min);
-			__m256i right_result = HorizentalSort32(max);
 
-			_mm256_storeu_epi32(data + i, left_result);
-			_mm256_storeu_epi32(data + i + stride, right_result);
-
-#else
 			int begin1 = i_left;
 			int begin2 = i_middle;
 			int end1 = i_middle;
@@ -1220,7 +1209,34 @@ bool FastMergeSort256(int data[], int n) {
 
 			int left_index = i_left;
 			int right_index = i_right;
+#if 0 //takes more time than expected
+			int p1 = 0;
+			int p2 = 0;
+			__m256i left = { 0 };
+			__m256i right = { 0 };
+			while (begin1 < end1 && begin2 < end2) {
+				if (p1 == 0) {
+					left = _mm256_loadu_epi32(data + begin1);
+				}
+				if (p2 == 0) {
+					right = _mm256_loadu_epi32(data + begin2);
+				}
 
+				int v1 = left.m256i_i32[p1];
+				int v2 = right.m256i_i32[p2];
+				if (v1 < v2) {
+					buffer[left_index++] = v1;
+					begin1++;
+				}
+				else {
+					buffer[left_index++] = v2;
+					begin2++;
+				}
+
+				p1 = (begin1 - i_left) % stride;
+				p2 = (begin2 - i_middle) % stride;
+			}
+#else
 			while (begin1 < end1 && begin2 < end2) {
 				if (data[begin1] < data[begin2]) {
 					buffer[left_index++] = data[begin1++];
@@ -1229,6 +1245,8 @@ bool FastMergeSort256(int data[], int n) {
 					buffer[left_index++] = data[begin2++];
 				}
 			}
+
+#endif
 			int delta = end1 - begin1;
 			if (delta > 0) {
 				memcpy_s(buffer + left_index, sizeof(int)*delta, data + begin1, sizeof(int) * delta);
@@ -1239,7 +1257,6 @@ bool FastMergeSort256(int data[], int n) {
 				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin2, sizeof(int) * delta);
 			}
 			memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
-#endif
 		}
 		gap = gap2;
 	}
@@ -1281,6 +1298,34 @@ bool FastMergeSort512(int data[], int n) {
 			int left_index = i_left;
 			int right_index = i_right;
 
+#if 0 //takes more time than expected
+			int p1 = 0;
+			int p2 = 0;
+			__m512i left = { 0 };
+			__m512i right = { 0 };
+			while (begin1 < end1 && begin2 < end2) {
+				if (p1 == 0) {
+					left = _mm512_loadu_epi32(data + begin1);
+				}
+				if (p2 == 0) {
+					right = _mm512_loadu_epi32(data + begin2);
+		}
+				int v1 = left.m512i_i32[p1];
+				int v2 = right.m512i_i32[p2];
+				if (v1 < v2) {
+					buffer[left_index++] = v1;
+					begin1++;
+				}
+				else {
+					buffer[left_index++] = v2;
+					begin2++;
+				}
+
+				p1 = (begin1 - i_left) % stride;
+				p2 = (begin2 - i_middle) % stride;
+			}
+#else
+
 			while (begin1 < end1 && begin2 < end2) {
 				if (data[begin1] < data[begin2]) {
 					buffer[left_index++] = data[begin1++];
@@ -1289,14 +1334,7 @@ bool FastMergeSort512(int data[], int n) {
 					buffer[left_index++] = data[begin2++];
 				}
 			}
-#if 0
-			while (begin1 < end1) {
-				buffer[left_index++] = data[begin1++];
-			}
-			while (begin2 < end2) {
-				buffer[left_index++] = data[begin2++];
-			}
-#else
+#endif
 			int delta = end1 - begin1;
 			if (delta > 0) {
 				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin1, sizeof(int) * delta);
@@ -1306,7 +1344,6 @@ bool FastMergeSort512(int data[], int n) {
 			if (delta > 0) {
 				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin2, sizeof(int) * delta);
 			}
-#endif
 			memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
 
 		}
@@ -1962,7 +1999,7 @@ int AVX512_StringIndexOf(wchar_t* s, wchar_t *cs)
 	return -1;
 }
 
-const int DATA_SIZE = 65536;
+const int DATA_SIZE = 65536*16;
 
 //int data0[DATA_SIZE] = { 0 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
