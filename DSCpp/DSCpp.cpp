@@ -1923,6 +1923,64 @@ bool FastBubbleSort512(int data[], int n) {
 	DoMerge512(data, n);
 	return true;
 }
+void InsertionSort(int data[], int n)
+{
+	for (int i = 1; i < n; i++)
+	{
+		for (int j = i; j > 0 && data[j] < data[j - 1]; j--)
+		{
+			int t = data[j];
+			data[j] = data[j - 1];
+			data[j - 1] = t;
+		}
+	}
+}
+bool FastInsertionSort256(int data[], int n) {
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
+	if (data == 0 || n < stride || n % stride > 0)
+		return false;
+
+	for (int i = stride; i < n; i+=stride)
+	{
+		int j = i;
+		do {
+			__m256i last = _mm256_loadu_epi32(data + j - stride);
+			__m256i current = _mm256_loadu_epi32(data + j);
+			__mmask8 lt = _mm256_cmplt_epi32_mask(current, last);
+			if (lt == 0) break;
+			__m256i min = _mm256_min_epi32(current, last);
+			__m256i max = _mm256_max_epi32(current, last);
+			_mm256_storeu_epi32(data + j - stride, min);
+			_mm256_storeu_epi32(data + j, max);
+			j -= stride;
+		} while (j > 0);
+	}
+	DoMerge256(data, n);
+	return true;
+}
+bool FastInsertionSort512(int data[], int n) {
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
+	if (data == 0 || n < stride || n % stride > 0)
+		return false;
+
+	for (int i = stride; i < n; i += stride)
+	{
+		int j = i;
+		do {
+			__m512i last = _mm512_loadu_epi32(data + j - stride);
+			__m512i current = _mm512_loadu_epi32(data + j);
+			__mmask16 lt = _mm512_cmplt_epi32_mask(current, last);
+			if (lt == 0) break;
+			__m512i min = _mm512_min_epi32(current, last);
+			__m512i max = _mm512_max_epi32(current, last);
+			_mm512_storeu_epi32(data + j - stride, min);
+			_mm512_storeu_epi32(data + j, max);
+			j -= stride;
+		} while (j > 0);
+	}
+	DoMerge512(data, n);
+	return true;
+}
 
 int AVX2_SUM(int data[], size_t size)
 {
@@ -2577,7 +2635,7 @@ bool CheckSequence(int a[], int b[], int n) {
 	return true;
 }
 
-const int DATA_SIZE = 1024;// *16 * 16;
+const int DATA_SIZE = 1024*4;// *16 * 16;
 const bool use_random = true;
 const bool show = false;
 
@@ -2585,8 +2643,8 @@ const bool show = false;
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63 };
-int data0[DATA_SIZE] = { 12,2,23,25,17,1,16,19,31,19,1,23,31,19,13,25,26,14,10,28,31,25,7,14,17,3,25,24,21,22,8,14 };
-//int data0[DATA_SIZE] = { 15,2,1,4,3,9,8,6,7,10,12,11,0,5,14,13 };
+//int data0[DATA_SIZE] = { 12,2,23,25,17,1,16,19,31,19,1,23,31,19,13,25,26,14,10,28,31,25,7,14,17,3,25,24,21,22,8,14 };
+int data0[DATA_SIZE] = { 15,2,1,4,3,9,8,6,7,10,12,11,0,5,14,13 };
 int data1[DATA_SIZE] = { 0 };
 int data2[DATA_SIZE] = { 0 };
 int data3[DATA_SIZE] = { 0 };
@@ -2606,6 +2664,9 @@ int data16[DATA_SIZE] = { 0 };
 int data17[DATA_SIZE] = { 0 };
 int data18[DATA_SIZE] = { 0 };
 int data19[DATA_SIZE] = { 0 };
+int data20[DATA_SIZE] = { 0 };
+int data21[DATA_SIZE] = { 0 };
+int data22[DATA_SIZE] = { 0 };
 
 int main()
 {
@@ -2648,7 +2709,10 @@ int main()
 			if (use_random) {
 				data0[i] = (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
 			}
-			data19[i]
+			data22[i]
+				= data21[i]
+				= data20[i]
+				= data19[i]
 				= data18[i]
 				= data17[i]
 				= data16[i]
@@ -3091,6 +3155,69 @@ int main()
 		{
 			for (int i = 0; i < DATA_SIZE; i++) {
 				printf("%d ", data19[i]);
+			}
+		}
+		printf("\n\n");
+	}
+	//insertion sort
+	if (true)
+	{
+		printf("for insertion sort:\n");
+		t0 = _Query_perf_counter();
+		{
+			InsertionSort(data20, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data20, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data20[i]);
+			}
+		}
+		printf("\n\n");
+	}
+	//fast insertion sort 256
+	if (true)
+	{
+		printf("for fast insertion sort 256:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastInsertionSort256(data21, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data21, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data21[i]);
+			}
+		}
+		printf("\n\n");
+	}
+	//fast insertion sort 512
+	if (true)
+	{
+		printf("for fast insertion sort 512:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastInsertionSort512(data22, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data22, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data22[i]);
 			}
 		}
 		printf("\n\n");
