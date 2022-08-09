@@ -615,43 +615,37 @@ int HorizentalMax8(__m512i data, unsigned char* p = 0) {
 	}
 }
 int HorizentalMin32(__m128i data, unsigned int* p = 0) {
+#if 0
+	__m128i counts = _mm_setr_epi16(
+		__popcnt(_mm_cmpge_epi32_mask(_mm_set1_epi32(_mm_extract_epi32(data, 0)), data)),
+		__popcnt(_mm_cmpge_epi32_mask(_mm_set1_epi32(_mm_extract_epi32(data, 1)), data)),
+		__popcnt(_mm_cmpge_epi32_mask(_mm_set1_epi32(_mm_extract_epi32(data, 2)), data)),
+		__popcnt(_mm_cmpge_epi32_mask(_mm_set1_epi32(_mm_extract_epi32(data, 3)), data)),
+		8, 8, 8, 8);
+	__m128i result = _mm_minpos_epu16(counts);
+	int index = result.m128i_i16[1] & 0x3;
+	if (p != 0) {
+		*p = data.m128i_i32[index];
+	}
+	return index;
+#else
 	const int stride = sizeof(data) / sizeof(*p);
+
 	int a0 = data.m128i_i32[0];
 	int a1 = data.m128i_i32[1];
 	int a2 = data.m128i_i32[2];
 	int a3 = data.m128i_i32[3];
-	int m0 = 0;
-	int m1 = 0;
-	int p0 = 0;
-	int p1 = 0;
+	
+	int m0 = a0 <= a1 ? a0 : a1;
+	int p0 = (a0 > a1);
 
-	int index = stride;
-	if (a0 <= a1) {
-		m0 = a0;
-		p0 = 0;
-	}
-	else {
-		m0 = a1;
-		p0 = 1;
-	}
-	if (a2 <= a3) {
-		m1 = a2;
-		p1 = 2;
-	}
-	else {
-		m1 = a3;
-		p1 = 3;
-	}
-	if (m0 <= m1) {
-		index = p0;
-		if (p != 0)*p = m0;
-	}
-	else {
-		index = p1;
-		if (p != 0)*p = m1;
-	}
+	int m1 = a2 <= a3 ? a2 : a3;
+	int p1 = (a2 > a3);
 
-	return index;
+	if (p != 0)*p = (m0 <= m1) ? m0 : m1;
+
+	return (m0 <= m1) ? p0 : (p1 + 2);
+#endif
 }
 int HorizentalMax32(__m128i data, unsigned int* p = 0) {
 	__m128i zero = _mm_setzero_si128();
@@ -664,7 +658,7 @@ int HorizentalMax32(__m128i data, unsigned int* p = 0) {
 	return index;
 }
 int HorizentalMin32(__m256i data, unsigned int* p = 0) {
-#if 0
+#if 1
 	const int stride = sizeof(data) / sizeof(*p);
 	const int half = stride / 2;
 	__m128i low = _mm256_extracti32x4_epi32(data, 0);
