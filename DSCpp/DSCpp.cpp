@@ -1458,90 +1458,12 @@ bool FastMergeSort512(int data[], int n) {
 	delete[] buffer;
 	return true;
 }
-void DoMergeHorizentally(int data[], int n, int stride) {
+void DoMerge(int data[], int n, int stride) {
+	//merege:
 	int* merge_indices = new int[stride];
-	int skip = n / stride;
+	//= { 0,1,2,3,4,5,6,7 };
 	for (int i = 0; i < stride; i++)
 		merge_indices[i] = i;
-	int* buffer = new int[n];
-	//memset(buffer, 0, n * sizeof(int));
-	for (int i = 0; i < n; i++)
-	{
-		int min_value = 0;
-		int min_index = -1;
-		bool first = true;
-		//TODO:
-		for (int j = 0; j < stride; j++) {
-			int index = merge_indices[j];
-			if (index < n) {
-				if (first) {
-					min_value = data[index];
-					min_index = j;
-					first = false;
-				}
-				else
-				{
-					if (data[index] < min_value) {
-						min_value = data[index];
-						min_index = j;
-					}
-				}
-			}
-		}
-		if (min_index >= 0) {
-			merge_indices[min_index] += 1;
-		}
-		if (first) break;
-		buffer[i] = min_value;
-	}
-	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
-
-
-	delete[] merge_indices;
-}
-bool SimpleMergeSort256(int data[], int n) {
-	const int stride = sizeof(__m256i) / sizeof(data[0]);
-	if (data == 0 || n < stride || n % stride > 0)
-		return false;
-	for (int i = 0; i < n; i += stride) {
-		__m256i block = _mm256_loadu_epi32(data + i);
-		block = HorizentalSort32(block);
-		_mm256_storeu_epi32(data + i, block);
-	}
-	DoMergeHorizentally(data, n, n/stride);
-	return true;
-}
-bool SimpleMergeSort512(int data[], int n) {
-	const int stride = sizeof(__m512i) / sizeof(data[0]);
-	if (data == 0 || n < stride || n % stride > 0)
-		return false;
-	for (int i = 0; i < n; i += stride) {
-		__m512i block = _mm512_loadu_epi32(data + i);
-		block = HorizentalSort32(block);
-		_mm512_storeu_epi32(data + i, block);
-	}
-	DoMergeHorizentally(data, n, stride);
-	return true;
-}
-bool SingleSelectionSort(int data[], int n) {
-	for (int i = 0; i < n - 1; i++)
-	{
-		int minIndex = i;
-		for (int j = i + 1; j < n; j++)
-		{
-			if (data[j] < data[minIndex])
-			{
-				minIndex = j;
-			}
-		}
-		if (i != minIndex) Swap(data, i, minIndex);
-	}
-	return true;
-}
-void DoMerge256(int data[], int n) {
-	const int stride = sizeof(__m256i) / sizeof(data[0]);
-	//merege:
-	int merge_indices[stride] = { 0,1,2,3,4,5,6,7 };
 	int* buffer = new int[n];
 	//memset(buffer, 0, n * sizeof(int));
 	for (int i = 0; i < n; i++)
@@ -1573,8 +1495,69 @@ void DoMerge256(int data[], int n) {
 		buffer[i] = min_value;
 	}
 	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
-	delete[]buffer;
-
+	delete[] buffer;
+	delete[] merge_indices;
+}
+bool SimpleMergeSort256(int data[], int n) {
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
+	if (data == 0 || n < stride || n % stride > 0)
+		return false;
+#if 0
+	__m256i gather = _mm256_setr_epi32(
+		0 * stride, 1 * stride, 2 * stride, 3 * stride, 
+		4 * stride, 5 * stride, 6 * stride, 0 * stride);
+	int* buffer = new int[n];
+	memset(buffer, 0, sizeof(int) * n);
+	for(int c = 0;c< stride;c++)
+	{
+		for (int i = 0; i < n; i += stride) {
+			__m256i block = _mm256_loadu_epi32(data + i);
+			__m256i sorted = HorizentalSort32(block);
+			_mm256_storeu_epi32(data + i, sorted);
+		}
+		int p = 0;
+		for (int i = 0; i < n/stride; i ++) {
+			__m256i block = _mm256_i32gather_epi32(data + i, gather, sizeof(int));
+			__m256i sorted = HorizentalSort32(block);
+			_mm256_storeu_epi32(buffer + p, sorted);
+			p += stride;
+		}
+		memcpy_s(data, sizeof(int) * n, buffer, sizeof(int) * n);
+	}
+	DoMerge(data, n, stride);
+#endif
+	return true;
+}
+bool SimpleMergeSort512(int data[], int n) {
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
+	if (data == 0 || n < stride || n % stride > 0)
+		return false;
+	//for (int i = 0; i < n; i += stride) {
+	//	__m512i block = _mm512_loadu_epi32(data + i);
+	//	block = HorizentalSort32(block);
+	//	_mm512_storeu_epi32(data + i, block);
+	//}
+	//DoMergeHorizentally(data, n, stride);
+	return true;
+}
+bool SingleSelectionSort(int data[], int n) {
+	for (int i = 0; i < n - 1; i++)
+	{
+		int minIndex = i;
+		for (int j = i + 1; j < n; j++)
+		{
+			if (data[j] < data[minIndex])
+			{
+				minIndex = j;
+			}
+		}
+		if (i != minIndex) Swap(data, i, minIndex);
+	}
+	return true;
+}
+void DoMerge256(int data[], int n) {
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
+	DoMerge(data, n, stride);
 }
 bool FastSingleSelectionSort256(int data[], int n) {
 	const int stride = sizeof(__m256i) / sizeof(data[0]);
@@ -1616,41 +1599,7 @@ bool FastSingleSelectionSort256(int data[], int n) {
 }
 void DoMerge512(int data[], int n) {
 	const int stride = sizeof(__m512i) / sizeof(data[0]);
-
-	//merege:
-	int merge_indices[stride] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
-	int* buffer = new int[n];
-	//memset(buffer, 0, n * sizeof(int));
-	for (int i = 0; i < n; i++)
-	{
-		int min_value = 0;
-		int min_index = -1;
-		bool first = true;
-		for (int j = 0; j < stride; j++) {
-			int index = merge_indices[j];
-			if (index < n) {
-				if (first) {
-					min_value = data[index];
-					min_index = j;
-					first = false;
-				}
-				else
-				{
-					if (data[index] < min_value) {
-						min_value = data[index];
-						min_index = j;
-					}
-				}
-			}
-		}
-		if (min_index >= 0) {
-			merge_indices[min_index] += stride;
-		}
-		if (first) break;
-		buffer[i] = min_value;
-	}
-	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
-	delete[]buffer;
+	DoMerge(data, n, stride);
 }
 bool FastSingleSelectionSort512(int data[], int n) {
 	const int stride = sizeof(__m512i) / sizeof(data[0]);
@@ -2698,8 +2647,8 @@ bool CheckSequence(int a[], int b[], int n) {
 	return true;
 }
 
-const int DATA_SIZE = 16;// *16 * 16;
-const bool use_random = false;
+const int DATA_SIZE = 1024;// *16 * 16;
+const bool use_random = true;
 const bool show = false;
 
 //int data0[DATA_SIZE] = { 0 };
