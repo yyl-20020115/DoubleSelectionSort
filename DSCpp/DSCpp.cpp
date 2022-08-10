@@ -1505,10 +1505,10 @@ bool SimpleMergeSort256(int data[], int n) {
 #if 0
 	__m256i gather = _mm256_setr_epi32(
 		0 * stride, 1 * stride, 2 * stride, 3 * stride, 
-		4 * stride, 5 * stride, 6 * stride, 0 * stride);
+		4 * stride, 5 * stride, 6 * stride, 7 * stride);
 	int* buffer = new int[n];
 	memset(buffer, 0, sizeof(int) * n);
-	for(int c = 0;c< stride;c++)
+	for(int c = 0;c< stride* stride;c++)
 	{
 		for (int i = 0; i < n; i += stride) {
 			__m256i block = _mm256_loadu_epi32(data + i);
@@ -1516,15 +1516,18 @@ bool SimpleMergeSort256(int data[], int n) {
 			_mm256_storeu_epi32(data + i, sorted);
 		}
 		int p = 0;
-		for (int i = 0; i < n/stride; i ++) {
-			__m256i block = _mm256_i32gather_epi32(data + i, gather, sizeof(int));
-			__m256i sorted = HorizentalSort32(block);
-			_mm256_storeu_epi32(buffer + p, sorted);
-			p += stride;
+		for (int i = 0; i < n; i += stride * stride) {
+			for (int j = 0; j < stride; j++) {
+				__m256i block = _mm256_i32gather_epi32(data + i + j, gather, sizeof(int));
+				__m256i sorted = HorizentalSort32(block);
+				_mm256_storeu_epi32(buffer + p, sorted);
+				p += stride;
+			}
 		}
+
 		memcpy_s(data, sizeof(int) * n, buffer, sizeof(int) * n);
 	}
-	DoMerge(data, n, stride);
+	//DoMerge(data, n, stride);
 #endif
 	return true;
 }
