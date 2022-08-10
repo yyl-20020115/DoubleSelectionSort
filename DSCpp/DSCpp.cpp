@@ -106,7 +106,14 @@ void do_print_dec(int data[], int N, bool nl = false) {
 	printf("]");
 	if (nl)printf("\n");
 }
-
+void DoMerge(int data[], int n, int stride);
+bool CheckSequence(int a[], int b[], int n) {
+	for (int i = 0; i < n; i++) {
+		if (a[i] != b[i])
+			return false;
+	}
+	return true;
+}
 void QuickSortImpl(int* data, int low, int high)
 {
 	if (low < high)
@@ -1227,6 +1234,314 @@ __m512i HorizentalSort64(__m512i data, unsigned long long* pmin = 0, unsigned lo
 	return result;
 }
 
+/**
+ * 已知H[s…m]除了H[s] 外均满足堆的定义
+ * 调整H[s],使其成为大顶堆.即将对第s个结点为根的子树筛选,
+ *
+ * @param H是待调整的堆数组
+ * @param s是待调整的数组元素的位置
+ * @param length是数组的长度
+ *
+ */
+void HeapAdjust(int data[], int position, int n)
+{
+	int temporary = data[position];
+	int childpos = 2 * position + 1; //左孩子结点的位置。(i+1 为当前调整结点的右孩子结点的位置)
+	while (childpos < n) {
+		if (childpos + 1 < n && data[childpos] < data[childpos + 1]) { // 如果右孩子大于左孩子(找到比当前待调整结点大的孩子结点)
+			++childpos;
+		}
+		if (data[position] < data[childpos]) {  // 如果较大的子结点大于父结点
+			data[position] = data[childpos]; // 那么把较大的子结点往上移动，替换它的父结点
+			position = childpos;		 // 重新设置s ,即待调整的下一个结点的位置
+			childpos = 2 * position + 1;
+		}
+		else {			 // 如果当前待调整结点大于它的左右孩子，则不需要调整，直接退出
+			break;
+		}
+		data[position] = temporary;			// 当前待调整的结点放到比其大的孩子结点位置上
+	}
+}
+
+/**
+ * 堆排序算法
+ */
+void HeapSort(int data[], int n)
+{
+	/**
+	 * 初始堆进行调整
+	 * 将H[0..length-1]建成堆
+	 * 调整完之后第一个元素是序列的最小的元素
+	 */	//初始堆
+	 //最后一个有孩子的节点的位置 i=  (length -1) / 2
+	for (int i = (n - 1) >> 1; i >= 0; --i)
+		HeapAdjust(data, i, n);
+	//从最后一个元素开始对序列进行调整
+	for (int i = n - 1; i > 0; --i)
+	{
+		//交换堆顶元素H[0]和堆中最后一个元素
+		int temporary = data[i];
+		data[i] = data[0];
+		data[0] = temporary;
+		//每次交换堆顶元素和堆中最后一个元素之后，都要对堆进行调整
+		HeapAdjust(data, 0, i);
+	}
+}
+void HeapAdjust256(int data[], int p, int n, bool swap)
+{
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
+	if (swap) {
+	
+		__m256i data_0 = _mm256_loadu_epi32(data + 0);
+		__m256i data_i = _mm256_loadu_epi32(data + n);
+		_mm256_storeu_epi32(data + n, data_0);
+		_mm256_storeu_epi32(data + 0, data_i);
+	}	
+	__m256i positions = _mm256_setr_epi32(
+		(p + 0), (p + 1), (p + 2), (p + 3),
+		(p + 4), (p + 5), (p + 6), (p + 7));
+	__m256i temporary = _mm256_i32gather_epi32(data,positions, sizeof(int));
+	__m256i child_positions = 
+		_mm256_add_epi32(positions, _mm256_set1_epi32(p + stride));
+	do {
+		//while (childpos < n)
+		__mmask8 while_lt = _mm256_cmplt_epi32_mask(child_positions, _mm256_set1_epi32(n));
+		//if all not, break
+		if (while_lt == 0)break;
+
+		__m256i data_at_positions = _mm256_setzero_si256();
+		__m256i data_at_child_positions_plus_one = _mm256_setzero_si256();
+
+		//if (child_positions + 1 < n && data[child_positions] < data[child_positions + 1])
+		// {
+		//   child_positions_plus_one = child_positions+1
+		__m256i child_positions_plus_one = _mm256_add_epi32(
+			child_positions, _mm256_set1_epi32(stride));
+
+		// child_positions_plus_one < n
+		__mmask8 maxpos_lt = _mm256_cmplt_epi32_mask(
+			child_positions_plus_one, _mm256_set1_epi32(n));
+
+		//data_at_child_positions = data[child_positions]
+		__m256i data_at_child_positions = _mm256_i32gather_epi32(data, child_positions, sizeof(int));
+		//data_at_child_positions_plus_one = data[child_positions_plus_one]
+		data_at_child_positions_plus_one = _mm256_mask_blend_epi32(
+			while_lt & maxpos_lt, data_at_child_positions,
+			_mm256_i32gather_epi32(data, child_positions_plus_one, sizeof(int)));
+		
+		//data[child_positions]<data[child_positions + 1]
+		__mmask8 maxdata_lt =  _mm256_cmplt_epi32_mask(
+				data_at_child_positions, 
+				data_at_child_positions_plus_one);
+		
+		//then: child_positions++	
+		child_positions = _mm256_mask_blend_epi32(
+			while_lt & maxpos_lt & maxdata_lt,
+			child_positions, child_positions_plus_one);
+		
+		//}
+		
+		//if (data[position] < data[child_positions]) {
+		// data[position]
+		data_at_child_positions = _mm256_i32gather_epi32(data, child_positions, sizeof(int));
+		
+		//data[child_positions]
+		data_at_positions = _mm256_i32gather_epi32(data, positions, sizeof(int));
+
+		//data[positions] < data[child_positions]
+		__mmask8 maxdata_lt2 = _mm256_cmplt_epi32_mask(data_at_positions, data_at_child_positions);
+
+		if (maxdata_lt2 == 0) break;
+
+		//data[positions] = data[childpos]
+		data_at_positions = _mm256_mask_blend_epi32(while_lt & maxdata_lt2, data_at_positions, data_at_child_positions);
+		//save them
+		_mm256_mask_i32scatter_epi32(data, while_lt & maxdata_lt2, positions, data_at_positions, sizeof(int));
+	
+		//positions = child_positions;
+		positions = _mm256_mask_blend_epi32(while_lt & maxdata_lt2, positions, child_positions);
+
+		//NOTICE: this is very important!
+		// How to calculate?
+		//  child_positions = 2 * child_positions + 1;
+		// Follow the following instructions:
+		__m256i rem = _mm256_rem_epi32(child_positions, _mm256_set1_epi32(stride));
+		__m256i body = _mm256_sub_epi32(child_positions, rem);
+		child_positions = _mm256_add_epi32(
+			_mm256_add_epi32(_mm256_add_epi32(body, body), rem),
+			_mm256_set1_epi32((stride)));
+
+		//save them
+		_mm256_mask_i32scatter_epi32(data, while_lt, positions, temporary, sizeof(int));
+
+	} while (true);
+}
+#if 0
+void DoHeapMerge(int data[], int n, int stride) {
+	//merege:
+	int* merge_depths = new int[stride];
+	memset(merge_depths, 0, n * sizeof(int));
+	int* buffer = new int[n];
+	memset(buffer, 0, n * sizeof(int));
+	for (int i = 0; i < n; i++)
+	{
+		int min_value = 0;
+		int min_index = -1;
+		bool first = true;
+
+		for (int depth_set_index = 0; depth_set_index < stride; depth_set_index++) {
+			int depth = merge_depths[depth_set_index];
+			int start_index = ((1 << depth) - 1);
+			int index = start_index * stride + depth_set_index;
+			if (index < n) {
+				if (first) {
+					min_value = data[index];
+					min_index = depth_set_index;
+					first = false;
+				}
+				else
+				{
+					if (data[index] < min_value) {
+						min_value = data[index];
+						min_index = depth_set_index;
+					}
+				}
+			}
+		}
+		if (min_index >= 0) {
+			merge_depths[min_index] ++;
+		}
+		if (first) break;
+		buffer[i] = min_value;
+	}
+	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
+	delete[] buffer;
+	delete[] merge_depths;
+}
+#endif
+bool FastHeapSort256(int data[], int n)
+{
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
+	if (data == 0 || n < stride || n % stride>0) return false;
+
+	for (int i = ((n/stride -1) >> 1)*stride; i >= 0; i -=stride)
+		HeapAdjust256(data, i, n, false);
+	for (int i = n - stride; i > 0; i -=stride)
+	{
+		HeapAdjust256(data, 0, i,true);
+	}
+
+	DoMerge(data, n, stride);
+
+	return true;
+}
+void HeapAdjust512(int data[], int p, int n, bool swap)
+{
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
+	if (swap) {
+
+		__m512i data_0 = _mm512_loadu_epi32(data + 0);
+		__m512i data_i = _mm512_loadu_epi32(data + n);
+		_mm512_storeu_epi32(data + n, data_0);
+		_mm512_storeu_epi32(data + 0, data_i);
+	}
+	__m512i positions = _mm512_setr_epi32(
+		(p + 0), (p + 1), (p + 2), (p + 3),
+		(p + 4), (p + 5), (p + 6), (p + 7),
+		(p + 0 + 8), (p + 1 + 8), (p + 2 + 8), (p + 3 + 8),
+		(p + 4 + 8), (p + 5 + 8), (p + 6 + 8), (p + 7 + 8));
+	__m512i temporary = _mm512_i32gather_epi32(positions, data, sizeof(int));
+	__m512i child_positions =
+		_mm512_add_epi32(positions, _mm512_set1_epi32(p + stride));
+	do {
+		//while (childpos < n)
+		__mmask16 while_lt = _mm512_cmplt_epi32_mask(child_positions, _mm512_set1_epi32(n));
+		//if all not, break
+		if (while_lt == 0)break;
+
+		__m512i data_at_positions = _mm512_setzero_si512();
+		__m512i data_at_child_positions_plus_one = _mm512_setzero_si512();
+
+		//if (child_positions + 1 < n && data[child_positions] < data[child_positions + 1])
+		// {
+		//   child_positions_plus_one = child_positions+1
+		__m512i child_positions_plus_one = _mm512_add_epi32(
+			child_positions, _mm512_set1_epi32(stride));
+
+		// child_positions_plus_one < n
+		__mmask16 maxpos_lt = _mm512_cmplt_epi32_mask(
+			child_positions_plus_one, _mm512_set1_epi32(n));
+
+		//data_at_child_positions = data[child_positions]
+		__m512i data_at_child_positions = _mm512_i32gather_epi32(child_positions, data, sizeof(int));
+		//data_at_child_positions_plus_one = data[child_positions_plus_one]
+		data_at_child_positions_plus_one = _mm512_mask_blend_epi32(
+			while_lt & maxpos_lt, data_at_child_positions,
+			_mm512_i32gather_epi32(child_positions_plus_one, data, sizeof(int)));
+
+		//data[child_positions]<data[child_positions + 1]
+		__mmask16 maxdata_lt = _mm512_cmplt_epi32_mask(
+			data_at_child_positions,
+			data_at_child_positions_plus_one);
+
+		//then: child_positions++	
+		child_positions = _mm512_mask_blend_epi32(
+			while_lt & maxpos_lt & maxdata_lt,
+			child_positions, child_positions_plus_one);
+
+		//}
+
+		//if (data[position] < data[child_positions]) {
+		// data[position]
+		data_at_child_positions = _mm512_i32gather_epi32(child_positions, data, sizeof(int));
+
+		//data[child_positions]
+		data_at_positions = _mm512_i32gather_epi32(positions, data, sizeof(int));
+
+		//data[positions] < data[child_positions]
+		__mmask16 maxdata_lt2 = _mm512_cmplt_epi32_mask(data_at_positions, data_at_child_positions);
+
+		if (maxdata_lt2 == 0) break;
+
+		//data[positions] = data[childpos]
+		data_at_positions = _mm512_mask_blend_epi32(while_lt & maxdata_lt2, data_at_positions, data_at_child_positions);
+		//save them
+		_mm512_mask_i32scatter_epi32(data, while_lt & maxdata_lt2, positions, data_at_positions, sizeof(int));
+
+		//positions = child_positions;
+		positions = _mm512_mask_blend_epi32(while_lt & maxdata_lt2, positions, child_positions);
+
+		//NOTICE: this is very important!
+		// How to calculate?
+		//  child_positions = 2 * child_positions + 1;
+		// Follow the following instructions:
+		__m512i rem = _mm512_rem_epi32(child_positions, _mm512_set1_epi32(stride));
+		__m512i body = _mm512_sub_epi32(child_positions, rem);
+		child_positions = _mm512_add_epi32(
+			_mm512_add_epi32(_mm512_add_epi32(body, body), rem),
+			_mm512_set1_epi32((stride)));
+
+		//save them
+		_mm512_mask_i32scatter_epi32(data, while_lt, positions, temporary, sizeof(int));
+
+	} while (true);
+}
+bool FastHeapSort512(int data[], int n)
+{
+	const int stride = sizeof(__m512i) / sizeof(data[0]);
+	if (data == 0 || n < stride || n % stride>0) return false;
+
+	for (int i = ((n / stride - 1) >> 1) * stride; i >= 0; i -= stride)
+		HeapAdjust512(data, i, n, false);
+	for (int i = n - stride; i > 0; i -= stride)
+	{
+		HeapAdjust512(data, 0, i, true);
+	}
+
+	DoMerge(data, n, stride);
+
+	return true;
+}
 void MergeData(int data[], int left, int mid, int right, int* buffer) {
 	int begin1 = left;
 	int begin2 = mid;
@@ -2589,24 +2904,97 @@ int AVX512_StringIndexOf(const wchar_t* s, const wchar_t* cs)
 
 	return -1;
 }
-bool CheckSequence(int a[], int b[], int n) {
-	for (int i = 0; i < n; i++) {
-		if (a[i] != b[i])
-			return false;
+void BuildNext(char* str, int* next, int len)
+{
+	next[0] = -1;//next[0]初始化为-1，-1表示不存在相同的最大前缀和最大后缀
+	int k = -1;//k初始化为-1
+	for (int q = 1; q <= len - 1; q++)
+	{
+		while (k > -1 && str[k + 1] != str[q])//如果下一个不同，那么k就变成next[k]，注意next[k]是小于k的，无论k取任何值。
+		{
+			k = next[k];//往前回溯
+		}
+		if (str[k + 1] == str[q])//如果相同，k++
+		{
+			k = k + 1;
+		}
+		next[q] = k;//这个是把算的k的值（就是相同的最大前缀和最大后缀长）赋给next[q]
 	}
-	return true;
+}
+int KMP(char* str, int slen, char* ptr, int plen)
+{
+	int* next = new int[plen];
+	BuildNext(ptr, next, plen);//计算next数组
+	int k = -1;
+	for (int i = 0; i < slen; i++)
+	{
+		while (k > -1 && ptr[k + 1] != str[i])//ptr和str不匹配，且k>-1（表示ptr和str有部分匹配）
+			k = next[k];//往前回溯
+		if (ptr[k + 1] == str[i])
+			k = k + 1;
+		if (k == plen - 1)//说明k移动到ptr的最末端
+		{
+			//cout << "在位置" << i-plen+1<< endl;
+			//k = -1;//重新初始化，寻找下一个
+			//i = i - plen + 1;//i定位到该位置，外层for循环i++可以继续找下一个（这里默认存在两个匹配字符串可以部分重叠），感谢评论中同学指出错误。
+			return i - plen + 1;//返回相应的位置
+		}
+	}
+	return -1;
 }
 
-const int DATA_SIZE = 1024;// *16 * 16;
+const int DATA_SIZE =  65536;// *16 * 16;
 const bool use_random = true;
 const bool show = false;
 
-//int data0[DATA_SIZE] = { 0 };
+int data0[DATA_SIZE] = { 0 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63 };
+//int data0[DATA_SIZE] = { 
+//	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,
+//	32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,
+//	64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,
+//	96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127
+//};
+//int data0[DATA_SIZE] = {
+//	0,0,0,0,0,0,0,0,
+//	1,1,1,1,1,1,1,1,
+//	3,3,3,3,3,3,3,3,
+//	2,2,2,2,2,2,2,2,
+//	5,5,5,5,5,5,5,5,
+//	4,4,4,4,4,4,4,4,
+//	7,7,7,7,7,7,7,7,
+//	6,6,6,6,6,6,6,6,
+//	9,9,9,9,9,9,9,9,
+//	11,11,11,11,11,11,11,11,
+//	8,8,8,8,8,8,8,8,
+//	13,13,13,13,13,13,13,13,
+//	10,10,10,10,10,10,10,10,
+//	12,12,12,12,12,12,12,12,
+//	14,14,14,14,14,14,14,14,
+//	15,15,15,15,15,15,15,15,
+//};
+//int data0[DATA_SIZE] = {
+// 55 ,       76 ,        36 ,        39 ,        83 ,       115 ,        21 ,        17,
+// 11 ,      102 ,       126 ,       110 ,        45 ,        82 ,        75 ,        70,
+//118 ,       72 ,        44 ,        60 ,        54 ,       106 ,        67 ,       126,
+// 84 ,      109 ,         1 ,        82 ,       125 ,        19 ,         1 ,        12,
+//  8 ,       23 ,        11 ,        17 ,        71 ,        72 ,        44 ,        42,
+// 85 ,       46 ,       118 ,        74 ,        27 ,        15 ,        93 ,        15,
+// 20 ,       43 ,        70 ,        29 ,        27 ,       112 ,        57 ,        27,
+// 51 ,       28 ,        85 ,       112 ,        43 ,       121 ,        96 ,        18,
+//  3 ,       47 ,        45 ,       113 ,       108 ,        87 ,        37 ,       102,
+// 93 ,       80 ,        41 ,        37 ,         2 ,       122 ,        33 ,        19,
+// 14 ,       90 ,       107 ,        15 ,        44 ,        79 ,         8 ,         6,
+// 26 ,       85 ,        34 ,        95 ,        47 ,         3 ,        94 ,        27,
+// 78 ,       66 ,        25 ,        55 ,        15 ,        93 ,       107 ,        38,
+// 29 ,      124 ,        34 ,       123 ,        18 ,        32 ,        13 ,        13,
+// 81 ,       38 ,        71 ,        54 ,        32 ,         5 ,        84 ,       116,
+// 14 ,       42 ,        79 ,        11 ,       101 ,        65 ,       108 ,       118 
+//};
 //int data0[DATA_SIZE] = { 12,2,23,25,17,1,16,19,31,19,1,23,31,19,13,25,26,14,10,28,31,25,7,14,17,3,25,24,21,22,8,14 };
-int data0[DATA_SIZE] = { 15,2,1,4,3,9,8,6,7,10,12,11,0,5,14,13 };
+//int data0[DATA_SIZE] = { 15,2,1,4,3,9,8,6,7,10,12,11,0,5,14,13 };
 int data1[DATA_SIZE] = { 0 };
 int data2[DATA_SIZE] = { 0 };
 int data3[DATA_SIZE] = { 0 };
@@ -2631,6 +3019,7 @@ int data21[DATA_SIZE] = { 0 };
 int data22[DATA_SIZE] = { 0 };
 int data23[DATA_SIZE] = { 0 };
 int data24[DATA_SIZE] = { 0 };
+int data25[DATA_SIZE] = { 0 };
 
 int main()
 {
@@ -2673,7 +3062,8 @@ int main()
 			if (use_random) {
 				data0[i] = (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
 			}
-			data24[i]
+			data25[i]
+				= data24[i]
 				= data23[i]
 				= data22[i]
 				= data21[i]
@@ -3189,6 +3579,71 @@ int main()
 		printf("\n\n");
 	}
 
+	//heap sort
+	if (true)
+	{
+		printf("for heap sort:\n");
+		t0 = _Query_perf_counter();
+		{
+			HeapSort(data23, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data23, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data23[i]);
+			}
+		}
+		printf("\n\n");
+	}
+	//fast heap sort 256
+	if (true)
+	{
+		printf("for fast heap sort 256:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastHeapSort256(data24, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data24, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data24[i]);
+			}
+		}
+		printf("\n\n");
+	}
+	//fast heap sort 512
+	if (true)
+	{
+		printf("for fast heap sort 512:\n");
+		t0 = _Query_perf_counter();
+		{
+			FastHeapSort512(data25, DATA_SIZE);
+		}
+		printf("time:%lf(ms)\n",
+			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
+		bool b = CheckSequence(data0, data25, DATA_SIZE);
+		printf("correct:%s\n", b ? "true" : "false");
+
+		if (!b)
+		{
+			for (int i = 0; i < DATA_SIZE; i++) {
+				printf("%d ", data25[i]);
+			}
+		}
+		printf("\n\n");
+	}
+
+
 	//string index-of 256
 	if (true)
 	{
@@ -3196,7 +3651,7 @@ int main()
 		int index = 0;
 		t0 = _Query_perf_counter();
 		{
-			index = AVX2_StringIndexOf("abcd", "cd");
+			index = AVX2_StringIndexOf("bacbababadababacambabacaddababacasdsd", "ababaca");
 		}
 		printf("time:%lf(ms)\n",
 			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
