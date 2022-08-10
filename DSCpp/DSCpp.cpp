@@ -1498,51 +1498,6 @@ void DoMerge(int data[], int n, int stride) {
 	delete[] buffer;
 	delete[] merge_indices;
 }
-bool SimpleMergeSort256(int data[], int n) {
-	const int stride = sizeof(__m256i) / sizeof(data[0]);
-	if (data == 0 || n < stride || n % stride > 0)
-		return false;
-#if 0
-	__m256i gather = _mm256_setr_epi32(
-		0 * stride, 1 * stride, 2 * stride, 3 * stride, 
-		4 * stride, 5 * stride, 6 * stride, 7 * stride);
-	int* buffer = new int[n];
-	memset(buffer, 0, sizeof(int) * n);
-	for(int c = 0;c< stride* stride;c++)
-	{
-		for (int i = 0; i < n; i += stride) {
-			__m256i block = _mm256_loadu_epi32(data + i);
-			__m256i sorted = HorizentalSort32(block);
-			_mm256_storeu_epi32(data + i, sorted);
-		}
-		int p = 0;
-		for (int i = 0; i < n; i += stride * stride) {
-			for (int j = 0; j < stride; j++) {
-				__m256i block = _mm256_i32gather_epi32(data + i + j, gather, sizeof(int));
-				__m256i sorted = HorizentalSort32(block);
-				_mm256_storeu_epi32(buffer + p, sorted);
-				p += stride;
-			}
-		}
-
-		memcpy_s(data, sizeof(int) * n, buffer, sizeof(int) * n);
-	}
-	//DoMerge(data, n, stride);
-#endif
-	return true;
-}
-bool SimpleMergeSort512(int data[], int n) {
-	const int stride = sizeof(__m512i) / sizeof(data[0]);
-	if (data == 0 || n < stride || n % stride > 0)
-		return false;
-	//for (int i = 0; i < n; i += stride) {
-	//	__m512i block = _mm512_loadu_epi32(data + i);
-	//	block = HorizentalSort32(block);
-	//	_mm512_storeu_epi32(data + i, block);
-	//}
-	//DoMergeHorizentally(data, n, stride);
-	return true;
-}
 bool SingleSelectionSort(int data[], int n) {
 	for (int i = 0; i < n - 1; i++)
 	{
@@ -1557,10 +1512,6 @@ bool SingleSelectionSort(int data[], int n) {
 		if (i != minIndex) Swap(data, i, minIndex);
 	}
 	return true;
-}
-void DoMerge256(int data[], int n) {
-	const int stride = sizeof(__m256i) / sizeof(data[0]);
-	DoMerge(data, n, stride);
 }
 bool FastSingleSelectionSort256(int data[], int n) {
 	const int stride = sizeof(__m256i) / sizeof(data[0]);
@@ -1596,13 +1547,9 @@ bool FastSingleSelectionSort256(int data[], int n) {
 		}
 	}
 
-	DoMerge256(data, n);
+	DoMerge(data, n, stride);
 
 	return true;
-}
-void DoMerge512(int data[], int n) {
-	const int stride = sizeof(__m512i) / sizeof(data[0]);
-	DoMerge(data, n, stride);
 }
 bool FastSingleSelectionSort512(int data[], int n) {
 	const int stride = sizeof(__m512i) / sizeof(data[0]);
@@ -1647,7 +1594,7 @@ bool FastSingleSelectionSort512(int data[], int n) {
 			Swap(data, i + idx, tp);
 		}
 	}
-	DoMerge512(data, n);
+	DoMerge(data, n, stride);
 
 	return true;
 }
@@ -1786,7 +1733,7 @@ bool FastDoubleSelectionSort256(int data[], int n)
 		staIndex = _mm256_mask_add_epi32(staIndex, lt, staIndex, _mm256_set1_epi32(stride));
 		endIndex = _mm256_mask_sub_epi32(endIndex, lt, endIndex, _mm256_set1_epi32(stride));
 	}
-	DoMerge256(data, n);
+	DoMerge(data, n, stride);
 	return true;
 }
 bool FastDoubleSelectionSort512(int data[], int n)
@@ -1865,7 +1812,7 @@ bool FastDoubleSelectionSort512(int data[], int n)
 		staIndex = _mm512_mask_add_epi32(staIndex, lt, staIndex, _mm512_set1_epi32(stride));
 		endIndex = _mm512_mask_sub_epi32(endIndex, lt, endIndex, _mm512_set1_epi32(stride));
 	}
-	DoMerge512(data, n);
+	DoMerge(data, n, stride);
 	return true;
 }
 void BubbleSort(int data[], int n) {
@@ -1907,7 +1854,7 @@ bool FastBubbleSort256(int data[], int n) {
 		}
 		if (!swapped)break;
 	}
-	DoMerge256(data, n);
+	DoMerge(data, n, stride);
 	return true;
 }
 bool FastBubbleSort512(int data[], int n) {
@@ -1935,7 +1882,7 @@ bool FastBubbleSort512(int data[], int n) {
 		}
 		if (!swapped)break;
 	}
-	DoMerge512(data, n);
+	DoMerge(data, n, stride);
 	return true;
 }
 void InsertionSort(int data[], int n)
@@ -1970,7 +1917,7 @@ bool FastInsertionSort256(int data[], int n) {
 			j -= stride;
 		} while (j > 0);
 	}
-	DoMerge256(data, n);
+	DoMerge(data, n, stride);
 	return true;
 }
 bool FastInsertionSort512(int data[], int n) {
@@ -1993,7 +1940,7 @@ bool FastInsertionSort512(int data[], int n) {
 			j -= stride;
 		} while (j > 0);
 	}
-	DoMerge512(data, n);
+	DoMerge(data, n, stride);
 	return true;
 }
 
@@ -2975,48 +2922,6 @@ int main()
 		{
 			for (int i = 0; i < DATA_SIZE; i++) {
 				printf("%d ", data8[i]);
-			}
-		}
-		printf("\n\n");
-	}
-	//simple merge sort 256
-	if (false)
-	{
-		printf("for simple merge sort 256:\n");
-		t0 = _Query_perf_counter();
-		{
-			SimpleMergeSort256(data21, DATA_SIZE);
-		}
-		printf("time:%lf(ms)\n",
-			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
-		bool b = CheckSequence(data0, data21, DATA_SIZE);
-		printf("correct:%s\n", b ? "true" : "false");
-
-		if (!b)
-		{
-			for (int i = 0; i < DATA_SIZE; i++) {
-				printf("%d ", data21[i]);
-			}
-		}
-		printf("\n\n");
-	}
-	//simple merge sort 512
-	if (false)
-	{
-		printf("for simple merge sort 512:\n");
-		t0 = _Query_perf_counter();
-		{
-			SimpleMergeSort512(data22, DATA_SIZE);
-		}
-		printf("time:%lf(ms)\n",
-			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
-		bool b = CheckSequence(data0, data22, DATA_SIZE);
-		printf("correct:%s\n", b ? "true" : "false");
-
-		if (!b)
-		{
-			for (int i = 0; i < DATA_SIZE; i++) {
-				printf("%d ", data22[i]);
 			}
 		}
 		printf("\n\n");
