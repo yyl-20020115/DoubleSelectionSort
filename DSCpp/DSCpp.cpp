@@ -158,9 +158,9 @@ void __cdecl _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m2
 	//	MEM[addr + 31:addr] : = a[i + 31:i]
 	//	FI
 	//ENDFOR
-	long _m = (unsigned)k;
+	long _m = (unsigned long)k;
 	unsigned long index = 0;
-	while (_BitScanForward(&index, _m)) {
+	while (_BitScanForward(&index, _m)&&(index<8)) {
 		_bittestandreset(&_m, index);
 		int i = vindex.m256i_i32[index] * scale;
 		*(int*)(((char*)base_addr) + i) = a.m256i_i32[index];
