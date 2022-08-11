@@ -171,7 +171,7 @@ void __cdecl _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m2
 		*(int*)(((char*)base_addr) + i) = val[index];
 	}
 }
-#define USE_AVX_512
+//#define USE_AVX_512
 #ifndef USE_AVX_512
 
 #ifndef _mm256_cmplt_epi32_mask
@@ -208,20 +208,14 @@ void __cdecl _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m2
 #define _mm256_mask_i32scatter_epi32(addr,mask,index,value,size) \
 	_mm256_mask_i32scatter_epi32_avx2(addr,mask,index,value,size)
 #endif
-
-#endif
 #ifndef _mm256_mask_add_epi32
-#define _mm256_mask_add_epi32(src,cond,a,b) _mm256_add_epi32(src, \
-			_mm256_mask_blend_epi32(cond, \
-				_mm256_setzero_si256(), \
-				_mm256_add_epi32(a, b)))
+#define _mm256_mask_add_epi32(src,cond,a,b) _mm256_mask_blend_epi32(cond, src, _mm256_add_epi32(a,b))
 #endif
 
 #ifndef _mm256_mask_sub_epi32
-#define _mm256_mask_sub_epi32(src,cond,a,b) _mm256_sub_epi32(src, \
-			_mm256_mask_blend_epi32(cond, \
-				_mm256_setzero_si256(), \
-				_mm256_add_epi32(a, b)))
+#define _mm256_mask_sub_epi32(src,cond,a,b) _mm256_mask_blend_epi32(cond, src, _mm256_sub_epi32(a,b))
+#endif
+
 #endif
 //Fast Quick Sort:
 //  using AVX512 long stride to achive a faster speed than common quick sort
