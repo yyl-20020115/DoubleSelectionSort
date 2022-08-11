@@ -21,7 +21,7 @@
     <ClCompile Include="do_print.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="horizontal_max_min.cpp">
+    <ClCompile Include="horizontal_max_min_256.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="quick_sort.cpp">
@@ -39,7 +39,7 @@
     <ClCompile Include="fast_odd_even_sort_256.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="horizontal_sort.cpp">
+    <ClCompile Include="horizontal_sort_256.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="heap_sort.cpp">
@@ -114,6 +114,12 @@
     <ClCompile Include="single_selecton_sort.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="horizontal_max_min_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="horizontal_sort_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="do_print.h">
@@ -131,10 +137,10 @@
     <ClInclude Include="fast_sort_512.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="horizontal_max_min.h">
+    <ClInclude Include="horizontal_max_min_256.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="horizontal_sort.h">
+    <ClInclude Include="horizontal_sort_256.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="fast_sums_256.h">
@@ -150,6 +156,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="string_functions_512.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="horizontal_max_min_512.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="horizontal_sort_512.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

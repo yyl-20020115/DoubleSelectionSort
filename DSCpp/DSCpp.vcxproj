@@ -152,8 +152,10 @@
     <ClCompile Include="fast_sums_512.cpp" />
     <ClCompile Include="heap_sort.cpp" />
     <ClCompile Include="fast_heap_sort_256.cpp" />
-    <ClCompile Include="horizontal_sort.cpp" />
-    <ClCompile Include="horizontal_max_min.cpp" />
+    <ClCompile Include="horizontal_max_min_512.cpp" />
+    <ClCompile Include="horizontal_sort_256.cpp" />
+    <ClCompile Include="horizontal_max_min_256.cpp" />
+    <ClCompile Include="horizontal_sort_512.cpp" />
     <ClCompile Include="insertion_sort.cpp" />
     <ClCompile Include="merge_sort.cpp" />
     <ClCompile Include="odd_even_sort.cpp" />
@@ -170,11 +172,13 @@
     <ClInclude Include="fast_sort_256.h" />
     <ClInclude Include="fast_sort_512.h" />
     <ClInclude Include="fast_sums_512.h" />
-    <ClInclude Include="horizontal_sort.h" />
-    <ClInclude Include="horizontal_max_min.h" />
+    <ClInclude Include="horizontal_max_min_512.h" />
+    <ClInclude Include="horizontal_sort_256.h" />
+    <ClInclude Include="horizontal_max_min_256.h" />
     <ClCompile Include="single_selecton_sort.cpp">
       <FileType>CppHeader</FileType>
     </ClCompile>
+    <ClInclude Include="horizontal_sort_512.h" />
     <ClInclude Include="string_functions_256.h" />
     <ClInclude Include="string_functions_512.h" />
     <ClInclude Include="utils.h" />

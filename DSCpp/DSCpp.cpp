@@ -1,7 +1,6 @@
 ﻿#include <iostream>
 #include <intrin.h>
 #include <algorithm>
-#include "horizontal_max_min.h"
 #include "common_sort.h"
 #include "utils.h"
 #include "fast_sort_256.h"
