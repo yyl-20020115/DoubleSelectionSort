@@ -140,21 +140,83 @@ void QuickSort(int data[], int n)
 {
 	QuickSortImpl(data, 0, n - 1);
 }
-#if 0
-#ifndef _mm256_cmple_epi32_mask
-#define _mm256_cmple_epi32_mask(a,b) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_or_si256(_mm256_cmpgt_epi32(b, a),_mm256_cmpeq_epi32(b, a))))
-#endif
+__m256i bitmap2vecmask(__mmask8 m) {
+	const __m256i vshift_count = _mm256_set_epi32(24, 25, 26, 27, 28, 29, 30, 31);
+	__m256i bcast = _mm256_set1_epi32(m);
+	__m256i shifted = _mm256_sllv_epi32(bcast, vshift_count);  // high bit of each element = corresponding bit of the mask
+
+	// use _mm256_and and _mm256_cmpeq if you need all bits set.
+	return _mm256_srai_epi32(shifted, 31);             // broadcast the sign bit to the whole element
+}
+void __cdecl _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m256i vindex, __m256i a, const int scale)
+{
+	//FOR j : = 0 to 7
+	//	i : = j * 32
+	//	m : = j * 32
+	//	IF k[j]
+	//	addr : = base_addr + SignExtend64(vindex[m + 31:m]) * ZeroExtend64(scale) * 8
+	//	MEM[addr + 31:addr] : = a[i + 31:i]
+	//	FI
+	//ENDFOR
+	long _m = (unsigned)k;
+	unsigned long index = 0;
+	while (_BitScanForward(&index, _m)) {
+		_bittestandreset(&_m, index);
+		int i = vindex.m256i_i32[index] * scale;
+		*(int*)(((char*)base_addr) + i) = a.m256i_i32[index];
+	}
+}
+#ifndef USE_AVX_512
+
 #ifndef _mm256_cmplt_epi32_mask
 #define _mm256_cmplt_epi32_mask(a,b) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(b, a)))
 #endif
-
+#ifndef _mm256_cmpgt_epi32_mask
+#define _mm256_cmpgt_epi32_mask(a,b) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(a, b)))
+#endif
 #ifndef _mm256_cmpge_epi32_mask
 #define _mm256_cmpge_epi32_mask(a,b) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_or_si256(_mm256_cmpgt_epi32(a, b),_mm256_cmpeq_epi32(a,b))))
 #endif
 #ifndef _mm256_cmpeq_epi32_mask
-#define _mm256_cmpeq_epi32_mask(a,b) (unsigned char)~_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(b, a)))
+#define _mm256_cmpeq_epi32_mask(a,b) (__mmask8)_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(a, b)))
+#endif
+#ifndef _mm256_cmple_epi32_mask
+#define _mm256_cmple_epi32_mask(a,b) (__mmask8)((__mmask8)_mm256_cmplt_epi32_mask(a,b)| (__mmask8)_mm256_cmpeq_epi32_mask(a,b))
+#endif
+
+#ifndef _mm256_cmpneq_epi32_mask
+#define _mm256_cmpneq_epi32_mask(a,b) ((__mmask8)~_mm256_cmpeq_epi32_mask(a,b))
 #endif
 #endif
+#ifndef _mm256_cmpeq_epi8_mask
+#define _mm256_cmpeq_epi8_mask(a,b) (__mmask8)_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi8(a, b)))
+#endif
+#ifndef _mm256_cmpeq_epi16_mask
+#define _mm256_cmpeq_epi16_mask(a,b) (__mmask8)_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi16(b, a)))
+#endif
+#ifndef _mm256_mask_blend_epi32
+#define _mm256_mask_blend_epi32(mask, a,b) _mm256_castps_si256(_mm256_blendv_ps(_mm256_castsi256_ps(a),_mm256_castsi256_ps(b), _mm256_castsi256_ps(bitmap2vecmask(mask))))
+#endif
+
+#ifndef _mm256_mask_add_epi32
+#define _mm256_mask_add_epi32(src,cond,a,b) _mm256_add_epi32(src, \
+			_mm256_mask_blend_epi32(cond, \
+				_mm256_setzero_si256(), \
+				_mm256_add_epi32(a, b)))
+#endif
+
+#ifndef _mm256_mask_sub_epi32
+#define _mm256_mask_sub_epi32(src,cond,a,b) _mm256_sub_epi32(src, \
+			_mm256_mask_blend_epi32(cond, \
+				_mm256_setzero_si256(), \
+				_mm256_add_epi32(a, b)))
+#endif
+
+#ifndef _mm256_mask_i32scatter_epi32
+#define _mm256_mask_i32scatter_epi32(addr,mask,index,value,size) \
+	_mm256_mask_i32scatter_epi32_avx2(addr,mask,index,value,size)
+#endif
+
 //Fast Quick Sort:
 //  using AVX512 long stride to achive a faster speed than common quick sort
 //
@@ -173,7 +235,6 @@ bool FastQuickSortImpl256(int data[], int low, int high) {
 			{
 				__m256i ds = _mm256_loadu_epi32(data + j - stride + 1);
 				__mmask8 rt = _mm256_cmple_epi32_mask(ds, t);
-				///_mm256_movemask_ps
 				if (rt == 0) {
 					j = j - stride < i ? i : j - stride;
 				}
@@ -1856,18 +1917,22 @@ bool FastSingleSelectionSort256(int data[], int n) {
 
 		for (int j = i + stride; j < n; j += stride) {
 
+			__m256i j_Indices = _mm256_setr_epi32(j + 0, j + 1, j + 2, j + 3, j + 4, j + 5, j + 6, j + 7);
 			__m256i values = _mm256_loadu_epi32(data + j);
 
-			//__mmask8 mask = _mm256_cmplt_epi32_mask(values, minValues);
-			__m256i mask = _mm256_cmpgt_epi32(minValues, values);
-			minIndices = _mm256_castps_si256((_mm256_blendv_ps(_mm256_castsi256_ps(mask),
-				_mm256_castsi256_ps(minIndices),
-				_mm256_castsi256_ps(_mm256_setr_epi32(j + 0, j + 1, j + 2, j + 3, j + 4, j + 5, j + 6, j + 7)))));
+			__mmask8 mask = _mm256_cmplt_epi32_mask(values, minValues);
+
+			/* convert 8 bit mask to __m128i control word mask */
+			//__m256i _mask = bitmap2vecmask((__mmask8)mask);			
+			//minIndices = _mm256_castps_si256(
+			//	_mm256_blendv_ps(_mm256_castsi256_ps(minIndices),
+			//		_mm256_castsi256_ps(j_Indices), _mm256_castsi256_ps(_mask)));
+
+			minIndices = _mm256_mask_blend_epi32(mask, minIndices, j_Indices);
 
 			minValues = _mm256_i32gather_epi32(data, minIndices, sizeof(int));
 		}
-		long mask = _mm256_cmpneq_epi32_mask(
-			minIndices, i_Indices);
+		long mask = _mm256_cmpneq_epi32_mask(minIndices, i_Indices);
 
 		unsigned long idx = 0;
 		while (_BitScanForward(&idx, mask))
@@ -1900,17 +1965,16 @@ bool FastSingleSelectionSort512(int data[], int n) {
 
 		for (int j = i + stride; j < n; j += stride) {
 
+			__m512i j_Index = _mm512_setr_epi32(
+				j + 0, j + 1, j + 2, j + 3,
+				j + 4, j + 5, j + 6, j + 7,
+				j + 8, j + 9, j + 10, j + 11,
+				j + 12, j + 13, j + 14, j + 15
+			);
 			__m512i values = _mm512_loadu_epi32(data + j);
 
 			__mmask16 mask = _mm512_cmplt_epi32_mask(values, minValues);
-			minIndices = _mm512_mask_blend_epi32(mask,
-				minIndices,
-				_mm512_setr_epi32(
-					j + 0, j + 1, j + 2, j + 3,
-					j + 4, j + 5, j + 6, j + 7,
-					j + 8, j + 9, j + 10, j + 11,
-					j + 12, j + 13, j + 14, j + 15
-					));
+			minIndices = _mm512_mask_blend_epi32(mask,minIndices,j_Index);
 
 			minValues = _mm512_i32gather_epi32(minIndices, data, sizeof(int));
 		}
@@ -2028,6 +2092,10 @@ bool FastDoubleSelectionSort256(int data[], int n)
 			maxValue = _mm256_mask_blend_epi32(gtj & lt, maxValue, data_j);
 			maxIndex = _mm256_mask_blend_epi32(gtj & lt, maxIndex, j);
 
+			//j = _mm256_add_epi32(j,
+			//	_mm256_mask_blend_epi32(lt,
+			//		_mm256_setzero_si256(),
+			//		_mm256_add_epi32(j, _mm256_set1_epi32(stride))));
 			//only add for these having 1s
 			j = _mm256_mask_add_epi32(j, lt, j, _mm256_set1_epi32(stride));
 		}
@@ -2037,6 +2105,7 @@ bool FastDoubleSelectionSort256(int data[], int n)
 
 		//data[staIndex] = minValue;
 		//data[endIndex] = maxValue;
+
 		_mm256_mask_i32scatter_epi32(data, ~0, staIndex, minValue, sizeof(int));
 		_mm256_mask_i32scatter_epi32(data, ~0, endIndex, maxValue, sizeof(int));
 		
@@ -2959,7 +3028,7 @@ int KMP(char* str, int slen, char* ptr, int plen)
 	return -1;
 }
 
-const int DATA_SIZE =  65536;// *16 * 16;
+const int DATA_SIZE =  32;// *16 * 16;
 const bool use_random = true;
 const bool show = false;
 const bool allow_common = true;
@@ -3071,6 +3140,7 @@ int main()
 	i = HorizentalMin64(_data32, &r64);
 	i = HorizentalMax64(_data32, &r64);
 #endif
+
 	long long t0;
 	//init
 	if (allow_common)
