@@ -160,10 +160,15 @@ void __cdecl _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m2
 	//ENDFOR
 	long _m = (unsigned long)k;
 	unsigned long index = 0;
+	int vis[8] = { 0 };
+	int val[8] = { 0 };
+	_mm256_store_ps((float*)vis, _mm256_castsi256_ps(vindex));
+	_mm256_store_ps((float*)val, _mm256_castsi256_ps(a));
+
 	while (_BitScanForward(&index, _m)&&(index<8)) {
 		_bittestandreset(&_m, index);
-		int i = vindex.m256i_i32[index] * scale;
-		*(int*)(((char*)base_addr) + i) = a.m256i_i32[index];
+		int i = vis[index] * scale;
+		*(int*)(((char*)base_addr) + i) = val[index];
 	}
 }
 #ifndef USE_AVX_512
