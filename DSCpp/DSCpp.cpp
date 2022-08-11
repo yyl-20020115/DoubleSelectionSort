@@ -204,6 +204,12 @@ void __cdecl _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m2
 #define _mm256_mask_blend_epi32(mask, a,b) _mm256_castps_si256(_mm256_blendv_ps(_mm256_castsi256_ps(a),_mm256_castsi256_ps(b), _mm256_castsi256_ps(bitmap2vecmask(mask))))
 #endif
 
+#ifndef _mm256_mask_i32scatter_epi32
+#define _mm256_mask_i32scatter_epi32(addr,mask,index,value,size) \
+	_mm256_mask_i32scatter_epi32_avx2(addr,mask,index,value,size)
+#endif
+
+#endif
 #ifndef _mm256_mask_add_epi32
 #define _mm256_mask_add_epi32(src,cond,a,b) _mm256_add_epi32(src, \
 			_mm256_mask_blend_epi32(cond, \
@@ -216,12 +222,6 @@ void __cdecl _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m2
 			_mm256_mask_blend_epi32(cond, \
 				_mm256_setzero_si256(), \
 				_mm256_add_epi32(a, b)))
-#endif
-
-#ifndef _mm256_mask_i32scatter_epi32
-#define _mm256_mask_i32scatter_epi32(addr,mask,index,value,size) \
-	_mm256_mask_i32scatter_epi32_avx2(addr,mask,index,value,size)
-#endif
 #endif
 //Fast Quick Sort:
 //  using AVX512 long stride to achive a faster speed than common quick sort
@@ -2098,11 +2098,6 @@ bool FastDoubleSelectionSort256(int data[], int n)
 			maxValue = _mm256_mask_blend_epi32(gtj & lt, maxValue, data_j);
 			maxIndex = _mm256_mask_blend_epi32(gtj & lt, maxIndex, j);
 
-			//j = _mm256_add_epi32(j,
-			//	_mm256_mask_blend_epi32(lt,
-			//		_mm256_setzero_si256(),
-			//		_mm256_add_epi32(j, _mm256_set1_epi32(stride))));
-			//only add for these having 1s
 			j = _mm256_mask_add_epi32(j, lt, j, _mm256_set1_epi32(stride));
 		}
 
