@@ -18,5 +18,139 @@
     <ClCompile Include="DSCpp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="do_print.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="horizontal_max_min.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="quick_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_quick_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="odd_even_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_odd_even_sort_256.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="horizontal_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="heap_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_heap_sort_256.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_heap_sort_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="merge_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_merge_sort_256.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_merge_sort_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="double_selection_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_single_selection_sort_256.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_single_selection_sort_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_double_selection_sort_256.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_double_selection_sort_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="bubble_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_bubble_sort_256.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_bubble_sort_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="insertion_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_sums_256.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_sums_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_insertion_sort_256.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_insertion_sort_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="string_functions_256.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="string_functions_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="common_string_functions.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_odd_even_sort_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="single_selecton_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="do_print.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="common_sort.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="fast_sort_256.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="fast_sort_512.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="horizontal_max_min.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="horizontal_sort.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="fast_sums_256.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="fast_sums_512.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="string_functions_256.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="common_string_functions.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="string_functions_512.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
