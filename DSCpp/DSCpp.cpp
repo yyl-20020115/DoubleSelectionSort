@@ -140,6 +140,21 @@ void QuickSort(int data[], int n)
 {
 	QuickSortImpl(data, 0, n - 1);
 }
+#if 0
+#ifndef _mm256_cmple_epi32_mask
+#define _mm256_cmple_epi32_mask(a,b) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_or_si256(_mm256_cmpgt_epi32(b, a),_mm256_cmpeq_epi32(b, a))))
+#endif
+#ifndef _mm256_cmplt_epi32_mask
+#define _mm256_cmplt_epi32_mask(a,b) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(b, a)))
+#endif
+
+#ifndef _mm256_cmpge_epi32_mask
+#define _mm256_cmpge_epi32_mask(a,b) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_or_si256(_mm256_cmpgt_epi32(a, b),_mm256_cmpeq_epi32(a,b))))
+#endif
+#ifndef _mm256_cmpeq_epi32_mask
+#define _mm256_cmpeq_epi32_mask(a,b) (unsigned char)~_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(b, a)))
+#endif
+#endif
 //Fast Quick Sort:
 //  using AVX512 long stride to achive a faster speed than common quick sort
 //
@@ -157,8 +172,8 @@ bool FastQuickSortImpl256(int data[], int low, int high) {
 			while (i < j)
 			{
 				__m256i ds = _mm256_loadu_epi32(data + j - stride + 1);
-				__mmask16 rt = _mm256_cmple_epi32_mask(ds, t);
-
+				__mmask8 rt = _mm256_cmple_epi32_mask(ds, t);
+				///_mm256_movemask_ps
 				if (rt == 0) {
 					j = j - stride < i ? i : j - stride;
 				}
@@ -177,7 +192,7 @@ bool FastQuickSortImpl256(int data[], int low, int high) {
 			while (i < j)
 			{
 				__m256i ds = _mm256_loadu_epi32(data + i);
-				__mmask16 rt = _mm256_cmpge_epi32_mask(ds, t);
+				__mmask8 rt = _mm256_cmpge_epi32_mask(ds, t);
 				if (rt == 0) {
 					i = i + stride > j ? j : i + stride;
 				}
@@ -1843,10 +1858,11 @@ bool FastSingleSelectionSort256(int data[], int n) {
 
 			__m256i values = _mm256_loadu_epi32(data + j);
 
-			__mmask8 mask = _mm256_cmplt_epi32_mask(values, minValues);
-			minIndices = _mm256_mask_blend_epi32(mask,
-				minIndices,
-				_mm256_setr_epi32(j + 0, j + 1, j + 2, j + 3, j + 4, j + 5, j + 6, j + 7));
+			//__mmask8 mask = _mm256_cmplt_epi32_mask(values, minValues);
+			__m256i mask = _mm256_cmpgt_epi32(minValues, values);
+			minIndices = _mm256_castps_si256((_mm256_blendv_ps(_mm256_castsi256_ps(mask),
+				_mm256_castsi256_ps(minIndices),
+				_mm256_castsi256_ps(_mm256_setr_epi32(j + 0, j + 1, j + 2, j + 3, j + 4, j + 5, j + 6, j + 7)))));
 
 			minValues = _mm256_i32gather_epi32(data, minIndices, sizeof(int));
 		}
@@ -2946,6 +2962,9 @@ int KMP(char* str, int slen, char* ptr, int plen)
 const int DATA_SIZE =  65536;// *16 * 16;
 const bool use_random = true;
 const bool show = false;
+const bool allow_common = true;
+const bool allow_avx_256 = true;
+const bool allow_avx_512 = false;
 
 int data0[DATA_SIZE] = { 0 };
 //int data0[DATA_SIZE] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 };
@@ -3054,7 +3073,7 @@ int main()
 #endif
 	long long t0;
 	//init
-	if (true)
+	if (allow_common)
 	{
 		srand((unsigned)time(0));
 		printf("original data(count = %d):\n", DATA_SIZE);
@@ -3095,7 +3114,7 @@ int main()
 		printf("\n\n");
 	}
 	//system quick sort
-	if (true)
+	if (allow_common)
 	{
 		printf("for system quick sort:\n");
 		t0 = _Query_perf_counter();
@@ -3112,7 +3131,7 @@ int main()
 		printf("\n\n");
 	}
 	//quick sort
-	if (true)
+	if (allow_common)
 	{
 		printf("for quick sort:\n");
 		t0 = _Query_perf_counter();
@@ -3132,7 +3151,7 @@ int main()
 		printf("\n\n");
 	}
 	//fast quick sort 256
-	if (true)
+	if (allow_avx_256)
 	{
 		printf("for fast quick sort 256:\n");
 		t0 = _Query_perf_counter();
@@ -3152,7 +3171,7 @@ int main()
 		printf("\n\n");
 	}
 	//fast quick sort 512
-	if (true)
+	if (allow_avx_512)
 	{
 		printf("for fast quick sort 512:\n");
 		t0 = _Query_perf_counter();
@@ -3172,7 +3191,7 @@ int main()
 		printf("\n\n");
 	}
 	//odd even sort
-	if (false)
+	if (false & allow_common)
 	{
 		t0 = _Query_perf_counter();
 		printf("for odd even sort:\n");
@@ -3192,7 +3211,7 @@ int main()
 		printf("\n\n");
 	}
 	//odd even sort 256
-	if (false)
+	if (false & allow_avx_256)
 	{
 		printf("for fast odd even sort 256:\n");
 		t0 = _Query_perf_counter();
@@ -3213,7 +3232,7 @@ int main()
 		printf("\n\n");
 	}
 	//odd even sort 512
-	if (false)
+	if (false & allow_avx_512)
 	{
 		printf("for fast odd even sort 512:\n");
 		t0 = _Query_perf_counter();
@@ -3233,7 +3252,7 @@ int main()
 		printf("\n\n");
 	}
 	//merge sort recursive
-	if (true)
+	if (allow_common)
 	{
 		printf("for merge sort recursive:\n");
 		t0 = _Query_perf_counter();
@@ -3254,7 +3273,7 @@ int main()
 		printf("\n\n");
 	}
 	//merge sort non recursive
-	if (true)
+	if (allow_common)
 	{
 		printf("for merge sort non-recursive:\n");
 		t0 = _Query_perf_counter();
@@ -3275,7 +3294,7 @@ int main()
 		printf("\n\n");
 	}
 	//fast merge sort 256
-	if (true)
+	if (allow_avx_256)
 	{
 		printf("for fast merge sort 256:\n");
 		t0 = _Query_perf_counter();
@@ -3296,7 +3315,7 @@ int main()
 		printf("\n\n");
 	}
 	//fast merge sort 512
-	if (true)
+	if (allow_avx_512)
 	{
 		printf("for fast merge sort 512:\n");
 		t0 = _Query_perf_counter();
@@ -3317,7 +3336,7 @@ int main()
 		printf("\n\n");
 	}
 	//single selection sort
-	if (true)
+	if (allow_common)
 	{
 		printf("for single selection sort:\n");
 		t0 = _Query_perf_counter();
@@ -3338,7 +3357,7 @@ int main()
 		printf("\n\n");
 	}
 	//single selection sort 256
-	if (true)
+	if (allow_avx_256)
 	{
 		printf("for fast single selection sort 256:\n");
 		t0 = _Query_perf_counter();
@@ -3364,7 +3383,7 @@ int main()
 		printf("\n\n");
 	}
 	//single selection sort 512
-	if (true)
+	if (allow_avx_512)
 	{
 		printf("for fast single selection sort 512:\n");
 		t0 = _Query_perf_counter();
@@ -3390,7 +3409,7 @@ int main()
 		printf("\n\n");
 	}
 	//double selection sort
-	if (true)
+	if (allow_common)
 	{
 		printf("for double selection sort:\n");
 		t0 = _Query_perf_counter();
@@ -3411,7 +3430,7 @@ int main()
 		printf("\n\n");
 	}
 	//double selection sort 256
-	if (true)
+	if (allow_avx_256)
 	{
 		printf("for fast double selection sort 256:\n");
 		t0 = _Query_perf_counter();
@@ -3432,7 +3451,7 @@ int main()
 		printf("\n\n");
 	}
 	//double selection sort 512
-	if (true)
+	if (allow_avx_512)
 	{
 		printf("for fast double selection sort 512:\n");
 		t0 = _Query_perf_counter();
@@ -3453,7 +3472,7 @@ int main()
 		printf("\n\n");
 	}
 	//bubble sort
-	if (false)
+	if (allow_common)
 	{
 		printf("for bubble sort:\n");
 		t0 = _Query_perf_counter();
@@ -3474,7 +3493,7 @@ int main()
 		printf("\n\n");
 	}
 	//bubble sort 256
-	if (false)
+	if (allow_avx_256)
 	{
 		printf("for fast bubble sort 256:\n");
 		t0 = _Query_perf_counter();
@@ -3495,7 +3514,7 @@ int main()
 		printf("\n\n");
 	}
 	//bubble sort 512
-	if (false)
+	if (allow_avx_512)
 	{
 		printf("for fast bubble sort 512:\n");
 		t0 = _Query_perf_counter();
@@ -3516,7 +3535,7 @@ int main()
 		printf("\n\n");
 	}
 	//insertion sort
-	if (true)
+	if (allow_common)
 	{
 		printf("for insertion sort:\n");
 		t0 = _Query_perf_counter();
@@ -3537,7 +3556,7 @@ int main()
 		printf("\n\n");
 	}
 	//fast insertion sort 256
-	if (true)
+	if (allow_avx_256)
 	{
 		printf("for fast insertion sort 256:\n");
 		t0 = _Query_perf_counter();
@@ -3558,7 +3577,7 @@ int main()
 		printf("\n\n");
 	}
 	//fast insertion sort 512
-	if (true)
+	if (allow_avx_512)
 	{
 		printf("for fast insertion sort 512:\n");
 		t0 = _Query_perf_counter();
@@ -3578,9 +3597,8 @@ int main()
 		}
 		printf("\n\n");
 	}
-
 	//heap sort
-	if (true)
+	if (allow_common)
 	{
 		printf("for heap sort:\n");
 		t0 = _Query_perf_counter();
@@ -3601,7 +3619,7 @@ int main()
 		printf("\n\n");
 	}
 	//fast heap sort 256
-	if (true)
+	if (allow_avx_256)
 	{
 		printf("for fast heap sort 256:\n");
 		t0 = _Query_perf_counter();
@@ -3622,7 +3640,7 @@ int main()
 		printf("\n\n");
 	}
 	//fast heap sort 512
-	if (true)
+	if (allow_avx_512)
 	{
 		printf("for fast heap sort 512:\n");
 		t0 = _Query_perf_counter();
@@ -3642,10 +3660,8 @@ int main()
 		}
 		printf("\n\n");
 	}
-
-
 	//string index-of 256
-	if (true)
+	if (allow_common)
 	{
 		printf("for string index-of:\n");
 		int index = 0;
