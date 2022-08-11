@@ -171,6 +171,7 @@ void __cdecl _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m2
 		*(int*)(((char*)base_addr) + i) = val[index];
 	}
 }
+#define USE_AVX_512
 #ifndef USE_AVX_512
 
 #ifndef _mm256_cmplt_epi32_mask
@@ -192,7 +193,7 @@ void __cdecl _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m2
 #ifndef _mm256_cmpneq_epi32_mask
 #define _mm256_cmpneq_epi32_mask(a,b) ((__mmask8)~_mm256_cmpeq_epi32_mask(a,b))
 #endif
-#endif
+
 #ifndef _mm256_cmpeq_epi8_mask
 #define _mm256_cmpeq_epi8_mask(a,b) (__mmask8)_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi8(a, b)))
 #endif
@@ -221,7 +222,7 @@ void __cdecl _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m2
 #define _mm256_mask_i32scatter_epi32(addr,mask,index,value,size) \
 	_mm256_mask_i32scatter_epi32_avx2(addr,mask,index,value,size)
 #endif
-
+#endif
 //Fast Quick Sort:
 //  using AVX512 long stride to achive a faster speed than common quick sort
 //
@@ -2226,7 +2227,7 @@ void BubbleSort(int data[], int n) {
 	for (int i = 0; i < n; i++) {
 		swapped = false;
 		for (int j = i + 1; j < n; j++) {
-			if (data[i] > data[j]) {
+			if (data[i] >= data[j]) {
 				Swap(data, i, j);
 				swapped = true;
 			}
@@ -2245,8 +2246,8 @@ bool FastBubbleSort256(int data[], int n) {
 		__m256i data_i = _mm256_loadu_epi32(data + i);
 		for (int j = i + stride; j < n; j += stride) {
 			__m256i data_j = _mm256_loadu_epi32(data + j);
-			__mmask8 gt = _mm256_cmpgt_epi32_mask(data_i, data_j);
-			if (gt != 0) {
+			__mmask8 ge = _mm256_cmpge_epi32_mask(data_i, data_j);
+			if (ge != 0) {
 				__m256i min = _mm256_min_epi32(data_i, data_j);
 				__m256i max = _mm256_max_epi32(data_i, data_j);
 				data_i = min;
