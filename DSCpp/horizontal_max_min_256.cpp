@@ -1,10 +1,10 @@
 #include "horizontal_max_min_256.h"
 #include "utils.h"
+
 int HorizontalMin16(__m128i data, unsigned short* p) {
+	//SSE4.1
 	__m128i result = _mm_minpos_epu16(data);
-	if (p != 0) {
-		*p = result.m128i_i16[0];
-	}
+	if (p != 0) *p = result.m128i_i16[0];	
 	return result.m128i_i16[1] & 0x7;
 }
 int HorizontalMax16(__m128i data, unsigned short* p) {
@@ -13,21 +13,16 @@ int HorizontalMax16(__m128i data, unsigned short* p) {
 	__m128i subs = _mm_subs_epu16(ones, data);
 	__m128i result = _mm_minpos_epu16(subs);
 	int index = result.m128i_i16[1] & 0x7;
-	if (p != 0) {
-		*p = data.m128i_i16[index];
-	}
+	if (p != 0) *p = data.m128i_i16[index];	
 	return index;
 }
 int HorizontalMin16(__m256i data, unsigned short* p) {
 	const int stride = sizeof(data) / sizeof(*p);
 	const int half = stride >>1;
-	__m128i zero = _mm_setzero_si128();
-	__m128i low = _mm256_extracti128_si256(data, 0);
-	__m128i high = _mm256_extracti128_si256(data, 1);
 	unsigned short lv = 0;
 	unsigned short hv = 0;
-	int li = HorizontalMin16(low, &lv);
-	int hi = HorizontalMin16(high, &hv);
+	int li = HorizontalMin16(_mm256_extracti128_si256(data, 0), &lv);
+	int hi = HorizontalMin16(_mm256_extracti128_si256(data, 1), &hv);
 	if (lv <= hv) {
 		if (p != 0) *p = lv;
 		return li;
@@ -40,13 +35,10 @@ int HorizontalMin16(__m256i data, unsigned short* p) {
 int HorizontalMax16(__m256i data, unsigned short* p) {
 	const int stride = sizeof(data) / sizeof(*p);
 	const int half = stride >>1;
-	__m128i zero = _mm_setzero_si128();
-	__m128i low = _mm256_extracti128_si256(data, 0);
-	__m128i high = _mm256_extracti128_si256(data, 1);
 	unsigned short lv = 0;
 	unsigned short hv = 0;
-	int li = HorizontalMax16(low, &lv);
-	int hi = HorizontalMax16(high, &hv);
+	int li = HorizontalMax16(_mm256_extracti128_si256(data, 0), &lv);
+	int hi = HorizontalMax16(_mm256_extracti128_si256(data, 1), &hv);
 	if (lv <= hv) {
 		if (p != 0) *p = lv;
 		return li;
@@ -60,12 +52,15 @@ int HorizontalMin8(__m128i data, unsigned char* p) {
 	const int stride = sizeof(data) / sizeof(*p);
 	const int half = stride >>1;
 	__m128i zero = _mm_setzero_si128();
-	__m128i low = _mm_unpacklo_epi8(data, zero);
-	__m128i high = _mm_unpackhi_epi8(data, zero);
-	unsigned short lv = 0;
-	unsigned short hv = 0;
-	int li = HorizontalMin16(low, &lv);
-	int hi = HorizontalMin16(high, &hv);
+	__m128i result_low = _mm_minpos_epu16(_mm_unpacklo_epi8(data, zero));
+	__m128i result_high = _mm_minpos_epu16(_mm_unpackhi_epi8(data, zero));
+
+	unsigned short lv = result_low.m128i_i16[0];
+	unsigned short hv = result_high.m128i_i16[0];
+
+	int li = result_low.m128i_i16[1] & 0x7;
+	int hi = result_high.m128i_i16[1] & 0x7;
+
 	if (lv <= hv) {
 		if (p != 0) *p = (unsigned char)(lv & 0xff);
 		return li;
@@ -79,12 +74,10 @@ int HorizontalMax8(__m128i data, unsigned char* p) {
 	const int stride = sizeof(data) / sizeof(*p);
 	const int half = stride >>1;
 	__m128i zero = _mm_setzero_si128();
-	__m128i low = _mm_unpacklo_epi8(data, zero);
-	__m128i high = _mm_unpackhi_epi8(data, zero);
 	unsigned short lv = 0;
 	unsigned short hv = 0;
-	int li = HorizontalMax16(low, &lv);
-	int hi = HorizontalMax16(high, &hv);
+	int li = HorizontalMax16(_mm_unpacklo_epi8(data, zero), &lv);
+	int hi = HorizontalMax16(_mm_unpackhi_epi8(data, zero), &hv);
 	if (lv >= hv) {
 		if (p != 0) *p = (unsigned char)(lv & 0xff);
 		return li;
@@ -97,13 +90,10 @@ int HorizontalMax8(__m128i data, unsigned char* p) {
 int HorizontalMin8(__m256i data, unsigned char* p) {
 	const int stride = sizeof(data) / sizeof(*p);
 	const int half = stride >>1;
-	__m128i zero = _mm_setzero_si128();
-	__m128i low = _mm256_extracti128_si256(data, 0);
-	__m128i high = _mm256_extracti128_si256(data, 1);
 	unsigned short lv = 0;
 	unsigned short hv = 0;
-	int li = HorizontalMin16(low, &lv);
-	int hi = HorizontalMin16(high, &hv);
+	int li = HorizontalMin16(_mm256_extracti128_si256(data, 0), &lv);
+	int hi = HorizontalMin16(_mm256_extracti128_si256(data, 1), &hv);
 	if (lv <= hv) {
 		if (p != 0) *p = (unsigned char)(lv & 0xff);
 		return li;
@@ -116,13 +106,10 @@ int HorizontalMin8(__m256i data, unsigned char* p) {
 int HorizontalMax8(__m256i data, unsigned char* p) {
 	const int stride = sizeof(data) / sizeof(*p);
 	const int half = stride >>1;
-	__m128i zero = _mm_setzero_si128();
-	__m128i low = _mm256_extractf128_si256(data, 0);
-	__m128i high = _mm256_extractf128_si256(data, 1);
 	unsigned short lv = 0;
 	unsigned short hv = 0;
-	int li = HorizontalMax16(low, &lv);
-	int hi = HorizontalMax16(high, &hv);
+	int li = HorizontalMax16(_mm256_extractf128_si256(data, 0), &lv);
+	int hi = HorizontalMax16(_mm256_extractf128_si256(data, 1), &hv);
 	if (lv >= hv) {
 		if (p != 0) *p = (unsigned char)(lv & 0xff);
 		return li;
@@ -141,9 +128,7 @@ int HorizontalMin32P(__m128i data, unsigned int* p) {
 		8, 8, 8, 8);
 	__m128i result = _mm_minpos_epu16(counts);
 	int index = result.m128i_i16[1] & 0x3;
-	if (p != 0) {
-		*p = data.m128i_i32[index];
-	}
+	if (p != 0) *p = data.m128i_i32[index];
 	return index;
 }
 int HorizontalMin32F(__m256i data, unsigned int* p)
@@ -156,9 +141,7 @@ int HorizontalMin32F(__m256i data, unsigned int* p)
 	__m256i permution = _mm256_permutexvar_epi16(indices, data);
 	__m128i _low = _mm256_extracti128_si256(permution, 0);
 	__m128i high = _mm256_extracti128_si256(permution, 1);
-
 	__m128i high_result = _mm_minpos_epu16(high);
-
 	short high_value = high_result.m128i_i16[0];
 	short high_index = high_result.m128i_i16[1] & 0b00000111;
 	__m128i all_high = _mm_set1_epi16(high_value);
@@ -168,15 +151,11 @@ int HorizontalMin32F(__m256i data, unsigned int* p)
 		__m128i low_result = _mm_minpos_epu16(_low);
 		short low_value = low_result.m128i_i16[0];
 		index = low_result.m128i_i16[1];
-		if (p != 0) {
-			*p = data.m256i_i32[index];
-		}
+		if (p != 0) *p = data.m256i_i32[index];
 		return index;
 	}
 	else if (c == 1) { //this high is special, no need to check lows
-		if (p != 0) {
-			*p = data.m256i_i32[high_index];
-		}
+		if (p != 0) *p = data.m256i_i32[high_index];
 		return high_index;
 	}
 	else { //multiple lows for same highs
@@ -193,17 +172,13 @@ int HorizontalMin32F(__m256i data, unsigned int* p)
 			//for original 0xffff value
 			low_result = _mm_minpos_epu16(maxlevel);
 			if (_BitScanForward(&index, mask)) {
-				if (p != 0) {
-					*p = data.m256i_i32[index];
-				}
+				if (p != 0) *p = data.m256i_i32[high_index];
 				return index;
 			}
 		}
 		else {
 			index = low_result.m128i_i16[1];
-			if (p != 0) {
-				*p = data.m256i_i32[index];
-			}
+			if (p != 0) *p = data.m256i_i32[high_index];
 			return index;
 		}
 	}
@@ -212,20 +187,15 @@ int HorizontalMin32F(__m256i data, unsigned int* p)
 
 int HorizontalMin32(__m128i data, unsigned int* p) {
 	const int stride = sizeof(data) / sizeof(*p);
-
 	int a0 = _mm_extract_epi32(data, 0);
 	int a1 = _mm_extract_epi32(data, 1);
 	int a2 = _mm_extract_epi32(data, 2);
 	int a3 = _mm_extract_epi32(data, 3);
-
 	int m0 = a0 <= a1 ? a0 : a1;
 	int p0 = (a0 > a1);
-
 	int m1 = a2 <= a3 ? a2 : a3;
 	int p1 = (a2 > a3);
-
-	if (p != 0)*p = (m0 <= m1) ? m0 : m1;
-
+	if (p != 0) *p = (m0 <= m1) ? m0 : m1;
 	return (m0 <= m1) ? p0 : (p1 + 2);
 }
 int HorizontalMax32(__m128i data, unsigned int* p) {
@@ -233,9 +203,7 @@ int HorizontalMax32(__m128i data, unsigned int* p) {
 	__m128i ones = _mm_cmpeq_epi32(zero, zero);
 	__m128i result = _mm_andnot_si128(data, ones);
 	int index = HorizontalMin32(result, p);
-	if (p != 0) {
-		*p = data.m128i_u32[index];
-	}
+	if (p != 0) *p = data.m128i_u32[index];
 	return index;
 }
 //algorithm: how to find min int from __m256i with _mm_minpos_epu16
@@ -265,9 +233,7 @@ int HorizontalMin32(__m256i data, unsigned int* p) {
 	);
 	__m128i result = _mm_minpos_epu16(counts);
 	int index = result.m128i_i16[1] & 0x7;
-	if (p != 0) {
-		*p = data.m256i_i32[index];
-	}
+	if (p != 0) *p = data.m256i_i32[index];
 	return index;
 }
 int HorizontalMax32(__m256i data, unsigned int* p) {
@@ -277,9 +243,7 @@ int HorizontalMax32(__m256i data, unsigned int* p) {
 	__m256i ones_ = _mm256_cmpeq_epi32(zero_, zero_);
 	__m256i result = _mm256_andnot_si256(data, ones_);
 	int index = HorizontalMin32(result, p);
-	if (p != 0) {
-		*p = data.m256i_u32[index];
-	}
+	if (p != 0) *p = data.m256i_u32[index];
 	return index;
 }
 int HorizontalMin64(__m128i data, unsigned long long* p)
@@ -301,7 +265,6 @@ int HorizontalMax64(__m128i data, unsigned long long* p)
 {
 	const int stride = sizeof(data) / sizeof(*p);
 	const int half = stride >>1;
-
 	unsigned long long lv = _mm_extract_epi64(data, 0);
 	unsigned long long hv = _mm_extract_epi64(data, 1);
 	if (lv >= hv) {
@@ -318,7 +281,7 @@ int HorizontalMin64(__m256i data, unsigned long long* p)
 	const int stride = sizeof(data) / sizeof(*p);
 	const int half = stride >>1;
 	__m128i low = _mm256_extracti64x2_epi64(data, 0);
-	__m128i high = _mm256_extracti64x2_epi64(data, 0);
+	__m128i high = _mm256_extracti64x2_epi64(data, 1);
 
 	unsigned long long lv = 0;
 	unsigned long long hv = 0;
@@ -339,7 +302,7 @@ int HorizontalMax64(__m256i data, unsigned long long* p)
 	const int stride = sizeof(data) / sizeof(*p);
 	const int half = stride >>1;
 	__m128i low = _mm256_extracti64x2_epi64(data, 0);
-	__m128i high = _mm256_extracti64x2_epi64(data, 0);
+	__m128i high = _mm256_extracti64x2_epi64(data, 1);
 
 	unsigned long long lv = 0;
 	unsigned long long hv = 0;
@@ -351,8 +314,7 @@ int HorizontalMax64(__m256i data, unsigned long long* p)
 		return li;
 	}
 	else {
-		if (p != 0)*p = hv;
+		if (p != 0) *p = hv;
 		return half + hi;
 	}
-
 }

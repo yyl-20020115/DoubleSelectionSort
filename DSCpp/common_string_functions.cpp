@@ -1,4 +1,75 @@
 #include "common_string_functions.h"
+#include <cstring>
+#include <memory>
+
+int SimpleSearch(const char* s, const char* cs)
+{
+	size_t haystack_length = strlen(s);
+	size_t needle_length = strlen(cs);
+	return SimpleSearch(s, cs, haystack_length, needle_length);
+}
+int SimpleSearch(const char* s, const char* cs, size_t haystack_length,size_t needle_length) {
+	size_t i = 0;
+	size_t j = 0;
+	while (i < haystack_length && j < needle_length)
+	{
+		if (s[i] == cs[j])
+		{
+			i++;
+			j++;
+		}
+		else
+		{
+			i = i - j + 1;
+			j = 0;
+		}
+	}
+
+	if (j >= needle_length)
+	{
+		return (int)(i - j);
+	}
+	else
+	{
+		return -1;
+	}
+	return 0;
+
+}
+int SimpleSearch(const wchar_t* s, const wchar_t* cs)
+{
+	size_t haystack_length = wcslen(s);
+	size_t needle_length = wcslen(cs);
+	return SimpleSearch(s, cs, haystack_length, needle_length);
+}
+int SimpleSearch(const wchar_t* s, const wchar_t* cs, size_t haystack_length, size_t needle_length) {
+	size_t i = 0;
+	size_t j = 0;
+	while (i < haystack_length && j < needle_length)
+	{
+		if (s[i] == cs[j])
+		{
+			i++;
+			j++;
+		}
+		else
+		{
+			i = i - j + 1;
+			j = 0;
+		}
+	}
+
+	if (j >= needle_length)
+	{
+		return (int)(i - j);
+	}
+	else
+	{
+		return -1;
+	}
+	return 0;
+
+}
 
 void BuildNext(char* str, int* next, int len)
 {

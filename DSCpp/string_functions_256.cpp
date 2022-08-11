@@ -1,5 +1,8 @@
 #include <intrin.h>
 #include "utils.h"
+#include <memory>
+#include "common_string_functions.h"
+#include "horizontal_max_min_256.h"
 size_t StringLength256(const char* s)		
 {
 	size_t len = 0;
@@ -262,13 +265,92 @@ int  StringIndexOf256(const char* s, const char* cs)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
-	size_t l1 = StringLength256(s);
-	size_t l2 = StringLength256(cs);
-	if (l1 == 0 && l2 == 0) return 0;
-	if (l1 == 0 && l2 > 0) return -1;
-	if (l1 < l2) return -1;
+	size_t haystack_length = StringLength256(s);
+	size_t needle_length = StringLength256(cs);
+	if (haystack_length == 0 && needle_length == 0) return 0;
+	if (haystack_length == 0 && needle_length > 0) return -1;
+	if (haystack_length < needle_length) return -1;
+	if (needle_length == 1) return StringIndexOf256(s, cs[0]);
+	//at least 2 chars
+	//l1>=l2
+	const int stride = sizeof(__m256i) / sizeof(*s);
+	//l1 and l2 should be all greater than stride
+	if (needle_length < stride || haystack_length < stride) {
+		return SimpleSearch(s, cs, haystack_length, needle_length);
+	}
+	int haystack_tail_length = haystack_length % stride;
+	int needle_tail_length = needle_length % stride;
 
-	//TODO:find needle in hystack
+
+	size_t i = 0;
+	size_t j = 0;
+
+	unsigned char needle_head_min = 0;
+	unsigned char haystack_part_min = 0;
+
+
+	__m128i needle_head = _mm_loadu_epi8(cs + j);
+
+	while (j <needle_length - stride && i < haystack_length - stride) {
+
+		__m128i haystack_part = _mm_loadu_epi8(s + i);
+
+		int haystack_part_min_index = HorizontalMin8(needle_head, &haystack_part_min);
+		int needle_head_min_index = HorizontalMin8(needle_head, &needle_head_min);
+
+		//min has higher priority
+		if (needle_head_min != haystack_part_min)
+		{
+			//then first char
+			__m128i mins = _mm_set1_epi8(cs[0]);
+			__mmask8 found = _mm_cmpeq_epi8_mask(needle_head, haystack_part);
+			unsigned long index = stride;
+			if (_BitScanForward(&index, found)) {
+				//found needle_min
+				if (i + index > haystack_length)break;
+				i += index;
+			}
+			else { 
+				i += stride;
+			}
+			continue;
+		}
+	
+		//min aligned 
+		{
+			int delta = haystack_part_min_index - needle_head_min_index;
+			if (i + delta < 0) {
+				i = haystack_part_min_index + 1;
+				if (i> haystack_length)break;
+				//do nothing
+			}
+			else //i+delta>=0
+			{
+				i += delta;
+				haystack_part = _mm_loadu_epi8(s + i);
+				__mmask8 m = _mm_cmpneq_epi8_mask(haystack_part, needle_head);
+				unsigned long index = 0;
+				if (_BitScanForward(&index, m)) 
+				{
+					//got first not equal
+					j = 0;
+					if (i + index > haystack_length)break;
+					i += index;
+				}
+				else //all equals
+				{
+					if (i + stride > haystack_length)break;
+					if (j + stride > needle_length)break;
+					i += stride;
+					j += stride;
+					haystack_part = _mm_loadu_epi8(s + i);
+					needle_head = _mm_loadu_epi8(cs + j);
+				}
+			}	
+		}
+		//TODO: final stage
+
+	}
 
 	return -1;
 }
@@ -276,13 +358,89 @@ int  StringIndexOf256(const wchar_t* s, const wchar_t* cs)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
-	size_t l1 = StringLength256(s);
-	size_t l2 = StringLength256(cs);
-	if (l1 == 0 && l2 == 0) return 0;
-	if (l1 == 0 && l2 > 0) return -1;
-	if (l1 < l2) return -1;
+	size_t haystack_length = StringLength256(s);
+	size_t needle_length = StringLength256(cs);
+	if (haystack_length == 0 && needle_length == 0) return 0;
+	if (haystack_length == 0 && needle_length > 0) return -1;
+	if (haystack_length < needle_length) return -1;
+	if (needle_length == 1) return StringIndexOf256(s, cs[0]);
+	//at least 2 chars
+	//l1>=l2
+	const int stride = sizeof(__m256i) / sizeof(*s);
+	//l1 and l2 should be all greater than stride
+	if (needle_length < stride || haystack_length < stride) {
+		return SimpleSearch(s, cs, haystack_length, needle_length);
+	}
+	int haystack_tail_length = haystack_length % stride;
+	int needle_tail_length = needle_length % stride;
 
-	//TODO:find needle in hystack
+	size_t i = 0;
+	size_t j = 0;
+
+	unsigned short needle_head_min = 0;
+	unsigned short haystack_part_min = 0;
+
+	__m256i needle_head = _mm256_loadu_epi16(cs + j);
+
+	while (j < needle_length - stride && i < haystack_length - stride) {
+
+		__m256i haystack_part = _mm256_loadu_epi16(s + i);
+
+		int haystack_part_min_index = HorizontalMin16(needle_head, &haystack_part_min);
+		int needle_head_min_index = HorizontalMin16(needle_head, &needle_head_min);
+
+		//min has higher priority
+		if (needle_head_min != haystack_part_min)
+		{
+			//then first char
+			__m256i mins = _mm256_set1_epi16(cs[0]);
+			__mmask8 found = _mm256_cmpeq_epi16_mask(needle_head, haystack_part);
+			unsigned long index = stride;
+			if (_BitScanForward(&index, found)) {
+				//found needle_min
+				if (i + index > haystack_length)break;
+				i += index;
+			}
+			else {
+				i += stride;
+			}
+			continue;
+		}
+
+		//min aligned 
+		{
+			int delta = haystack_part_min_index - needle_head_min_index;
+			if (i + delta < 0) {
+				i = haystack_part_min_index + 1;
+				if (i > haystack_length)break;
+				//do nothing
+			}
+			else //i+delta>=0
+			{
+				i += delta;
+				haystack_part = _mm256_loadu_epi16(s + i);
+				__mmask16 m = _mm256_cmpneq_epi16_mask(haystack_part, needle_head);
+				unsigned long index = 0;
+				if (_BitScanForward(&index, m))
+				{
+					//got first not equal
+					j = 0;
+					if (i + index > haystack_length)break;
+					i += index;
+				}
+				else //all equals
+				{
+					if (i + stride > haystack_length)break;
+					if (j + stride > needle_length)break;
+					i += stride;
+					j += stride;
+					haystack_part = _mm256_loadu_epi16(s + i);
+					needle_head = _mm256_loadu_epi16(cs + j);
+				}
+			}
+		}
+		//TODO: final stage
+	}
 
 	return -1;
 }

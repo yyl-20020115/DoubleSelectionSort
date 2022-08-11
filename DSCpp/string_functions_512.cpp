@@ -1,5 +1,6 @@
 #include <intrin.h>
 #include "string_functions_512.h"
+#include "string_functions_256.h"
 int StringCompare512(const char* s1, const char* s2)
 {
 	const int stride = sizeof(__m512i) / sizeof(*s1);
@@ -261,30 +262,10 @@ int StringIndexOf512(const wchar_t* s, const wchar_t c)
 
 int StringIndexOf512(const char* s, const char* cs)
 {
-	if (s == 0) return -1;
-	if (cs == 0) return -1;
-	size_t l1 = StringLength512(s);
-	size_t l2 = StringLength512(cs);
-	if (l1 == 0 && l2 == 0) return 0;
-	if (l1 == 0 && l2 > 0) return -1;
-	if (l1 < l2) return -1;
-
-	//TODO:find needle in hystack
-
-	return -1;
+	return StringIndexOf256(s,cs);
 }
 int StringIndexOf512(const wchar_t* s, const wchar_t* cs)
 {
-	if (s == 0) return -1;
-	if (cs == 0) return -1;
-	size_t l1 = StringLength512(s);
-	size_t l2 = StringLength512(cs);
-	if (l1 == 0 && l2 == 0) return 0;
-	if (l1 == 0 && l2 > 0) return -1;
-	if (l1 < l2) return -1;
-
-	//TODO:find needle in hystack
-
-	return -1;
+	return StringIndexOf256(s, cs);
 }
 

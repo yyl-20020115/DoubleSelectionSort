@@ -34,6 +34,17 @@ void _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m256i vind
 #ifndef _mm256_cmpeq_epi8_mask
 #define _mm256_cmpeq_epi8_mask(a,b) (__mmask8)_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi8(a, b)))
 #endif
+#ifndef _mm256_cmpneq_epi8_mask
+#define _mm256_cmpneq_epi8_mask(a,b) (__mmask8)~(_mm256_cmpeq_epi8_mask(a,b))
+#endif
+
+#ifndef _mm_cmpeq_epi8_mask
+#define _mm_cmpeq_epi8_mask(a,b) (__mmask8)_mm_movemask_ps(_mm_castsi128_ps(_mm_cmpeq_epi8(a, b)))
+#endif
+#ifndef _mm_cmpneq_epi8_mask
+#define _mm_cmpneq_epi8_mask(a,b) (__mmask8)~(_mm_cmpeq_epi8_mask(a,b))
+#endif
+
 #ifndef _mm256_cmpeq_epi16_mask
 #define _mm256_cmpeq_epi16_mask(a,b) (__mmask8)_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi16(b, a)))
 #endif
