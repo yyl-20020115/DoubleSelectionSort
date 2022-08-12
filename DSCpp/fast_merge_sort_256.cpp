@@ -15,13 +15,13 @@ bool FastMergeSort256(int data[], int n) {
 			if (gap == stride) {
 				//0 - stride
 				__m256i values = _mm256_loadu_epi32(data + i);
-				__m256i sorted = HorizontalSort32(values);
+				__m256i sorted = HorizontalSort32(values,(int*)0,(int*)0);
 
 				_mm256_storeu_epi32(data + i, sorted);
 
 				//stride - 2*stride
 				values = _mm256_loadu_epi32(data + i + stride);
-				sorted = HorizontalSort32(values);
+				sorted = HorizontalSort32(values, (int*)0, (int*)0);
 				_mm256_storeu_epi32(data + i + stride, sorted);
 			}
 

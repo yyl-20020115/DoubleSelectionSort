@@ -1,7 +1,7 @@
-#include "utils_512.h"
 #include <intrin.h>
-#include "horizontal_max_min_512.h"
 #include <memory>
+#include "utils_512.h"
+#include "horizontal_max_min_512.h"
 
 void Merge512(int data[], int n)
 {

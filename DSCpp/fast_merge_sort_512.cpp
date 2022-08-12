@@ -16,12 +16,12 @@ bool FastMergeSort512(int data[], int n) {
 			if (gap == stride) {
 				//0 - stride
 				__m512i values = _mm512_loadu_epi32(data + i);
-				__m512i sorted = HorizontalSort32(values);
+				__m512i sorted = HorizontalSort32(values, (int*)0, (int*)0);
 				_mm512_storeu_epi32(data + i, sorted);
 
 				//stride - 2*stride
 				values = _mm512_loadu_epi32(data + i + stride);
-				sorted = HorizontalSort32(values);
+				sorted = HorizontalSort32(values, (int*)0, (int*)0);
 				_mm512_storeu_epi32(data + i + stride, sorted);
 			}
 

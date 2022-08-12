@@ -2,9 +2,14 @@
 #include <intrin.h>
 //#define USE_AVX_512
 #ifndef USE_AVX_512
+
 #ifndef _mm256_cmplt_epi32_mask
 #define _mm256_cmplt_epi32_mask(a,b) (__mmask8)_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(b, a)))
 #endif
+#ifndef _mm_cmplt_epi8_mask
+#define _mm_cmplt_epi8_mask(a,b) (__mmask16)_mm_movemask_epi8(_mm_cmpgt_epi8(b, a))
+#endif
+
 #ifndef _mm256_cmpgt_epi32_mask
 #define _mm256_cmpgt_epi32_mask(a,b) (__mmask8)_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(a, b)))
 #endif
