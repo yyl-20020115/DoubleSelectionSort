@@ -70,34 +70,40 @@ bool FastQuickSortV512(int data[], __m512i low, __m512i high)
 		return true;
 	else
 	{
-		__m512i one = _mm512_set1_epi32(1);
+		__m512i _stride = _mm512_set1_epi32(stride);
 		__m512i i = low, j = high;
 		//k = data[i]
 		__m512i k = _mm512_i32gather_epi32(i, data, sizeof(int));
 		//while (i < j)
-		while (true)
+		__mmask16 i_j_lt0 = 0;
+		__mmask16 i_j_lt1 = 0;
+		__mmask16 i_j_lt2 = 0;
+		__mmask16 i_j_lt3 = 0;
+		__mmask16 i_j_lt4 = 0;
+		__mmask16 data_j_k_gt = 0;
+		__mmask16 data_i_k_lt = 0;
+		__m512i data_j = { 0 };
+		__m512i data_i = { 0 };
+		__m512i oldvalue = { 0 };
+		while (0 != (i_j_lt0 = _mm512_cmplt_epi32_mask(i, j)))
 		{
-			__mmask16 i_j_lt0 = _mm512_cmplt_epi32_mask(i, j);
-			if (i_j_lt0 == 0) break;
-			__mmask16 i_j_lt1 = 0;
-			__mmask16 i_j_lt2 = 0;
-			__mmask16 i_j_lt3 = 0;
-			__mmask16 i_j_lt4 = 0;
-			__mmask16 data_j_k_gt = 0;
-			__mmask16 data_i_k_lt = 0;
-			__m512i data_j = { 0 };
-			__m512i data_i = { 0 };
-
 			//while (i < j && data[j] > k)
 			while (true)
 			{
 				i_j_lt1 = _mm512_cmplt_epi32_mask(i, j);
-				if (i_j_lt1) break;
 				data_j = _mm512_i32gather_epi32(j, data, sizeof(int));
 				data_j_k_gt = _mm512_cmpgt_epi32_mask(data_j, k);
+				if (i_j_lt1 == 0) break;
 				if (data_j_k_gt == 0) break;
+
+				oldvalue = j;
 				//j--;
-				j = _mm512_mask_sub_epi32(j, i_j_lt0 & i_j_lt1 & data_j_k_gt, j, one);
+				if (0 == _mm512_cmpneq_epi32_mask(oldvalue,
+					j = _mm512_mask_sub_epi32(j, i_j_lt0 & i_j_lt1 & data_j_k_gt, j, _stride)))
+				{
+					j = oldvalue;
+					break;
+				}
 			}
 
 			//if (i < j)
@@ -105,42 +111,52 @@ bool FastQuickSortV512(int data[], __m512i low, __m512i high)
 				i_j_lt2 = _mm512_cmplt_epi32_mask(i, j);
 				//data[i] = data[j];
 				data_j = _mm512_i32gather_epi32(j, data, sizeof(int));
+				data_i = _mm512_i32gather_epi32(i, data, sizeof(int));
 				data_i = _mm512_mask_blend_epi32(i_j_lt0 & i_j_lt2, data_i, data_j);
-				_mm512_i32scatter_epi32(data, i, data_i, sizeof(int));
+				_mm512_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt2, i, data_i, sizeof(int));
 				//i++;
-				i = _mm512_mask_add_epi32(i, i_j_lt0 & i_j_lt2, i, one);
+				i = _mm512_mask_add_epi32(i, i_j_lt0 & i_j_lt2, i, _stride);
 			}
 
 			//while (i < j && data[i] < k)
 			while (true)
 			{
 				i_j_lt3 = _mm512_cmplt_epi32_mask(i, j);
-				if (i_j_lt3 == 0) break;
-				data_i = _mm512_i32gather_epi32(i, data, sizeof(int));
+				data_i = _mm512_i32gather_epi32(i, data,sizeof(int));
 				data_i_k_lt = _mm512_cmplt_epi32_mask(data_i, k);
-				if (data_i_k_lt == 0)break;
+
+				if (i_j_lt3 == 0) break;
+				if (data_i_k_lt == 0) break;
+
+				oldvalue = i;
 				//i++;
-				i = _mm512_mask_add_epi32(i, i_j_lt0 & i_j_lt3 & data_i_k_lt, i, one);
+				if (0 == _mm512_cmpneq_epi32_mask(oldvalue,
+					i = _mm512_mask_add_epi32(i, i_j_lt0 & i_j_lt3 & data_i_k_lt, i, _stride)))
+				{
+					i = oldvalue;
+					break;
+				}
 			}
 
 			//if (i < j)
+			//if(0!=(i_j_lt4 = _mm512_cmplt_epi32_mask(i, j)))
 			{
 				i_j_lt4 = _mm512_cmplt_epi32_mask(i, j);
 				//data[j] = data[i];
 				data_i = _mm512_i32gather_epi32(i, data, sizeof(int));
-				data_j = _mm512_mask_blend_epi32(i_j_lt0 & i_j_lt4, data_i, data_j);
-				_mm512_i32scatter_epi32(data, j, data_j, sizeof(int));
+				data_j = _mm512_i32gather_epi32(j, data, sizeof(int));
+				data_j = _mm512_mask_blend_epi32(i_j_lt0 & i_j_lt4, data_j, data_i);
+				_mm512_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt4, j, data_j, sizeof(int));
 				//j--;
-				j = _mm512_mask_sub_epi32(j, i_j_lt0 & i_j_lt4, j, one);
+				j = _mm512_mask_sub_epi32(j, i_j_lt0 & i_j_lt4, j, _stride);
 			}
 		}
-
 		//data[i] = k;
-		_mm512_i32scatter_epi32(data, i, k, sizeof(int));
+		_mm512_mask_i32scatter_epi32(data, ~0, i, k, sizeof(int));
 		//FastQuickSortP512(data, low, i - 1);
 		//FastQuickSortP512(data, i + 1, high);		
-		FastQuickSortV512(data, low, _mm512_sub_epi32(i, one));
-		FastQuickSortV512(data, _mm512_add_epi32(i, one), high);
+		FastQuickSortV512(data, low, _mm512_sub_epi32(i, _stride));
+		FastQuickSortV512(data, _mm512_add_epi32(i, _stride), high);
 	}
 	return true;
 
@@ -150,8 +166,16 @@ bool FastQuickSortV512(int data[], int n)
 {
 	const int stride = sizeof(__m512i) / sizeof(data[0]);
 	if (n < stride || n % stride > 0) return false;
+	__m512i low = _mm512_setr_epi32(
+		0, 1, 2, 3, 4, 5, 6, 7,
+		8, 9, 10, 11, 12, 13, 14, 15);
+	__m512i high = _mm512_setr_epi32(
+		n - 16, n - 15, n - 14, n - 13,
+		n - 12, n - 11, n - 10, n - 9,
+		n - 8, n - 7, n - 6, n - 5,
+		n - 4, n - 3, n - 2, n - 1);
 
-	if (FastQuickSortV512(data, _mm512_set1_epi32(0), _mm512_set1_epi32(n - 1)))
+	if (FastQuickSortV512(data, low, high))
 	{
 		Merge(data, n, stride);
 		return true;

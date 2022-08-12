@@ -1,5 +1,5 @@
 #include "common_sort.h"
-void QuickSortImpl(int* data, int low, int high)
+void QuickSort(int* data, int low, int high)
 {
 	if (low < high)
 	{
@@ -17,11 +17,11 @@ void QuickSortImpl(int* data, int low, int high)
 				data[j--] = data[i];
 		}
 		data[i] = k;
-		QuickSortImpl(data, low, i - 1);
-		QuickSortImpl(data, i + 1, high);
+		QuickSort(data, low, i - 1);
+		QuickSort(data, i + 1, high);
 	}
 }
 void QuickSort(int data[], int n)
 {
-	QuickSortImpl(data, 0, n - 1);
+	QuickSort(data, 0, n - 1);
 }
