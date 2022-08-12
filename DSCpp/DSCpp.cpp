@@ -716,7 +716,13 @@ int main()
 		int index = 0;
 		t0 = _Query_perf_counter();
 		{
-			index = StringIndexOf256(L"bacbababadababacambabacaddababacasdsd", L"ababaca");
+			const char* s1 = "bacbababadababacambabacaddababacasdsdtdsqstvewqwegewq";
+			const char* s2 = "ababacambabacaddababacasdsdtdsqs";
+			index = StringIndexOf256(s1, s2);
+			bool b = StringEqual256(s1 + index, s2, strlen(s2));
+			if (!b) {
+				printf("failed!\n");
+			}
 		}
 		printf("time:%lf(ms)\n",
 			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));

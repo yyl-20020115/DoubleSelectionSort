@@ -1,17 +1,16 @@
 #include <intrin.h>
 #include "string_functions_512.h"
 #include "string_functions_256.h"
-size_t StringLength512(const char* s)
+size_t StringLength512(const char* s, size_t maxlength)
 {
 	size_t len = 0;
 	if (s != 0) {
 		const int stride = sizeof(__m512i) / sizeof(*s);
 		unsigned long index = 0;
 		__m512i zero = _mm512_setzero_si512();
-		__m512i part = { 0 };
 		char* p = (char*)s;
-		while (len <= (~0LL) - stride) {
-			part = _mm512_loadu_epi8(p);
+		while (len <= maxlength - stride) {
+			__m512i part = _mm512_loadu_epi8(p);
 			__mmask64 result = _mm512_cmpeq_epi8_mask(part, zero);
 			if (_BitScanForward64(&index, result))
 			{
@@ -25,7 +24,7 @@ size_t StringLength512(const char* s)
 			}
 		}
 		if (*p != 0) {
-			for (p++; len++ < (~0LL); p++) {
+			for (p++; len++ < maxlength; p++) {
 				if (*p == 0)
 					break;
 			}
@@ -34,17 +33,16 @@ size_t StringLength512(const char* s)
 
 	return len;
 }
-size_t StringLength512(const wchar_t* s)
+size_t StringLength512(const wchar_t* s, size_t maxlength)
 {
 	size_t len = 0;
 	if (s != 0) {
 		const int stride = sizeof(__m512i) / sizeof(*s);
 		unsigned long index = 0;
 		__m512i zero = _mm512_setzero_si512();
-		__m512i part = { 0 };
 		wchar_t* p = (wchar_t*)s;
-		while (len <= (~0LL) - stride) {
-			part = _mm512_loadu_epi16(p);
+		while (len <= maxlength - stride) {
+			__m512i part = _mm512_loadu_epi16(p);
 			__mmask32 result = _mm512_cmpeq_epi16_mask(part, zero);
 			if (_BitScanForward(&index, result))
 			{
@@ -58,7 +56,7 @@ size_t StringLength512(const wchar_t* s)
 			}
 		}
 		if (*p != 0) {
-			for (p++; len++ < (~0LL); p++) {
+			for (p++; len++ < maxlength; p++) {
 				if (*p == 0)
 					break;
 			}
@@ -67,7 +65,7 @@ size_t StringLength512(const wchar_t* s)
 
 	return len;
 }
-int StringCompare512(const char* s1, const char* s2)
+int StringCompare512(const char* s1, const char* s2, size_t maxlength)
 {
 	const int stride = sizeof(__m512i) / sizeof(*s1);
 
@@ -81,10 +79,10 @@ int StringCompare512(const char* s1, const char* s2)
 		return -1;
 	}
 	else {
-		size_t l1 = StringLength512(s1);
-		size_t l2 = StringLength512(s2);
+		size_t l1 = StringLength512(s1, maxlength);
+		size_t l2 = StringLength512(s2, maxlength);
 		if (l1 == l2 && l2 == 0) return 0;
-		size_t ln = l1 > l2 ? l1 : l2;
+		size_t ln = l1 <= l2 ? l1 : l2;
 		unsigned long i = 0;
 		for (; i < ln; i += stride)
 		{
@@ -120,7 +118,7 @@ int StringCompare512(const char* s1, const char* s2)
 		return 0;//all the same
 	}
 }
-int StringCompare512(const wchar_t* s1, const wchar_t* s2)
+int StringCompare512(const wchar_t* s1, const wchar_t* s2, size_t maxlength)
 {
 	const int stride = sizeof(__m512i) / sizeof(*s1);
 
@@ -134,10 +132,10 @@ int StringCompare512(const wchar_t* s1, const wchar_t* s2)
 		return -1;
 	}
 	else {
-		size_t l1 = StringLength512(s1);
-		size_t l2 = StringLength512(s2);
+		size_t l1 = StringLength512(s1, maxlength);
+		size_t l2 = StringLength512(s2, maxlength);
 		if (l1 == l2 && l2 == 0) return 0;
-		size_t ln = l1 > l2 ? l1 : l2;
+		size_t ln = l1 <= l2 ? l1 : l2;
 		unsigned long i = 0;
 		for (; i < ln; i += stride)
 		{
@@ -174,7 +172,7 @@ int StringCompare512(const wchar_t* s1, const wchar_t* s2)
 		return 0;//all the same
 	}
 }
-bool StringEqual512(const char* s1, const char* s2)
+bool StringEqual512(const char* s1, const char* s2, size_t maxlength)
 {
 	const int stride = sizeof(__m512i) / sizeof(*s1);
 
@@ -188,8 +186,8 @@ bool StringEqual512(const char* s1, const char* s2)
 		return false;
 	}
 	else {
-		size_t l1 = StringLength512(s1);
-		size_t l2 = StringLength512(s2);
+		size_t l1 = StringLength512(s1, maxlength);
+		size_t l2 = StringLength512(s2, maxlength);
 		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
@@ -212,7 +210,7 @@ bool StringEqual512(const char* s1, const char* s2)
 		return true;//all the same
 	}
 }
-bool StringEqual512(const wchar_t* s1, const wchar_t* s2)
+bool StringEqual512(const wchar_t* s1, const wchar_t* s2, size_t maxlength)
 {
 	const int stride = sizeof(__m512i) / sizeof(*s1);
 
@@ -226,8 +224,8 @@ bool StringEqual512(const wchar_t* s1, const wchar_t* s2)
 		return false;
 	}
 	else {
-		size_t l1 = StringLength512(s1);
-		size_t l2 = StringLength512(s2);
+		size_t l1 = StringLength512(s1, maxlength);
+		size_t l2 = StringLength512(s2, maxlength);
 		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
@@ -249,14 +247,14 @@ bool StringEqual512(const wchar_t* s1, const wchar_t* s2)
 		return true;//all the same
 	}
 }
-int StringIndexOf512(const char* s, const char c)
+int StringIndexOf512(const char* s, const char c, size_t maxlength)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m512i) / sizeof(*s);
 		unsigned long index = 0;
 		__m512i _chs = _mm512_set1_epi8(c);
 		__m512i part = { 0 };
-		size_t length = StringLength512(s);
+		size_t length = StringLength512(s, maxlength);
 		int i = 0;
 		for (; i < length; i += stride)
 		{
@@ -275,14 +273,14 @@ int StringIndexOf512(const char* s, const char c)
 
 	return -1;
 }
-int StringIndexOf512(const wchar_t* s, const wchar_t c)
+int StringIndexOf512(const wchar_t* s, const wchar_t c, size_t maxlength)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m512i) / sizeof(*s);
 		unsigned long index = 0;
 		__m512i _chs = _mm512_set1_epi16(c);
 		__m512i part = { 0 };
-		size_t length = StringLength512(s);
+		size_t length = StringLength512(s, maxlength);
 		int i = 0;
 		for (; i < length; i += stride)
 		{
@@ -301,12 +299,12 @@ int StringIndexOf512(const wchar_t* s, const wchar_t c)
 
 	return -1;
 }
-int StringIndexOf512(const char* s, const char* cs)
+int StringIndexOf512(const char* s, const char* cs, size_t maxlength)
 {
-	return StringIndexOf256(s,cs);
+	return StringIndexOf256(s,cs, maxlength);
 }
-int StringIndexOf512(const wchar_t* s, const wchar_t* cs)
+int StringIndexOf512(const wchar_t* s, const wchar_t* cs, size_t maxlength)
 {
-	return StringIndexOf256(s, cs);
+	return StringIndexOf256(s, cs, maxlength);
 }
 

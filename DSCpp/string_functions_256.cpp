@@ -3,17 +3,17 @@
 #include <memory>
 #include "common_string_functions.h"
 #include "horizontal_max_min_256.h"
-size_t StringLength256(const char* s)		
+#include "string_functions_256.h"
+size_t StringLength256(const char* s, size_t maxlength)
 {
 	size_t len = 0;
 	if (s != 0) {
 		const int stride = sizeof(__m256i) / sizeof(*s);
 		unsigned long index = 0;
 		__m256i zero = _mm256_setzero_si256();
-		__m256i part = { 0 };
 		char* p = (char*)s;
-		while (len <= (~0LL) - stride) {
-			part = _mm256_loadu_epi8(p);
+		while (len <= maxlength - stride) {
+			__m256i part = _mm256_loadu_epi8(p);
 			__mmask32 result = _mm256_cmpeq_epi8_mask(part, zero);
 			if (_BitScanForward(&index, result))
 			{
@@ -27,26 +27,24 @@ size_t StringLength256(const char* s)
 			}
 		}
 		if (*p != 0) {
-			for (p++; len++ < (~0LL); p++) {
+			for (p++; len++ < maxlength; p++) {
 				if (*p == 0)
 					break;
 			}
 		}
 	}
-
 	return len;
 }
-size_t StringLength256(const wchar_t* s)					
+size_t StringLength256(const wchar_t* s, size_t maxlength)
 {
 	size_t len = 0;
 	if (s != 0) {
 		const int stride = sizeof(__m256i) / sizeof(*s);
 		unsigned long index = 0;
 		__m256i zero = _mm256_setzero_si256();
-		__m256i part = { 0 };
 		wchar_t* p = (wchar_t*)s;
-		while (len <= (~0LL) - stride) {
-			part = _mm256_loadu_epi16(p);
+		while (len <= maxlength - stride) {
+			__m256i part = _mm256_loadu_epi16(p);
 			__mmask16 result = _mm256_cmpeq_epi16_mask(part, zero);
 			if (_BitScanForward(&index, result))
 			{
@@ -60,7 +58,7 @@ size_t StringLength256(const wchar_t* s)
 			}
 		}
 		if (*p != 0) {
-			for (p++; len++ < (~0LL); p++) {
+			for (p++; len++ < maxlength; p++) {
 				if (*p == 0)
 					break;
 			}
@@ -70,7 +68,7 @@ size_t StringLength256(const wchar_t* s)
 	return len;
 }
 
-int  StringCompare256(const char* s1, const char* s2)
+int  StringCompare256(const char* s1, const char* s2, size_t max_length)
 {
 	const int stride = sizeof(__m256i) / sizeof(*s1);
 
@@ -84,10 +82,10 @@ int  StringCompare256(const char* s1, const char* s2)
 		return -1;
 	}
 	else {
-		size_t l1 = StringLength256(s1);
-		size_t l2 = StringLength256(s2);
+		size_t l1 = StringLength256(s1, max_length);
+		size_t l2 = StringLength256(s2, max_length);
 		if (l1 == l2 && l2 == 0) return 0;
-		size_t ln = l1 > l2 ? l1 : l2;
+		size_t ln = l1 <= l2 ? l1 : l2;
 		unsigned long i = 0;
 		for (; i < ln; i += stride)
 		{
@@ -123,7 +121,7 @@ int  StringCompare256(const char* s1, const char* s2)
 		return 0;//all the same
 	}
 }
-int  StringCompare256(const wchar_t* s1, const wchar_t* s2)
+int  StringCompare256(const wchar_t* s1, const wchar_t* s2, size_t max_length)
 {
 	const int stride = sizeof(__m256i) / sizeof(*s1);
 
@@ -137,8 +135,8 @@ int  StringCompare256(const wchar_t* s1, const wchar_t* s2)
 		return -1;
 	}
 	else {
-		size_t l1 = StringLength256(s1);
-		size_t l2 = StringLength256(s2);
+		size_t l1 = StringLength256(s1, max_length);
+		size_t l2 = StringLength256(s2, max_length);
 		if (l1 == l2 && l2 == 0) return 0;
 		size_t ln = l1 > l2 ? l1 : l2;
 		unsigned long i = 0;
@@ -178,7 +176,7 @@ int  StringCompare256(const wchar_t* s1, const wchar_t* s2)
 	}
 }
 
-bool StringEqual256(const char* s1, const char* s2)
+bool StringEqual256(const char* s1, const char* s2, size_t max_length)
 {
 	const int stride = sizeof(__m256i) / sizeof(*s1);
 
@@ -192,8 +190,8 @@ bool StringEqual256(const char* s1, const char* s2)
 		return false;
 	}
 	else {
-		size_t l1 = StringLength256(s1);
-		size_t l2 = StringLength256(s2);
+		size_t l1 = StringLength256(s1, max_length);
+		size_t l2 = StringLength256(s2, max_length);
 		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
@@ -215,7 +213,7 @@ bool StringEqual256(const char* s1, const char* s2)
 		return true;//all the same
 	}
 }
-bool StringEqual256(const wchar_t* s1, const wchar_t* s2)
+bool StringEqual256(const wchar_t* s1, const wchar_t* s2, size_t max_length)
 {
 	const int stride = sizeof(__m256i) / sizeof(*s1);
 
@@ -229,8 +227,8 @@ bool StringEqual256(const wchar_t* s1, const wchar_t* s2)
 		return false;
 	}
 	else {
-		size_t l1 = StringLength256(s1);
-		size_t l2 = StringLength256(s2);
+		size_t l1 = StringLength256(s1, max_length);
+		size_t l2 = StringLength256(s2, max_length);
 		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
@@ -252,14 +250,14 @@ bool StringEqual256(const wchar_t* s1, const wchar_t* s2)
 		return true;//all the same
 	}
 }
-int  StringIndexOf256(const char* s, const char c)
+int  StringIndexOf256(const char* s, const char c,size_t max_length)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m256i) / sizeof(*s);
 		unsigned long index = 0;
 		__m256i _chs = _mm256_set1_epi8(c);
 		__m256i part = { 0 };
-		size_t length = StringLength256(s);
+		size_t length = StringLength256(s, max_length);
 
 		int i = 0;
 		for (; i < length; i += stride)
@@ -279,14 +277,14 @@ int  StringIndexOf256(const char* s, const char c)
 
 	return -1;
 }
-int  StringIndexOf256(const wchar_t* s, const wchar_t c)
+int  StringIndexOf256(const wchar_t* s, const wchar_t c, size_t max_length)
 {
 	if (s != 0) {
 		const int stride = sizeof(__m256i) / sizeof(*s);
 		unsigned long index = 0;
 		__m256i _chs = _mm256_set1_epi16(c);
 		__m256i part = { 0 };
-		size_t length = StringLength256(s);
+		size_t length = StringLength256(s, max_length);
 		int i = 0;
 		for (; i < length; i += stride)
 		{
@@ -305,12 +303,12 @@ int  StringIndexOf256(const wchar_t* s, const wchar_t c)
 
 	return -1;
 }
-int  StringIndexOf256(const char* s, const char* cs)
+int  StringIndexOf256(const char* s, const char* cs, size_t maxlength)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
-	size_t haystack_length = StringLength256(s);
-	size_t needle_length = StringLength256(cs);
+	size_t haystack_length = StringLength256(s, maxlength);
+	size_t needle_length = StringLength256(cs, maxlength);
 	if (haystack_length == 0 && needle_length == 0) return 0;
 	if (haystack_length == 0 && needle_length > 0) return -1;
 	if (haystack_length < needle_length) return -1;
@@ -397,12 +395,12 @@ int  StringIndexOf256(const char* s, const char* cs)
 
 	return -1;
 }
-int  StringIndexOf256(const wchar_t* s, const wchar_t* cs)
+int  StringIndexOf256(const wchar_t* s, const wchar_t* cs, size_t maxlength)
 {
 	if (s == 0) return -1;
 	if (cs == 0) return -1;
-	size_t haystack_length = StringLength256(s);
-	size_t needle_length = StringLength256(cs);
+	size_t haystack_length = StringLength256(s, maxlength);
+	size_t needle_length = StringLength256(cs, maxlength);
 	if (haystack_length == 0 && needle_length == 0) return 0;
 	if (haystack_length == 0 && needle_length > 0) return -1;
 	if (haystack_length < needle_length) return -1;
