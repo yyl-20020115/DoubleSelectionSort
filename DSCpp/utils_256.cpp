@@ -50,6 +50,8 @@ void _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m256i vind
 
 void Merge256(int data[], int n)
 {
+#if 1
+#else
 	const int stride = sizeof(__m256i) / sizeof(int);
 	__m256i _stride = _mm256_set1_epi32(stride);
 	//merege:
@@ -59,8 +61,8 @@ void Merge256(int data[], int n)
 	
 	__m256i merge_indices = _mm256_loadu_epi32(merge_indices_buffer);
 
-	int* buffer = new int[n];
-	//memset(buffer, 0, n * sizeof(int));
+	int* buffer = new int[(n + stride)];
+	memset(buffer,~0, (n + stride) * sizeof(int));
 	for (int i = 0; i < n; i++)
 	{
 		__m256i current = _mm256_i32gather_epi32(data, merge_indices, sizeof(int));
@@ -72,4 +74,5 @@ void Merge256(int data[], int n)
 	}
 	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
 	delete[] buffer;
+#endif
 }

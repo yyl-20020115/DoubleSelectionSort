@@ -5,6 +5,8 @@
 
 void Merge512(int data[], int n)
 {
+#if 1
+#else
 	const int stride = sizeof(__m512i) / sizeof(int);
 	__m512i _stride = _mm512_set1_epi32(stride);
 	//merege:
@@ -14,7 +16,9 @@ void Merge512(int data[], int n)
 
 	__m512i merge_indices = _mm512_loadu_epi32(merge_indices_buffer);
 
-	int* buffer = new int[n];
+	int* buffer = new int[(n + stride)];
+	memset(buffer, ~0, (n + stride) * sizeof(int));
+
 	//memset(buffer, 0, n * sizeof(int));
 	for (int i = 0; i < n; i++)
 	{
@@ -27,4 +31,5 @@ void Merge512(int data[], int n)
 	}
 	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
 	delete[] buffer;
+#endif
 }
