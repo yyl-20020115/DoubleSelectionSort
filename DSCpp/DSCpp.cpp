@@ -7,7 +7,7 @@
 #include "fast_sort_512.h"
 #include "string_functions_256.h"
 
-const int DATA_SIZE =  32;// *16 * 16;
+const int DATA_SIZE =  128;// *16 * 16;
 const bool use_random = true;
 const bool show = false;
 const bool allow_common = true;
@@ -87,39 +87,10 @@ int data22[DATA_SIZE] = { 0 };
 int data23[DATA_SIZE] = { 0 };
 int data24[DATA_SIZE] = { 0 };
 int data25[DATA_SIZE] = { 0 };
+int data26[DATA_SIZE] = { 0 };
 
 int main()
 {
-#if 0
-	__m128i __data8 = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-	__m128i _data16 = _mm_setr_epi16(5, 3, 1, 4, 2, 9, 7, 6); //0 is last
-	__m256i _data32 = _mm256_setr_epi32(
-		0x00050055,
-		0x00240044,
-		0x0002ffff,
-		0x0002ffff,
-		0x00050033,
-		0x0002ffff,
-		0x00170077,
-		0x00030033
-	);
-
-	unsigned char r8 = 0;
-	unsigned short r16 = 0;
-	unsigned int r32 = 0;
-	unsigned long long r64 = 0;
-	int i = 0;
-
-	i = HorizontalMin8(__data8, &r8);
-	i = HorizontalMax8(__data8, &r8);
-	i = HorizontalMin16(_data16, &r16);
-	i = HorizontalMax16(_data16, &r16);
-	i = HorizontalMin32(_data32, &r32);
-	i = HorizontalMax32(_data32, &r32);
-	i = HorizontalMin64(_data32, &r64);
-	i = HorizontalMax64(_data32, &r64);
-#endif
-
 	long long t0;
 	//init
 	if (allow_common)
@@ -130,7 +101,8 @@ int main()
 			if (use_random) {
 				data0[i] = (int)((rand() / (double)RAND_MAX) * DATA_SIZE);
 			}
-			data25[i]
+			data26[i]
+				= data25[i]
 				= data24[i]
 				= data23[i]
 				= data22[i]
@@ -199,13 +171,13 @@ int main()
 		}
 		printf("\n\n");
 	}
-	//fast quick sort 256
+	//fast quick sort horizontal 256
 	if (allow_avx_256)
 	{
-		printf("for fast quick sort 256:\n");
+		printf("for fast quick sort horizontal 256:\n");
 		t0 = _Query_perf_counter();
 		{
-			FastQuickSort256(data5, DATA_SIZE);
+			FastQuickSortH256(data5, DATA_SIZE);
 		}
 		printf("time:%lf(ms)\n",
 			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
@@ -219,13 +191,13 @@ int main()
 		}
 		printf("\n\n");
 	}
-	//fast quick sort 512
+	//fast quick sort horizontal 512
 	if (allow_avx_512)
 	{
-		printf("for fast quick sort 512:\n");
+		printf("for fast quick sort horizontal 512:\n");
 		t0 = _Query_perf_counter();
 		{
-			FastQuickSort512(data6, DATA_SIZE);
+			FastQuickSortH512(data6, DATA_SIZE);
 		}
 		printf("time:%lf(ms)\n",
 			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));
@@ -239,6 +211,7 @@ int main()
 		}
 		printf("\n\n");
 	}
+
 	//odd even sort
 	if (false & allow_common)
 	{

@@ -145,7 +145,8 @@
     <ClCompile Include="fast_merge_sort_512.cpp" />
     <ClCompile Include="fast_odd_even_sort_256.cpp" />
     <ClCompile Include="fast_odd_even_sort_512.cpp" />
-    <ClCompile Include="fast_quick_sort.cpp" />
+    <ClCompile Include="fast_quick_sort_256.cpp" />
+    <ClCompile Include="fast_quick_sort_512.cpp" />
     <ClCompile Include="fast_single_selection_sort_256.cpp" />
     <ClCompile Include="fast_single_selection_sort_512.cpp" />
     <ClCompile Include="fast_sums_256.cpp" />

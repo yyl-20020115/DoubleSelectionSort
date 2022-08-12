@@ -2,7 +2,8 @@
 
 #include <intrin.h>
 
-bool FastQuickSort512(int data[], int n);
+bool FastQuickSortH512(int data[], int n);
+bool FastQuickSortV512(int data[], int n);
 bool FastOddEvenSort512(int data[], int n);
 bool FastHeapSort512(int data[], int n);
 bool FastMergeSort512(int data[], int n);

@@ -1,7 +1,8 @@
 #pragma once
 #include <intrin.h>
 
-bool FastQuickSort256(int data[], int n);
+bool FastQuickSortH256(int data[], int n);
+bool FastQuickSortV256(int data[], int n);
 bool FastOddEvenSort256(int data[], int n);
 bool FastHeapSort256(int data[], int n);
 bool FastMergeSort256(int data[], int n);

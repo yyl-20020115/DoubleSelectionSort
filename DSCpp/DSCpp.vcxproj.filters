@@ -27,7 +27,7 @@
     <ClCompile Include="quick_sort.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="fast_quick_sort.cpp">
+    <ClCompile Include="fast_quick_sort_256.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="odd_even_sort.cpp">
@@ -118,6 +118,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="single_selecton_sort.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="fast_quick_sort_512.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
