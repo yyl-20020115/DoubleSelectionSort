@@ -323,7 +323,6 @@ int  StringIndexOf256(const char* s, const char* cs, size_t maxlength)
 	int haystack_tail_length = haystack_length % stride;
 	int needle_tail_length = needle_length % stride;
 
-
 	size_t i = 0;
 	size_t j = 0;
 

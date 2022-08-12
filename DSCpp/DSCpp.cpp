@@ -12,7 +12,7 @@ const bool use_random = true;
 const bool show = false;
 const bool allow_common = true;
 const bool allow_avx_256 = true;
-const bool allow_avx_512 = true;
+const bool allow_avx_512 = false;
 
 //int data0[DATA_SIZE] = {0};
 
