@@ -716,7 +716,7 @@ int main()
 		int index = 0;
 		t0 = _Query_perf_counter();
 		{
-			index = StringIndexOf256("bacbababadababacambabacaddababacasdsd", "ababaca");
+			index = StringIndexOf256(L"bacbababadababacambabacaddababacasdsd", L"ababaca");
 		}
 		printf("time:%lf(ms)\n",
 			((_Query_perf_counter() - t0) / (double)_Query_perf_frequency() * 1000.0));

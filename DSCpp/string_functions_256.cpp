@@ -18,11 +18,18 @@ size_t StringLength256(const char* s)
 			if (_BitScanForward(&index, result))
 			{
 				len += index;
+				p += index;
 				break;
 			}
 			else {
 				len += stride;
 				p += stride;
+			}
+		}
+		if (*p != 0) {
+			for (p++; len++ < (~0LL); p++) {
+				if (*p == 0)
+					break;
 			}
 		}
 	}
@@ -44,11 +51,18 @@ size_t StringLength256(const wchar_t* s)
 			if (_BitScanForward(&index, result))
 			{
 				len += index;
+				p += index;
 				break;
 			}
 			else {
 				len += stride;
 				p += stride;
+			}
+		}
+		if (*p != 0) {
+			for (p++; len++ < (~0LL); p++) {
+				if (*p == 0)
+					break;
 			}
 		}
 	}
@@ -74,8 +88,8 @@ int  StringCompare256(const char* s1, const char* s2)
 		size_t l2 = StringLength256(s2);
 		if (l1 == l2 && l2 == 0) return 0;
 		size_t ln = l1 > l2 ? l1 : l2;
-
-		for (unsigned long i = 0; i < ln; i += stride)
+		unsigned long i = 0;
+		for (; i < ln; i += stride)
 		{
 			unsigned long igt = 0;
 			unsigned long ilt = 0;
@@ -100,6 +114,12 @@ int  StringCompare256(const char* s1, const char* s2)
 				return igt < ilt ? igt : ilt;
 			}
 		}
+		for (; i < ln; i++) {
+			if (s1[i] > s2[i])
+				return +1;
+			else if (s1[i] < s2[i])
+				return -1;
+		}
 		return 0;//all the same
 	}
 }
@@ -121,8 +141,8 @@ int  StringCompare256(const wchar_t* s1, const wchar_t* s2)
 		size_t l2 = StringLength256(s2);
 		if (l1 == l2 && l2 == 0) return 0;
 		size_t ln = l1 > l2 ? l1 : l2;
-
-		for (unsigned long i = 0; i < ln; i += stride)
+		unsigned long i = 0;
+		for (; i < ln; i += stride)
 		{
 			unsigned long igt = 0;
 			unsigned long ilt = 0;
@@ -147,6 +167,13 @@ int  StringCompare256(const wchar_t* s1, const wchar_t* s2)
 				return igt < ilt ? igt : ilt;
 			}
 		}
+		for (; i < ln; i++) {
+			if (s1[i] > s2[i])
+				return +1;
+			else if (s1[i] < s2[i])
+				return -1;
+		}
+
 		return 0;//all the same
 	}
 }
@@ -170,8 +197,8 @@ bool StringEqual256(const char* s1, const char* s2)
 		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
-
-		for (unsigned long i = 0; i < ln; i += stride)
+		unsigned long i = 0;
+		for (; i < ln; i += stride)
 		{
 			unsigned long iet = 0;
 			unsigned long most = (unsigned long)(i + stride < ln ? stride : ln - i);
@@ -180,6 +207,10 @@ bool StringEqual256(const char* s1, const char* s2)
 			__mmask32 neqt = _mm256_cmpneq_epi8_mask(part1, part2);
 			unsigned char bet = _BitScanForward(&iet, neqt);
 			if (bet && iet < most) return false;
+		}
+		for (; i < ln; i++) {
+			if (s1[i] != s2[i])
+				return false;
 		}
 		return true;//all the same
 	}
@@ -203,8 +234,8 @@ bool StringEqual256(const wchar_t* s1, const wchar_t* s2)
 		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
-
-		for (unsigned long i = 0; i < ln; i += stride)
+		unsigned long i = 0;
+		for (; i < ln; i += stride)
 		{
 			unsigned long iet = 0;
 			unsigned long most = (unsigned long)(i + stride < ln ? stride : ln - i);
@@ -213,6 +244,10 @@ bool StringEqual256(const wchar_t* s1, const wchar_t* s2)
 			__mmask16 neqt = _mm256_cmpneq_epi16_mask(part1, part2);
 			unsigned char bet = _BitScanForward(&iet, neqt);
 			if (bet && iet < most) return false;
+		}
+		for (; i < ln; i++) {
+			if (s1[i] != s2[i])
+				return false;
 		}
 		return true;//all the same
 	}
@@ -226,7 +261,8 @@ int  StringIndexOf256(const char* s, const char c)
 		__m256i part = { 0 };
 		size_t length = StringLength256(s);
 
-		for (int i = 0; i < length; i += stride)
+		int i = 0;
+		for (; i < length; i += stride)
 		{
 			part = _mm256_loadu_epi8(s + i);
 			__mmask32 result = _mm256_cmpeq_epi8_mask(part, _chs);
@@ -234,6 +270,10 @@ int  StringIndexOf256(const char* s, const char c)
 			{
 				return i + index;
 			}
+		}
+		for (; i < length; i++) {
+			if (s[i] == c)
+				return i;
 		}
 	}
 
@@ -247,8 +287,8 @@ int  StringIndexOf256(const wchar_t* s, const wchar_t c)
 		__m256i _chs = _mm256_set1_epi16(c);
 		__m256i part = { 0 };
 		size_t length = StringLength256(s);
-
-		for (int i = 0; i < length; i += stride)
+		int i = 0;
+		for (; i < length; i += stride)
 		{
 			part = _mm256_loadu_epi16(s + i);
 			__mmask16 result = _mm256_cmpeq_epi16_mask(part, _chs);
@@ -256,6 +296,10 @@ int  StringIndexOf256(const wchar_t* s, const wchar_t c)
 			{
 				return i + index;
 			}
+		}
+		for (; i < length; i++) {
+			if (s[i] == c)
+				return i;
 		}
 	}
 
@@ -287,7 +331,6 @@ int  StringIndexOf256(const char* s, const char* cs)
 
 	unsigned char needle_head_min = 0;
 	unsigned char haystack_part_min = 0;
-
 
 	__m128i needle_head = _mm_loadu_epi8(cs + j);
 
@@ -394,7 +437,7 @@ int  StringIndexOf256(const wchar_t* s, const wchar_t* cs)
 		{
 			//then first char
 			__m256i mins = _mm256_set1_epi16(cs[0]);
-			__mmask8 found = _mm256_cmpeq_epi16_mask(needle_head, haystack_part);
+			__mmask16 found = _mm256_cmpeq_epi16_mask(needle_head, haystack_part);
 			unsigned long index = stride;
 			if (_BitScanForward(&index, found)) {
 				//found needle_min
