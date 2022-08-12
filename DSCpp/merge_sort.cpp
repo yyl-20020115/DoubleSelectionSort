@@ -40,7 +40,7 @@ void NonRecursiveMergeSort(int data[], int n)
 	int* buffer = new int[n];
 	int gap = 1;
 	while (gap < n) {
-		for (int i = 0; i < n; i += 2 * gap) {
+		for (int i = 0; i < n; i += (gap << 1)) {
 			int left = i;
 			int mid = left + gap;
 			int right = mid + gap;
@@ -51,7 +51,7 @@ void NonRecursiveMergeSort(int data[], int n)
 			MergeData(data, left, mid, right, buffer);
 		}
 		memcpy_s(data, n * sizeof(data[0]), buffer, n * sizeof(data[0]));
-		gap *= 2;
+		gap <<= 1;
 	}
 	delete[] buffer;
 }
@@ -96,7 +96,7 @@ void NonRecursiveMergeSort(unsigned int data[], int n)
 	unsigned int* buffer = new unsigned int[n];
 	int gap = 1;
 	while (gap < n) {
-		for (int i = 0; i < n; i += 2 * gap) {
+		for (int i = 0; i < n; i += (gap << 1)) {
 			int left = i;
 			int mid = left + gap;
 			int right = mid + gap;
@@ -107,7 +107,7 @@ void NonRecursiveMergeSort(unsigned int data[], int n)
 			MergeData(data, left, mid, right, buffer);
 		}
 		memcpy_s(data, n * sizeof(data[0]), buffer, n * sizeof(data[0]));
-		gap *= 2;
+		gap <<= 1;
 	}
 	delete[] buffer;
 }

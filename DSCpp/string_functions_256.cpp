@@ -83,7 +83,7 @@ int  StringCompare256(const char* s1, const char* s2, size_t max_length)
 	}
 	else {
 		size_t l1 = StringLength256(s1, max_length);
-		size_t l2 = StringLength256(s2, max_length);
+		size_t l2 = StringLength256(s2);
 		if (l1 == l2 && l2 == 0) return 0;
 		size_t ln = l1 <= l2 ? l1 : l2;
 		unsigned long i = 0;
@@ -136,7 +136,7 @@ int  StringCompare256(const wchar_t* s1, const wchar_t* s2, size_t max_length)
 	}
 	else {
 		size_t l1 = StringLength256(s1, max_length);
-		size_t l2 = StringLength256(s2, max_length);
+		size_t l2 = StringLength256(s2);
 		if (l1 == l2 && l2 == 0) return 0;
 		size_t ln = l1 > l2 ? l1 : l2;
 		unsigned long i = 0;
@@ -191,9 +191,9 @@ bool StringEqual256(const char* s1, const char* s2, size_t max_length)
 	}
 	else {
 		size_t l1 = StringLength256(s1, max_length);
-		size_t l2 = StringLength256(s2, max_length);
+		size_t l2 = StringLength256(s2);
 		if (l1 == l2 && l2 == 0) return true;
-		if (l1 != l2) return false;
+		if (l1 <  l2) return false;
 		size_t ln = l1;
 		unsigned long i = 0;
 		for (; i < ln; i += stride)
@@ -204,9 +204,10 @@ bool StringEqual256(const char* s1, const char* s2, size_t max_length)
 			__m256i part2 = _mm256_loadu_epi8(s2 + i);
 			__mmask32 neqt = _mm256_cmpneq_epi8_mask(part1, part2);
 			unsigned char bet = _BitScanForward(&iet, neqt);
-			if (bet && iet < most) return false;
+			if (bet && iet < most) break;
 		}
 		for (; i < ln; i++) {
+			if (s2[i] == 0) break;
 			if (s1[i] != s2[i])
 				return false;
 		}
@@ -228,7 +229,7 @@ bool StringEqual256(const wchar_t* s1, const wchar_t* s2, size_t max_length)
 	}
 	else {
 		size_t l1 = StringLength256(s1, max_length);
-		size_t l2 = StringLength256(s2, max_length);
+		size_t l2 = StringLength256(s2);
 		if (l1 == l2 && l2 == 0) return true;
 		if (l1 != l2) return false;
 		size_t ln = l1;
@@ -241,9 +242,10 @@ bool StringEqual256(const wchar_t* s1, const wchar_t* s2, size_t max_length)
 			__m256i part2 = _mm256_loadu_epi16(s2 + i);
 			__mmask16 neqt = _mm256_cmpneq_epi16_mask(part1, part2);
 			unsigned char bet = _BitScanForward(&iet, neqt);
-			if (bet && iet < most) return false;
+			if (bet && iet < most) break;
 		}
 		for (; i < ln; i++) {
+			if (s2[i] == 0) break;
 			if (s1[i] != s2[i])
 				return false;
 		}
@@ -330,12 +332,12 @@ int  StringIndexOf256(const char* s, const char* cs, size_t maxlength)
 	unsigned char haystack_part_min = 0;
 
 	__m128i needle_head = _mm_loadu_epi8(cs + j);
-
+	__m128i haystack_part = { 0 };
 	while (j <needle_length - stride && i < haystack_length - stride) {
 
-		__m128i haystack_part = _mm_loadu_epi8(s + i);
+		haystack_part = _mm_loadu_epi8(s + i);
 
-		int haystack_part_min_index = HorizontalMin8(needle_head, &haystack_part_min);
+		int haystack_part_min_index = HorizontalMin8(haystack_part, &haystack_part_min);
 		int needle_head_min_index = HorizontalMin8(needle_head, &needle_head_min);
 
 		//min has higher priority
@@ -361,7 +363,7 @@ int  StringIndexOf256(const char* s, const char* cs, size_t maxlength)
 			int delta = haystack_part_min_index - needle_head_min_index;
 			if (i + delta < 0) {
 				i = haystack_part_min_index + 1;
-				if (i> haystack_length)break;
+				if (i > haystack_length)break;
 				//do nothing
 			}
 			else //i+delta>=0
@@ -374,6 +376,7 @@ int  StringIndexOf256(const char* s, const char* cs, size_t maxlength)
 				{
 					//got first not equal
 					j = 0;
+					needle_head = _mm_loadu_epi8(cs + j);
 					if (i + index > haystack_length)break;
 					i += index;
 				}
@@ -383,16 +386,22 @@ int  StringIndexOf256(const char* s, const char* cs, size_t maxlength)
 					if (j + stride > needle_length)break;
 					i += stride;
 					j += stride;
-					haystack_part = _mm_loadu_epi8(s + i);
 					needle_head = _mm_loadu_epi8(cs + j);
 				}
 			}	
 		}
-		//TODO: final stage
-
 	}
-
-	return -1;
+	while (j < needle_length && i < haystack_length)
+	{
+		if (s[i++] != cs[j++]) {
+			return -1;
+		}
+	}
+	if (j >= needle_length)
+	{
+		return (int)(i - j);
+	}
+	return (int)(i - j);
 }
 int  StringIndexOf256(const wchar_t* s, const wchar_t* cs, size_t maxlength)
 {
@@ -420,21 +429,21 @@ int  StringIndexOf256(const wchar_t* s, const wchar_t* cs, size_t maxlength)
 	unsigned short needle_head_min = 0;
 	unsigned short haystack_part_min = 0;
 
-	__m256i needle_head = _mm256_loadu_epi16(cs + j);
-
+	__m128i needle_head = _mm_loadu_epi16(cs + j);
+	__m128i haystack_part = { 0 };
 	while (j < needle_length - stride && i < haystack_length - stride) {
 
-		__m256i haystack_part = _mm256_loadu_epi16(s + i);
+		haystack_part = _mm_loadu_epi16(s + i);
 
-		int haystack_part_min_index = HorizontalMin16(needle_head, &haystack_part_min);
+		int haystack_part_min_index = HorizontalMin16(haystack_part, &haystack_part_min);
 		int needle_head_min_index = HorizontalMin16(needle_head, &needle_head_min);
 
 		//min has higher priority
 		if (needle_head_min != haystack_part_min)
 		{
 			//then first char
-			__m256i mins = _mm256_set1_epi16(cs[0]);
-			__mmask16 found = _mm256_cmpeq_epi16_mask(needle_head, haystack_part);
+			__m128i mins = _mm_set1_epi16(cs[0]);
+			__mmask8 found = _mm_cmpeq_epi8_mask(needle_head, haystack_part);
 			unsigned long index = stride;
 			if (_BitScanForward(&index, found)) {
 				//found needle_min
@@ -458,13 +467,14 @@ int  StringIndexOf256(const wchar_t* s, const wchar_t* cs, size_t maxlength)
 			else //i+delta>=0
 			{
 				i += delta;
-				haystack_part = _mm256_loadu_epi16(s + i);
-				__mmask16 m = _mm256_cmpneq_epi16_mask(haystack_part, needle_head);
+				haystack_part = _mm_loadu_epi16(s + i);
+				__mmask8 m = _mm_cmpneq_epi16_mask(haystack_part, needle_head);
 				unsigned long index = 0;
 				if (_BitScanForward(&index, m))
 				{
 					//got first not equal
 					j = 0;
+					needle_head = _mm_loadu_epi16(cs + j);
 					if (i + index > haystack_length)break;
 					i += index;
 				}
@@ -474,13 +484,20 @@ int  StringIndexOf256(const wchar_t* s, const wchar_t* cs, size_t maxlength)
 					if (j + stride > needle_length)break;
 					i += stride;
 					j += stride;
-					haystack_part = _mm256_loadu_epi16(s + i);
-					needle_head = _mm256_loadu_epi16(cs + j);
+					needle_head = _mm_loadu_epi16(cs + j);
 				}
 			}
 		}
-		//TODO: final stage
 	}
-
-	return -1;
+	while (j < needle_length && i < haystack_length)
+	{
+		if (s[i++] != cs[j++]) {
+			return -1;
+		}
+	}
+	if (j >= needle_length)
+	{
+		return (int)(i - j);
+	}
+	return (int)(i - j);
 }

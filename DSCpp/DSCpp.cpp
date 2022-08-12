@@ -538,7 +538,7 @@ int main()
 		printf("\n\n");
 	}
 	//bubble sort
-	if (allow_common)
+	if (false && allow_common)
 	{
 		printf("for bubble sort:\n");
 		t0 = _Query_perf_counter();
@@ -734,9 +734,9 @@ int main()
 		t0 = _Query_perf_counter();
 		{
 			const char* s1 = "bacbababadababacambabacaddababacasdsdtdsqstvewqwegewq";
-			const char* s2 = "ababacambabacaddababacasdsdtdsqs";
+			const char* s2 =		   "ababacambabacaddababacasdsdtdsqst";
 			index = StringIndexOf256(s1, s2);
-			bool b = StringEqual256(s1 + index, s2, strlen(s2));
+			bool b = StringEqual256(s1 +index, s2);
 			if (!b) {
 				printf("failed!\n");
 			}
