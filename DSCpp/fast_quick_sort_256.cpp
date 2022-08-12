@@ -112,8 +112,8 @@ bool FastQuickSortV256(int data[], __m256i low, __m256i high)
 			{
 				i_j_lt2 = _mm256_cmplt_epi32_mask(i, j);
 				//data[i] = data[j];
-				data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
-				data_i = _mm256_i32gather_epi32(data, i, sizeof(int));
+				//data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
+				//data_i = _mm256_i32gather_epi32(data, i, sizeof(int));
 				data_i = _mm256_mask_blend_epi32(i_j_lt0 & i_j_lt2, data_i, data_j);
 				_mm256_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt2, i, data_i, sizeof(int));
 				//i++;
@@ -145,8 +145,8 @@ bool FastQuickSortV256(int data[], __m256i low, __m256i high)
 			{
 				i_j_lt4 = _mm256_cmplt_epi32_mask(i, j);
 				//data[j] = data[i];
-				data_i = _mm256_i32gather_epi32(data, i, sizeof(int));
-				data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
+				//data_i = _mm256_i32gather_epi32(data, i, sizeof(int));
+				//data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
 				data_j = _mm256_mask_blend_epi32(i_j_lt0 & i_j_lt4, data_j, data_i);
 				_mm256_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt4, j, data_j, sizeof(int));
 				//j--;

@@ -7,7 +7,7 @@
 #include "fast_sort_512.h"
 #include "string_functions_256.h"
 
-const int DATA_SIZE =  128;// *16 * 16;
+const int DATA_SIZE =  65536;// *16 * 16;
 const bool use_random = true;
 const bool show = false;
 const bool allow_common = true;
