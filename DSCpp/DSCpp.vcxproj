@@ -165,6 +165,8 @@
     <ClCompile Include="string_functions_256.cpp" />
     <ClCompile Include="string_functions_512.cpp" />
     <ClCompile Include="utils.cpp" />
+    <ClCompile Include="utils_256.cpp" />
+    <ClCompile Include="utils_512.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common_sort.h" />
@@ -181,6 +183,8 @@
     <ClInclude Include="string_functions_256.h" />
     <ClInclude Include="string_functions_512.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="utils_256.h" />
+    <ClInclude Include="utils_512.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

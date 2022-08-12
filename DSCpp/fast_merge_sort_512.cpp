@@ -1,6 +1,6 @@
 #include <memory>
-#include <intrin.h>
 #include "horizontal_sort_512.h"
+#include "utils_512.h"
 
 bool FastMergeSort512(int data[], int n) {
 	const int stride = sizeof(__m512i) / sizeof(data[0]);

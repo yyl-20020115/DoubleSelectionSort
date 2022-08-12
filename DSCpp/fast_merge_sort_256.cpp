@@ -1,6 +1,6 @@
-#include <intrin.h>
 #include <memory>
 #include "horizontal_sort_256.h"
+#include "utils_256.h"
 bool FastMergeSort256(int data[], int n) {
 	const int stride = sizeof(__m256i) / sizeof(data[0]);
 	const int dual = stride << 1;

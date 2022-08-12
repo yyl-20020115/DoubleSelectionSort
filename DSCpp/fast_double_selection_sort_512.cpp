@@ -1,4 +1,6 @@
 #include "utils.h"
+#include "utils_512.h"
+#include <intrin.h>
 bool FastDoubleSelectionSort512(int data[], int n)
 {
 	const int stride = sizeof(__m512i) / sizeof(data[0]);

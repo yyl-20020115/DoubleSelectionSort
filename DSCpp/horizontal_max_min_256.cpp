@@ -1,5 +1,5 @@
-#include "horizontal_max_min_256.h"
 #include "utils.h"
+#include "utils_256.h"
 
 int HorizontalMin16(__m128i data, unsigned short* p) {
 	//SSE4.1

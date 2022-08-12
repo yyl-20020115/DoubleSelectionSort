@@ -1,5 +1,5 @@
-#include <intrin.h>
 #include "utils.h"
+#include "utils_256.h"
 void HeapAdjust256(int data[], int p, int n, bool swap)
 {
 	const int stride = sizeof(__m256i) / sizeof(data[0]);

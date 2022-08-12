@@ -1,7 +1,6 @@
 #include "utils.h"
 void BubbleSort(int data[], int n) 
 {
-
 	bool swapped = false;
 	for (int i = 0; i < n; i++) {
 		swapped = false;

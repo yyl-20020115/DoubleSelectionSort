@@ -1,6 +1,7 @@
 #include "horizontal_max_min_512.h"
 #include "horizontal_max_min_256.h"
 #include "utils.h"
+#include "utils_512.h"
 
 int HorizontalMin16(__m512i data, unsigned short* p) {
 	const int stride = sizeof(data) / sizeof(*p);

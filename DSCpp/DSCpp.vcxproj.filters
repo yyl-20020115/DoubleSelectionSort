@@ -33,7 +33,7 @@
     <ClCompile Include="odd_even_sort.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="utils.cpp">
+    <ClCompile Include="utils_256.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="fast_odd_even_sort_256.cpp">
@@ -123,6 +123,12 @@
     <ClCompile Include="fast_quick_sort_512.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="utils_512.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="do_print.h">
@@ -165,6 +171,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="horizontal_sort_512.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="utils_256.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="utils_512.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

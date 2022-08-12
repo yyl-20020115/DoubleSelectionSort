@@ -1,6 +1,5 @@
-#include <intrin.h>
 #include <memory>
-
+#include "utils_256.h"
 bool FastOddEvenSort256(int data[], int n)
 {
 	const int size = sizeof(__m256i) / sizeof(int);

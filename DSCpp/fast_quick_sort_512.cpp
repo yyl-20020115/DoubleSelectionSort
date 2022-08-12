@@ -1,5 +1,6 @@
 #include "fast_sort_512.h"
 #include "utils.h"
+#include "utils_512.h"
 bool FastQuickSortH512(int data[], int low, int high) {
 	const int stride = sizeof(__m512i) / sizeof(data[0]);
 	if (low < high)

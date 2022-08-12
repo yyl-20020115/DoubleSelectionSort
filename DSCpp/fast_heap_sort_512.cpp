@@ -1,5 +1,6 @@
-#include <intrin.h>
 #include "utils.h"
+#include "utils_512.h"
+#include <intrin.h>
 
 void HeapAdjust512(int data[], int p, int n, bool swap)
 {

@@ -1,5 +1,5 @@
-#include <intrin.h>
 #include "utils.h"
+#include "utils_256.h"
 #include <memory>
 #include "common_string_functions.h"
 #include "horizontal_max_min_256.h"

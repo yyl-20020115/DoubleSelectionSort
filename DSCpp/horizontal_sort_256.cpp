@@ -1,5 +1,6 @@
 #include "horizontal_sort_256.h"
 #include "horizontal_max_min_256.h"
+#include "utils_256.h"
 __m128i HorizontalSort8(__m128i data, unsigned char* pmin, unsigned char* pmax) {
 	const int stride = sizeof(data) / sizeof(*pmin);
 	__m128i result = { 0 };

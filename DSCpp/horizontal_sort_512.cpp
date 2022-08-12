@@ -1,5 +1,5 @@
-#include <intrin.h>
 #include "horizontal_max_min_512.h"
+#include "utils_512.h"
 __m512i HorizontalSort8(__m512i data, unsigned char* pmin, unsigned char* pmax) {
 	const int stride = sizeof(data) / sizeof(*pmin);
 	__m512i result = { 0 };

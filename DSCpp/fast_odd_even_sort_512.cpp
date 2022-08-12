@@ -1,5 +1,7 @@
+#include "utils_512.h"
 #include <intrin.h>
 #include <memory>
+
 bool FastOddEvenSort512(int data[], int n)
 {
 	const int size = sizeof(__m512i) / sizeof(int);

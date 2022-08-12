@@ -1,4 +1,4 @@
-#include <intrin.h>
+#include "utils_256.h"
 int FastSum256(int data[], size_t size)
 {
 	const int stride = sizeof(__m256i) / sizeof(data[0]);

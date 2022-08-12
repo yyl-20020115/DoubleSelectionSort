@@ -1,6 +1,8 @@
-#include <intrin.h>
 #include "string_functions_512.h"
 #include "string_functions_256.h"
+#include "utils_512.h"
+#include <intrin.h>
+
 size_t StringLength512(const char* s, size_t maxlength)
 {
 	size_t len = 0;

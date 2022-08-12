@@ -1,4 +1,6 @@
+#include "utils_512.h"
 #include <intrin.h>
+
 int FastSum512(int data[], size_t size)
 {
 	const int stride = sizeof(__m512i) / sizeof(data[0]);

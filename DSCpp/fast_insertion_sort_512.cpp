@@ -1,4 +1,7 @@
 #include "utils.h"
+#include "utils_512.h"
+#include <intrin.h>
+
 bool FastInsertionSort512(int data[], int n) {
 	const int stride = sizeof(__m512i) / sizeof(data[0]);
 	if (data == 0 || n < stride || n % stride > 0)

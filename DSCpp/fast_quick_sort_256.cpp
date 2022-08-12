@@ -1,5 +1,5 @@
-#include "fast_sort_256.h"
 #include "utils.h"
+#include "utils_256.h"
 
 //Fast Quick Sort:
 //  using AVX512 long stride to achive a faster speed than common quick sort

@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "utils_256.h"
 bool FastInsertionSort256(int data[], int n) {
 	const int stride = sizeof(__m256i) / sizeof(data[0]);
 	if (data == 0 || n < stride || n % stride > 0)
