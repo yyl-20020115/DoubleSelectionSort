@@ -332,7 +332,7 @@ int HorizontalMax64(__m256i data, unsigned long long* p)
 }
 
 int HorizontalMin16(__m128i data, short* p) {
-	__m128i signs = _mm_set1_epi16(0x8000);
+	__m128i signs = _mm_set1_epi64x(0x8000800080008000LL);
 	__m128i signs_of_data = _mm_and_si128(data, signs);
 	__mmask8 has_minus_numbers = _mm_movemask_epi8(_mm_cmpeq_epi16(signs_of_data, _mm_set1_epi16(0)));
 	//partial_mask is not accurate, but enough

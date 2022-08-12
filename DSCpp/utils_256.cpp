@@ -1,6 +1,6 @@
-#include "utils.h"
 #include <memory>
 #include <intrin.h>
+#include "utils.h"
 #include "utils_256.h"
 #include "horizontal_max_min_256.h"
 
