@@ -50,9 +50,7 @@ void _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m256i vind
 
 void Merge256(int data[], int n)
 {
-#if 1
-#else
-	const int stride = sizeof(__m256i) / sizeof(int);
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
 	__m256i _stride = _mm256_set1_epi32(stride);
 	//merege:
 	int merge_indices_buffer[stride]{};
@@ -62,17 +60,70 @@ void Merge256(int data[], int n)
 	__m256i merge_indices = _mm256_loadu_epi32(merge_indices_buffer);
 
 	int* buffer = new int[(n + stride)];
-	memset(buffer,~0, (n + stride) * sizeof(int));
+
+	__m256i maxes = _mm256_loadu_epi32(data + 0);
+	
+	for (int i = stride; i < n; i += stride) {
+		maxes = _mm256_max_epi32(maxes, _mm256_loadu_epi32(data + i));
+	}
+	int max = 0;
+	HorizontalMax32(maxes, &max);
+	memset(buffer,~0, (n) * sizeof(data[0]));
+	_mm256_storeu_epi32(buffer + n, _mm256_set1_epi32(max));
+	__m256i ns = _mm256_set1_epi32(n);
 	for (int i = 0; i < n; i++)
 	{
-		__m256i current = _mm256_i32gather_epi32(data, merge_indices, sizeof(int));
+		__m256i current = _mm256_i32gather_epi32(data, merge_indices, sizeof(data[0]));
 		unsigned int min_value = 0;
 		int min_index = HorizontalMin32(current,&min_value);
 		__mmask8 mask = (1 << min_index);
-		merge_indices = _mm256_mask_add_epi32(merge_indices, mask, merge_indices, _stride);
+		__mmask8 lt = _mm256_cmplt_epi32_mask(merge_indices, ns);
+
+		merge_indices = _mm256_mask_add_epi32(
+			merge_indices, mask&lt, merge_indices, _stride);
+
 		buffer[i] = min_value;
 	}
-	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
+	memcpy_s(data, n * sizeof(data[0]), buffer, n * sizeof(data[0]));
 	delete[] buffer;
-#endif
+}
+
+void Merge256(unsigned int data[], int n)
+{
+	const int stride = sizeof(__m256i) / sizeof(data[0]);
+	__m256i _stride = _mm256_set1_epi32(stride);
+	//merege:
+	int merge_indices_buffer[stride]{};
+	for (int i = 0; i < stride; i++)
+		merge_indices_buffer[i] = i;
+
+	__m256i merge_indices = _mm256_loadu_epi32(merge_indices_buffer);
+
+	unsigned int* buffer = new unsigned int[(n + stride)];
+
+	__m256i maxes = _mm256_loadu_epi32(data + 0);
+
+	for (int i = stride; i < n; i += stride) {
+		maxes = _mm256_max_epi32(maxes, _mm256_loadu_epi32(data + i));
+	}
+	unsigned int max = 0;
+	HorizontalMax32(maxes, &max);
+	memset(buffer, ~0, (n) * sizeof(data[0]));
+	_mm256_storeu_epi32(buffer + n, _mm256_set1_epi32(max));
+	__m256i ns = _mm256_set1_epi32(n);
+	for (int i = 0; i < n; i++)
+	{
+		__m256i current = _mm256_i32gather_epi32((int*)data, merge_indices, sizeof(data[0]));
+		unsigned int min_value = 0;
+		int min_index = HorizontalMin32(current, &min_value);
+		__mmask8 mask = (1 << min_index);
+		__mmask8 lt = _mm256_cmplt_epi32_mask(merge_indices, ns);
+
+		merge_indices = _mm256_mask_add_epi32(
+			merge_indices, mask & lt, merge_indices, _stride);
+
+		buffer[i] = min_value;
+	}
+	memcpy_s(data, n * sizeof(data[0]), buffer, n * sizeof(data[0]));
+	delete[] buffer;
 }

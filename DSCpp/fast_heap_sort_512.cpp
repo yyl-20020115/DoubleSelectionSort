@@ -17,7 +17,7 @@ void HeapAdjust512(int data[], int p, int n, bool swap)
 		(p + 4), (p + 5), (p + 6), (p + 7),
 		(p + 0 + 8), (p + 1 + 8), (p + 2 + 8), (p + 3 + 8),
 		(p + 4 + 8), (p + 5 + 8), (p + 6 + 8), (p + 7 + 8));
-	__m512i temporary = _mm512_i32gather_epi32(positions, data, sizeof(int));
+	__m512i temporary = _mm512_i32gather_epi32(positions, data, sizeof(data[0]));
 	__m512i child_positions =
 		_mm512_add_epi32(positions, _mm512_set1_epi32(p + stride));
 	do {
@@ -40,11 +40,11 @@ void HeapAdjust512(int data[], int p, int n, bool swap)
 			child_positions_plus_one, _mm512_set1_epi32(n));
 
 		//data_at_child_positions = data[child_positions]
-		__m512i data_at_child_positions = _mm512_i32gather_epi32(child_positions, data, sizeof(int));
+		__m512i data_at_child_positions = _mm512_i32gather_epi32(child_positions, data, sizeof(data[0]));
 		//data_at_child_positions_plus_one = data[child_positions_plus_one]
 		data_at_child_positions_plus_one = _mm512_mask_blend_epi32(
 			while_lt & maxpos_lt, data_at_child_positions,
-			_mm512_i32gather_epi32(child_positions_plus_one, data, sizeof(int)));
+			_mm512_i32gather_epi32(child_positions_plus_one, data, sizeof(data[0])));
 
 		//data[child_positions]<data[child_positions + 1]
 		__mmask16 maxdata_lt = _mm512_cmplt_epi32_mask(
@@ -60,10 +60,10 @@ void HeapAdjust512(int data[], int p, int n, bool swap)
 
 		//if (data[position] < data[child_positions]) {
 		// data[position]
-		data_at_child_positions = _mm512_i32gather_epi32(child_positions, data, sizeof(int));
+		data_at_child_positions = _mm512_i32gather_epi32(child_positions, data, sizeof(data[0]));
 
 		//data[child_positions]
-		data_at_positions = _mm512_i32gather_epi32(positions, data, sizeof(int));
+		data_at_positions = _mm512_i32gather_epi32(positions, data, sizeof(data[0]));
 
 		//data[positions] < data[child_positions]
 		__mmask16 maxdata_lt2 = _mm512_cmplt_epi32_mask(data_at_positions, data_at_child_positions);
@@ -73,7 +73,7 @@ void HeapAdjust512(int data[], int p, int n, bool swap)
 		//data[positions] = data[childpos]
 		data_at_positions = _mm512_mask_blend_epi32(while_lt & maxdata_lt2, data_at_positions, data_at_child_positions);
 		//save them
-		_mm512_mask_i32scatter_epi32(data, while_lt & maxdata_lt2, positions, data_at_positions, sizeof(int));
+		_mm512_mask_i32scatter_epi32(data, while_lt & maxdata_lt2, positions, data_at_positions, sizeof(data[0]));
 
 		//positions = child_positions;
 		positions = _mm512_mask_blend_epi32(while_lt & maxdata_lt2, positions, child_positions);
@@ -89,7 +89,7 @@ void HeapAdjust512(int data[], int p, int n, bool swap)
 			_mm512_set1_epi32((stride)));
 
 		//save them
-		_mm512_mask_i32scatter_epi32(data, while_lt, positions, temporary, sizeof(int));
+		_mm512_mask_i32scatter_epi32(data, while_lt, positions, temporary, sizeof(data[0]));
 
 	} while (true);
 }
@@ -124,7 +124,7 @@ void HeapAdjust512(unsigned int data[], int p, int n, bool swap)
 		(p + 4), (p + 5), (p + 6), (p + 7),
 		(p + 0 + 8), (p + 1 + 8), (p + 2 + 8), (p + 3 + 8),
 		(p + 4 + 8), (p + 5 + 8), (p + 6 + 8), (p + 7 + 8));
-	__m512i temporary = _mm512_i32gather_epi32(positions, data, sizeof(int));
+	__m512i temporary = _mm512_i32gather_epi32(positions, data, sizeof(data[0]));
 	__m512i child_positions =
 		_mm512_add_epi32(positions, _mm512_set1_epi32(p + stride));
 	do {
@@ -147,11 +147,11 @@ void HeapAdjust512(unsigned int data[], int p, int n, bool swap)
 			child_positions_plus_one, _mm512_set1_epi32(n));
 
 		//data_at_child_positions = data[child_positions]
-		__m512i data_at_child_positions = _mm512_i32gather_epi32(child_positions, data, sizeof(int));
+		__m512i data_at_child_positions = _mm512_i32gather_epi32(child_positions, data, sizeof(data[0]));
 		//data_at_child_positions_plus_one = data[child_positions_plus_one]
 		data_at_child_positions_plus_one = _mm512_mask_blend_epi32(
 			while_lt & maxpos_lt, data_at_child_positions,
-			_mm512_i32gather_epi32(child_positions_plus_one, data, sizeof(int)));
+			_mm512_i32gather_epi32(child_positions_plus_one, data, sizeof(data[0])));
 
 		//data[child_positions]<data[child_positions + 1]
 		__mmask16 maxdata_lt = _mm512_cmplt_epi32_mask(
@@ -167,10 +167,10 @@ void HeapAdjust512(unsigned int data[], int p, int n, bool swap)
 
 		//if (data[position] < data[child_positions]) {
 		// data[position]
-		data_at_child_positions = _mm512_i32gather_epi32(child_positions, data, sizeof(int));
+		data_at_child_positions = _mm512_i32gather_epi32(child_positions, data, sizeof(data[0]));
 
 		//data[child_positions]
-		data_at_positions = _mm512_i32gather_epi32(positions, data, sizeof(int));
+		data_at_positions = _mm512_i32gather_epi32(positions, data, sizeof(data[0]));
 
 		//data[positions] < data[child_positions]
 		__mmask16 maxdata_lt2 = _mm512_cmplt_epi32_mask(data_at_positions, data_at_child_positions);
@@ -180,7 +180,7 @@ void HeapAdjust512(unsigned int data[], int p, int n, bool swap)
 		//data[positions] = data[childpos]
 		data_at_positions = _mm512_mask_blend_epi32(while_lt & maxdata_lt2, data_at_positions, data_at_child_positions);
 		//save them
-		_mm512_mask_i32scatter_epi32(data, while_lt & maxdata_lt2, positions, data_at_positions, sizeof(int));
+		_mm512_mask_i32scatter_epi32(data, while_lt & maxdata_lt2, positions, data_at_positions, sizeof(data[0]));
 
 		//positions = child_positions;
 		positions = _mm512_mask_blend_epi32(while_lt & maxdata_lt2, positions, child_positions);
@@ -196,7 +196,7 @@ void HeapAdjust512(unsigned int data[], int p, int n, bool swap)
 			_mm512_set1_epi32((stride)));
 
 		//save them
-		_mm512_mask_i32scatter_epi32(data, while_lt, positions, temporary, sizeof(int));
+		_mm512_mask_i32scatter_epi32(data, while_lt, positions, temporary, sizeof(data[0]));
 
 	} while (true);
 }

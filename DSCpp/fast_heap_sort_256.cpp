@@ -14,7 +14,7 @@ void HeapAdjust256(int data[], int p, int n, bool swap)
 	__m256i positions = _mm256_setr_epi32(
 		(p + 0), (p + 1), (p + 2), (p + 3),
 		(p + 4), (p + 5), (p + 6), (p + 7));
-	__m256i temporary = _mm256_i32gather_epi32(data, positions, sizeof(int));
+	__m256i temporary = _mm256_i32gather_epi32(data, positions, sizeof(data[0]));
 	__m256i child_positions =
 		_mm256_add_epi32(positions, _mm256_set1_epi32(p + stride));
 	do {
@@ -37,11 +37,11 @@ void HeapAdjust256(int data[], int p, int n, bool swap)
 			child_positions_plus_one, _mm256_set1_epi32(n));
 
 		//data_at_child_positions = data[child_positions]
-		__m256i data_at_child_positions = _mm256_i32gather_epi32(data, child_positions, sizeof(int));
+		__m256i data_at_child_positions = _mm256_i32gather_epi32(data, child_positions, sizeof(data[0]));
 		//data_at_child_positions_plus_one = data[child_positions_plus_one]
 		data_at_child_positions_plus_one = _mm256_mask_blend_epi32(
 			while_lt & maxpos_lt, data_at_child_positions,
-			_mm256_i32gather_epi32(data, child_positions_plus_one, sizeof(int)));
+			_mm256_i32gather_epi32(data, child_positions_plus_one, sizeof(data[0])));
 
 		//data[child_positions]<data[child_positions + 1]
 		__mmask8 maxdata_lt = _mm256_cmplt_epi32_mask(
@@ -57,10 +57,10 @@ void HeapAdjust256(int data[], int p, int n, bool swap)
 
 		//if (data[position] < data[child_positions]) {
 		// data[position]
-		data_at_child_positions = _mm256_i32gather_epi32(data, child_positions, sizeof(int));
+		data_at_child_positions = _mm256_i32gather_epi32(data, child_positions, sizeof(data[0]));
 
 		//data[child_positions]
-		data_at_positions = _mm256_i32gather_epi32(data, positions, sizeof(int));
+		data_at_positions = _mm256_i32gather_epi32(data, positions, sizeof(data[0]));
 
 		//data[positions] < data[child_positions]
 		__mmask8 maxdata_lt2 = _mm256_cmplt_epi32_mask(data_at_positions, data_at_child_positions);
@@ -86,7 +86,7 @@ void HeapAdjust256(int data[], int p, int n, bool swap)
 			_mm256_set1_epi32((stride)));
 
 		//save them
-		_mm256_mask_i32scatter_epi32(data, while_lt, positions, temporary, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, while_lt, positions, temporary, sizeof(data[0]));
 
 	} while (true);
 }
@@ -119,7 +119,7 @@ void HeapAdjust256(unsigned int data[], int p, int n, bool swap)
 	__m256i positions = _mm256_setr_epi32(
 		(p + 0), (p + 1), (p + 2), (p + 3),
 		(p + 4), (p + 5), (p + 6), (p + 7));
-	__m256i temporary = _mm256_i32gather_epi32((int*)data, positions, sizeof(int));
+	__m256i temporary = _mm256_i32gather_epi32((int*)data, positions, sizeof(data[0]));
 	__m256i child_positions =
 		_mm256_add_epi32(positions, _mm256_set1_epi32(p + stride));
 	do {
@@ -142,11 +142,11 @@ void HeapAdjust256(unsigned int data[], int p, int n, bool swap)
 			child_positions_plus_one, _mm256_set1_epi32(n));
 
 		//data_at_child_positions = data[child_positions]
-		__m256i data_at_child_positions = _mm256_i32gather_epi32((int*)data, child_positions, sizeof(int));
+		__m256i data_at_child_positions = _mm256_i32gather_epi32((int*)data, child_positions, sizeof(data[0]));
 		//data_at_child_positions_plus_one = data[child_positions_plus_one]
 		data_at_child_positions_plus_one = _mm256_mask_blend_epi32(
 			while_lt & maxpos_lt, data_at_child_positions,
-			_mm256_i32gather_epi32((int*)data, child_positions_plus_one, sizeof(int)));
+			_mm256_i32gather_epi32((int*)data, child_positions_plus_one, sizeof(data[0])));
 
 		//data[child_positions]<data[child_positions + 1]
 		__mmask8 maxdata_lt = _mm256_cmplt_epi32_mask(
@@ -162,10 +162,10 @@ void HeapAdjust256(unsigned int data[], int p, int n, bool swap)
 
 		//if (data[position] < data[child_positions]) {
 		// data[position]
-		data_at_child_positions = _mm256_i32gather_epi32((int*)data, child_positions, sizeof(int));
+		data_at_child_positions = _mm256_i32gather_epi32((int*)data, child_positions, sizeof(data[0]));
 
 		//data[child_positions]
-		data_at_positions = _mm256_i32gather_epi32((int*)data, positions, sizeof(int));
+		data_at_positions = _mm256_i32gather_epi32((int*)data, positions, sizeof(data[0]));
 
 		//data[positions] < data[child_positions]
 		__mmask8 maxdata_lt2 = _mm256_cmplt_epi32_mask(data_at_positions, data_at_child_positions);
@@ -175,7 +175,7 @@ void HeapAdjust256(unsigned int data[], int p, int n, bool swap)
 		//data[positions] = data[childpos]
 		data_at_positions = _mm256_mask_blend_epi32(while_lt & maxdata_lt2, data_at_positions, data_at_child_positions);
 		//save them
-		_mm256_mask_i32scatter_epi32(data, while_lt & maxdata_lt2, positions, data_at_positions, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, while_lt & maxdata_lt2, positions, data_at_positions, sizeof(data[0]));
 
 		//positions = child_positions;
 		positions = _mm256_mask_blend_epi32(while_lt & maxdata_lt2, positions, child_positions);
@@ -191,7 +191,7 @@ void HeapAdjust256(unsigned int data[], int p, int n, bool swap)
 			_mm256_set1_epi32((stride)));
 
 		//save them
-		_mm256_mask_i32scatter_epi32(data, while_lt, positions, temporary, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, while_lt, positions, temporary, sizeof(data[0]));
 
 	} while (true);
 }

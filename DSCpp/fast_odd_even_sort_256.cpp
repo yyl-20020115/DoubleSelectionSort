@@ -2,10 +2,10 @@
 #include "utils_256.h"
 bool FastOddEvenSort256(int data[], int n)
 {
-	const int size = sizeof(__m256i) / sizeof(int);
+	const int size = sizeof(__m256i) / sizeof(data[0]);
 	const int last = size - 1;
 	const int half = size >> 1;
-	const int skip = sizeof(int);
+	const int skip = sizeof(data[0]);
 	const int dbls = (size << 1);
 	const int quad = dbls << 1;
 
@@ -13,7 +13,7 @@ bool FastOddEvenSort256(int data[], int n)
 		return false;
 	}
 	int* buffer = new int[(size_t)((long long)n + 1)];
-	memcpy_s(buffer, (n) * sizeof(int), data, (n) * sizeof(int));
+	memcpy_s(buffer, (n) * sizeof(data[0]), data, (n) * sizeof(data[0]));
 	buffer[n] = 0;
 
 	__m256i zeros = _mm256_setzero_si256();
@@ -83,7 +83,7 @@ bool FastOddEvenSort256(int data[], int n)
 		}
 	}
 
-	memcpy_s(data, (n) * sizeof(int), buffer, (n) * sizeof(int));
+	memcpy_s(data, (n) * sizeof(data[0]), buffer, (n) * sizeof(data[0]));
 
 	delete[] buffer;
 
@@ -91,10 +91,10 @@ bool FastOddEvenSort256(int data[], int n)
 }
 bool FastOddEvenSort256(unsigned int data[], int n)
 {
-	const int size = sizeof(__m256i) / sizeof(int);
+	const int size = sizeof(__m256i) / sizeof(data[0]);
 	const int last = size - 1;
 	const int half = size >> 1;
-	const int skip = sizeof(int);
+	const int skip = sizeof(data[0]);
 	const int dbls = (size << 1);
 	const int quad = dbls << 1;
 
@@ -102,7 +102,7 @@ bool FastOddEvenSort256(unsigned int data[], int n)
 		return false;
 	}
 	unsigned int* buffer = new unsigned int[(size_t)((long long)n + 1)];
-	memcpy_s(buffer, (n) * sizeof(int), data, (n) * sizeof(int));
+	memcpy_s(buffer, (n) * sizeof(data[0]), data, (n) * sizeof(data[0]));
 	buffer[n] = 0;
 
 	__m256i zeros = _mm256_setzero_si256();
@@ -172,7 +172,7 @@ bool FastOddEvenSort256(unsigned int data[], int n)
 		}
 	}
 
-	memcpy_s(data, (n) * sizeof(int), buffer, (n) * sizeof(int));
+	memcpy_s(data, (n) * sizeof(data[0]), buffer, (n) * sizeof(data[0]));
 
 	delete[] buffer;
 

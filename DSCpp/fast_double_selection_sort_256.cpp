@@ -18,8 +18,8 @@ bool FastDoubleSelectionSort256(int data[], int n)
 		__m256i minIndex = staIndex;
 		__m256i maxIndex = endIndex;
 
-		__m256i staValue = _mm256_i32gather_epi32(data, staIndex, sizeof(int));
-		__m256i endValue = _mm256_i32gather_epi32(data, endIndex, sizeof(int));
+		__m256i staValue = _mm256_i32gather_epi32(data, staIndex, sizeof(data[0]));
+		__m256i endValue = _mm256_i32gather_epi32(data, endIndex, sizeof(data[0]));
 		__m256i minValue = staValue;
 		__m256i maxValue = endValue;
 
@@ -28,7 +28,7 @@ bool FastDoubleSelectionSort256(int data[], int n)
 			__mmask8 le = _mm256_cmple_epi32_mask(j, endIndex);
 			if (le == 0) break;//any 1, still le
 
-			__m256i data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
+			__m256i data_j = _mm256_i32gather_epi32(data, j, sizeof(data[0]));
 
 			__mmask8 ltj = _mm256_cmplt_epi32_mask(data_j, minValue);
 
@@ -48,8 +48,8 @@ bool FastDoubleSelectionSort256(int data[], int n)
 		//data[staIndex] = minValue;
 		//data[endIndex] = maxValue;
 
-		_mm256_mask_i32scatter_epi32(data, ~0, staIndex, minValue, sizeof(int));
-		_mm256_mask_i32scatter_epi32(data, ~0, endIndex, maxValue, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, ~0, staIndex, minValue, sizeof(data[0]));
+		_mm256_mask_i32scatter_epi32(data, ~0, endIndex, maxValue, sizeof(data[0]));
 
 		__mmask8 max_sta = _mm256_cmpeq_epi32_mask(maxIndex, staIndex);
 		__mmask8 min_end = _mm256_cmpeq_epi32_mask(minIndex, endIndex);
@@ -61,15 +61,15 @@ bool FastDoubleSelectionSort256(int data[], int n)
 		//if (!both && both_not)
 		//	data[minIndex] = staValue;
 		//	data[maxIndex] = endValue;
-		_mm256_mask_i32scatter_epi32(data, (~both) & both_not, minIndex, staValue, sizeof(int));
-		_mm256_mask_i32scatter_epi32(data, (~both) & both_not, maxIndex, endValue, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, (~both) & both_not, minIndex, staValue, sizeof(data[0]));
+		_mm256_mask_i32scatter_epi32(data, (~both) & both_not, maxIndex, endValue, sizeof(data[0]));
 
 		//if (!both && maxIndex == staIndex)
 		//data[minIndex] = endValue;
-		_mm256_mask_i32scatter_epi32(data, (~both) & max_sta, minIndex, endValue, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, (~both) & max_sta, minIndex, endValue, sizeof(data[0]));
 		//if (!both && minIndex == endIndex)
 		//data[maxIndex] = staValue;
-		_mm256_mask_i32scatter_epi32(data, (~both) & min_end, maxIndex, staValue, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, (~both) & min_end, maxIndex, staValue, sizeof(data[0]));
 
 		//next
 		staIndex = _mm256_mask_add_epi32(staIndex, lt, staIndex, _mm256_set1_epi32(stride));
@@ -95,8 +95,8 @@ bool FastDoubleSelectionSort256(unsigned int data[], int n)
 		__m256i minIndex = staIndex;
 		__m256i maxIndex = endIndex;
 
-		__m256i staValue = _mm256_i32gather_epi32((int*)data, staIndex, sizeof(int));
-		__m256i endValue = _mm256_i32gather_epi32((int*)data, endIndex, sizeof(int));
+		__m256i staValue = _mm256_i32gather_epi32((int*)data, staIndex, sizeof(data[0]));
+		__m256i endValue = _mm256_i32gather_epi32((int*)data, endIndex, sizeof(data[0]));
 		__m256i minValue = staValue;
 		__m256i maxValue = endValue;
 
@@ -105,7 +105,7 @@ bool FastDoubleSelectionSort256(unsigned int data[], int n)
 			__mmask8 le = _mm256_cmple_epi32_mask(j, endIndex);
 			if (le == 0) break;//any 1, still le
 
-			__m256i data_j = _mm256_i32gather_epi32((int*)data, j, sizeof(int));
+			__m256i data_j = _mm256_i32gather_epi32((int*)data, j, sizeof(data[0]));
 
 			__mmask8 ltj = _mm256_cmplt_epi32_mask(data_j, minValue);
 
@@ -125,8 +125,8 @@ bool FastDoubleSelectionSort256(unsigned int data[], int n)
 		//data[staIndex] = minValue;
 		//data[endIndex] = maxValue;
 
-		_mm256_mask_i32scatter_epi32(data, ~0, staIndex, minValue, sizeof(int));
-		_mm256_mask_i32scatter_epi32(data, ~0, endIndex, maxValue, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, ~0, staIndex, minValue, sizeof(data[0]));
+		_mm256_mask_i32scatter_epi32(data, ~0, endIndex, maxValue, sizeof(data[0]));
 
 		__mmask8 max_sta = _mm256_cmpeq_epi32_mask(maxIndex, staIndex);
 		__mmask8 min_end = _mm256_cmpeq_epi32_mask(minIndex, endIndex);
@@ -138,15 +138,15 @@ bool FastDoubleSelectionSort256(unsigned int data[], int n)
 		//if (!both && both_not)
 		//	data[minIndex] = staValue;
 		//	data[maxIndex] = endValue;
-		_mm256_mask_i32scatter_epi32(data, (~both) & both_not, minIndex, staValue, sizeof(int));
-		_mm256_mask_i32scatter_epi32(data, (~both) & both_not, maxIndex, endValue, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, (~both) & both_not, minIndex, staValue, sizeof(data[0]));
+		_mm256_mask_i32scatter_epi32(data, (~both) & both_not, maxIndex, endValue, sizeof(data[0]));
 
 		//if (!both && maxIndex == staIndex)
 		//data[minIndex] = endValue;
-		_mm256_mask_i32scatter_epi32(data, (~both) & max_sta, minIndex, endValue, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, (~both) & max_sta, minIndex, endValue, sizeof(data[0]));
 		//if (!both && minIndex == endIndex)
 		//data[maxIndex] = staValue;
-		_mm256_mask_i32scatter_epi32(data, (~both) & min_end, maxIndex, staValue, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, (~both) & min_end, maxIndex, staValue, sizeof(data[0]));
 
 		//next
 		staIndex = _mm256_mask_add_epi32(staIndex, lt, staIndex, _mm256_set1_epi32(stride));

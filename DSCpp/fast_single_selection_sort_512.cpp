@@ -31,7 +31,7 @@ bool FastSingleSelectionSort512(int data[], int n) {
 			__mmask16 mask = _mm512_cmplt_epi32_mask(values, minValues);
 			minIndices = _mm512_mask_blend_epi32(mask, minIndices, j_Index);
 
-			minValues = _mm512_i32gather_epi32(minIndices, data, sizeof(int));
+			minValues = _mm512_i32gather_epi32(minIndices, data, sizeof(data[0]));
 		}
 		long mask = _mm512_cmpneq_epi32_mask(
 			minIndices, i_Indices);
@@ -77,7 +77,7 @@ bool FastSingleSelectionSort512(unsigned int data[], int n) {
 			__mmask16 mask = _mm512_cmplt_epi32_mask(values, minValues);
 			minIndices = _mm512_mask_blend_epi32(mask, minIndices, j_Index);
 
-			minValues = _mm512_i32gather_epi32(minIndices, data, sizeof(int));
+			minValues = _mm512_i32gather_epi32(minIndices, data, sizeof(data[0]));
 		}
 		long mask = _mm512_cmpneq_epi32_mask(
 			minIndices, i_Indices);

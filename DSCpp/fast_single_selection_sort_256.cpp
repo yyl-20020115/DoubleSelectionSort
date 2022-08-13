@@ -26,7 +26,7 @@ bool FastSingleSelectionSort256(int data[], int n) {
 
 			minIndices = _mm256_mask_blend_epi32(mask, minIndices, j_Indices);
 
-			minValues = _mm256_i32gather_epi32(data, minIndices, sizeof(int));
+			minValues = _mm256_i32gather_epi32(data, minIndices, sizeof(data[0]));
 		}
 		long mask = _mm256_cmpneq_epi32_mask(minIndices, i_Indices);
 
@@ -69,7 +69,7 @@ bool FastSingleSelectionSort256(unsigned int data[], int n) {
 
 			minIndices = _mm256_mask_blend_epi32(mask, minIndices, j_Indices);
 
-			minValues = _mm256_i32gather_epi32((int*)data, minIndices, sizeof(int));
+			minValues = _mm256_i32gather_epi32((int*)data, minIndices, sizeof(data[0]));
 		}
 		long mask = _mm256_cmpneq_epi32_mask(minIndices, i_Indices);
 

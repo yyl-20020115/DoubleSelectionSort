@@ -47,14 +47,14 @@ bool FastMergeSort256(int data[], int n) {
 			}
 			int delta = end1 - begin1;
 			if (delta > 0) {
-				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin1, sizeof(int) * delta);
+				memcpy_s(buffer + left_index, sizeof(data[0]) * delta, data + begin1, sizeof(data[0]) * delta);
 				left_index += delta;
 			}
 			delta = end2 - begin2;
 			if (delta > 0) {
-				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin2, sizeof(int) * delta);
+				memcpy_s(buffer + left_index, sizeof(data[0]) * delta, data + begin2, sizeof(data[0]) * delta);
 			}
-			memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
+			memcpy_s(data + i, sizeof(data[0]) * gap2, buffer + i, sizeof(data[0]) * gap2);
 		}
 		gap = gap2;
 	}
@@ -106,14 +106,14 @@ bool FastMergeSort256(unsigned int data[], int n) {
 			}
 			int delta = end1 - begin1;
 			if (delta > 0) {
-				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin1, sizeof(int) * delta);
+				memcpy_s(buffer + left_index, sizeof(data[0]) * delta, data + begin1, sizeof(data[0]) * delta);
 				left_index += delta;
 			}
 			delta = end2 - begin2;
 			if (delta > 0) {
-				memcpy_s(buffer + left_index, sizeof(int) * delta, data + begin2, sizeof(int) * delta);
+				memcpy_s(buffer + left_index, sizeof(data[0]) * delta, data + begin2, sizeof(data[0]) * delta);
 			}
-			memcpy_s(data + i, sizeof(int) * gap2, buffer + i, sizeof(int) * gap2);
+			memcpy_s(data + i, sizeof(data[0]) * gap2, buffer + i, sizeof(data[0]) * gap2);
 		}
 		gap = gap2;
 	}

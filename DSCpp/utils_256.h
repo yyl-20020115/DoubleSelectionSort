@@ -65,9 +65,9 @@
 
 #endif
 
-
 __m256i expand_bits_to_bytes(unsigned int x);
 __m256i _mm256i_convert_mask8_to_epi32(__mmask8 m);
 void _mm256_mask_i32scatter_epi32_avx2(void* base_addr, __mmask8 k, __m256i vindex, __m256i a, const int scale);
-void Merge256(int data[], int n);
 
+void Merge256(int data[], int n);
+void Merge256(unsigned int data[], int n);

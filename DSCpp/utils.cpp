@@ -25,7 +25,7 @@ void Merge(int data[], int n, int stride)
 	for (int i = 0; i < stride; i++)
 		merge_indices[i] = i;
 	int* buffer = new int[n];
-	//memset(buffer, 0, n * sizeof(int));
+	//memset(buffer, 0, n * sizeof(data[0]));
 	for (int i = 0; i < n; i++)
 	{
 		int min_value = 0;
@@ -54,7 +54,7 @@ void Merge(int data[], int n, int stride)
 		if (first) break;
 		buffer[i] = min_value;
 	}
-	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
+	memcpy_s(data, n * sizeof(data[0]), buffer, n * sizeof(data[0]));
 	delete[] buffer;
 	delete[] merge_indices;
 }
@@ -66,7 +66,7 @@ void Merge(unsigned int data[], int n, int stride)
 	for (int i = 0; i < stride; i++)
 		merge_indices[i] = i;
 	int* buffer = new int[n];
-	//memset(buffer, 0, n * sizeof(int));
+	//memset(buffer, 0, n * sizeof(data[0]));
 	for (int i = 0; i < n; i++)
 	{
 		unsigned int min_value = 0;
@@ -95,7 +95,7 @@ void Merge(unsigned int data[], int n, int stride)
 		if (first) break;
 		buffer[i] = min_value;
 	}
-	memcpy_s(data, n * sizeof(int), buffer, n * sizeof(int));
+	memcpy_s(data, n * sizeof(data[0]), buffer, n * sizeof(data[0]));
 	delete[] buffer;
 	delete[] merge_indices;
 }

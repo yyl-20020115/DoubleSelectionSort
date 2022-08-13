@@ -75,7 +75,7 @@ bool FastQuickSortV256(int data[], __m256i low, __m256i high)
 		__m256i _stride = _mm256_set1_epi32(stride);
 		__m256i i = low, j = high;
 		//k = data[i]
-		__m256i k = _mm256_i32gather_epi32(data, i, sizeof(int));
+		__m256i k = _mm256_i32gather_epi32(data, i, sizeof(data[0]));
 		//while (i < j)
 		__mmask8 i_j_lt0 = 0;
 		__mmask8 i_j_lt1 = 0;
@@ -93,7 +93,7 @@ bool FastQuickSortV256(int data[], __m256i low, __m256i high)
 			while(true)
 			{
 				i_j_lt1 = _mm256_cmplt_epi32_mask(i, j);
-				data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
+				data_j = _mm256_i32gather_epi32(data, j, sizeof(data[0]));
 				data_j_k_gt = _mm256_cmpgt_epi32_mask(data_j, k);
 				if (i_j_lt1 == 0) break;
 				if (data_j_k_gt == 0) break;
@@ -112,10 +112,10 @@ bool FastQuickSortV256(int data[], __m256i low, __m256i high)
 			{
 				i_j_lt2 = _mm256_cmplt_epi32_mask(i, j);
 				//data[i] = data[j];
-				//data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
-				//data_i = _mm256_i32gather_epi32(data, i, sizeof(int));
+				//data_j = _mm256_i32gather_epi32(data, j, sizeof(data[0]));
+				//data_i = _mm256_i32gather_epi32(data, i, sizeof(data[0]));
 				data_i = _mm256_mask_blend_epi32(i_j_lt0 & i_j_lt2, data_i, data_j);
-				_mm256_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt2, i, data_i, sizeof(int));
+				_mm256_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt2, i, data_i, sizeof(data[0]));
 				//i++;
 				i = _mm256_mask_add_epi32(i, i_j_lt0 & i_j_lt2, i, _stride);
 			}
@@ -124,7 +124,7 @@ bool FastQuickSortV256(int data[], __m256i low, __m256i high)
 			while(true)
 			{
 				i_j_lt3 = _mm256_cmplt_epi32_mask(i, j);
-				data_i = _mm256_i32gather_epi32(data, i, sizeof(int));
+				data_i = _mm256_i32gather_epi32(data, i, sizeof(data[0]));
 				data_i_k_lt = _mm256_cmplt_epi32_mask(data_i, k);
 				
 				if (i_j_lt3 == 0) break;
@@ -145,16 +145,16 @@ bool FastQuickSortV256(int data[], __m256i low, __m256i high)
 			{
 				i_j_lt4 = _mm256_cmplt_epi32_mask(i, j);
 				//data[j] = data[i];
-				//data_i = _mm256_i32gather_epi32(data, i, sizeof(int));
-				//data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
+				//data_i = _mm256_i32gather_epi32(data, i, sizeof(data[0]));
+				//data_j = _mm256_i32gather_epi32(data, j, sizeof(data[0]));
 				data_j = _mm256_mask_blend_epi32(i_j_lt0 & i_j_lt4, data_j, data_i);
-				_mm256_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt4, j, data_j, sizeof(int));
+				_mm256_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt4, j, data_j, sizeof(data[0]));
 				//j--;
 				j = _mm256_mask_sub_epi32(j, i_j_lt0 & i_j_lt4, j, _stride);
 			}
 		}
 		//data[i] = k;
-		_mm256_mask_i32scatter_epi32(data, ~0, i, k, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, ~0, i, k, sizeof(data[0]));
 		//FastQuickSortP256(data, low, i - 1);
 		//FastQuickSortP256(data, i + 1, high);		
 		FastQuickSortV256(data, low, _mm256_sub_epi32(i, _stride));
@@ -252,7 +252,7 @@ bool FastQuickSortV256(unsigned int data[], __m256i low, __m256i high)
 		__m256i _stride = _mm256_set1_epi32(stride);
 		__m256i i = low, j = high;
 		//k = data[i]
-		__m256i k = _mm256_i32gather_epi32((int*)data, i, sizeof(int));
+		__m256i k = _mm256_i32gather_epi32((int*)data, i, sizeof(data[0]));
 		//while (i < j)
 		__mmask8 i_j_lt0 = 0;
 		__mmask8 i_j_lt1 = 0;
@@ -270,7 +270,7 @@ bool FastQuickSortV256(unsigned int data[], __m256i low, __m256i high)
 			while (true)
 			{
 				i_j_lt1 = _mm256_cmplt_epi32_mask(i, j);
-				data_j = _mm256_i32gather_epi32((int*)data, j, sizeof(int));
+				data_j = _mm256_i32gather_epi32((int*)data, j, sizeof(data[0]));
 				data_j_k_gt = _mm256_cmpgt_epi32_mask(data_j, k);
 				if (i_j_lt1 == 0) break;
 				if (data_j_k_gt == 0) break;
@@ -289,10 +289,10 @@ bool FastQuickSortV256(unsigned int data[], __m256i low, __m256i high)
 			{
 				i_j_lt2 = _mm256_cmplt_epi32_mask(i, j);
 				//data[i] = data[j];
-				//data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
-				//data_i = _mm256_i32gather_epi32(data, i, sizeof(int));
+				//data_j = _mm256_i32gather_epi32(data, j, sizeof(data[0]));
+				//data_i = _mm256_i32gather_epi32(data, i, sizeof(data[0]));
 				data_i = _mm256_mask_blend_epi32(i_j_lt0 & i_j_lt2, data_i, data_j);
-				_mm256_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt2, i, data_i, sizeof(int));
+				_mm256_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt2, i, data_i, sizeof(data[0]));
 				//i++;
 				i = _mm256_mask_add_epi32(i, i_j_lt0 & i_j_lt2, i, _stride);
 			}
@@ -301,7 +301,7 @@ bool FastQuickSortV256(unsigned int data[], __m256i low, __m256i high)
 			while (true)
 			{
 				i_j_lt3 = _mm256_cmplt_epi32_mask(i, j);
-				data_i = _mm256_i32gather_epi32((int*)data, i, sizeof(int));
+				data_i = _mm256_i32gather_epi32((int*)data, i, sizeof(data[0]));
 				data_i_k_lt = _mm256_cmplt_epi32_mask(data_i, k);
 
 				if (i_j_lt3 == 0) break;
@@ -322,16 +322,16 @@ bool FastQuickSortV256(unsigned int data[], __m256i low, __m256i high)
 			{
 				i_j_lt4 = _mm256_cmplt_epi32_mask(i, j);
 				//data[j] = data[i];
-				//data_i = _mm256_i32gather_epi32(data, i, sizeof(int));
-				//data_j = _mm256_i32gather_epi32(data, j, sizeof(int));
+				//data_i = _mm256_i32gather_epi32(data, i, sizeof(data[0]));
+				//data_j = _mm256_i32gather_epi32(data, j, sizeof(data[0]));
 				data_j = _mm256_mask_blend_epi32(i_j_lt0 & i_j_lt4, data_j, data_i);
-				_mm256_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt4, j, data_j, sizeof(int));
+				_mm256_mask_i32scatter_epi32(data, i_j_lt0 & i_j_lt4, j, data_j, sizeof(data[0]));
 				//j--;
 				j = _mm256_mask_sub_epi32(j, i_j_lt0 & i_j_lt4, j, _stride);
 			}
 		}
 		//data[i] = k;
-		_mm256_mask_i32scatter_epi32(data, ~0, i, k, sizeof(int));
+		_mm256_mask_i32scatter_epi32(data, ~0, i, k, sizeof(data[0]));
 		//FastQuickSortP256(data, low, i - 1);
 		//FastQuickSortP256(data, i + 1, high);		
 		FastQuickSortV256(data, low, _mm256_sub_epi32(i, _stride));
