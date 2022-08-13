@@ -22,7 +22,7 @@ bool FastInsertionSort256(int data[], int n) {
 			j -= stride;
 		} while (j > 0);
 	}
-	Merge(data, n, stride);
+	Merge256(data, n);
 	return true;
 }
 bool FastInsertionSort256(unsigned int data[], int n) {
@@ -45,6 +45,6 @@ bool FastInsertionSort256(unsigned int data[], int n) {
 			j -= stride;
 		} while (j > 0);
 	}
-	Merge(data, n, stride);
+	Merge256(data, n);
 	return true;
 }

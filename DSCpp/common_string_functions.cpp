@@ -71,11 +71,11 @@ int SimpleSearch(const wchar_t* s, const wchar_t* cs, size_t haystack_length, si
 
 }
 
-void KMPBuildNext(char* str, int* next, int len)
+void KMPBuildNext(char* str, int* next, size_t len)
 {
 	next[0] = -1;//next[0]初始化为-1，-1表示不存在相同的最大前缀和最大后缀
 	int k = -1;//k初始化为-1
-	for (int q = 1; q <= len - 1; q++)
+	for (size_t q = 1; q <= len - 1; q++)
 	{
 		while (k > -1 && str[k + 1] != str[q])//如果下一个不同，那么k就变成next[k]，注意next[k]是小于k的，无论k取任何值。
 		{
@@ -104,7 +104,7 @@ int KMPSearch(char* str, size_t slen, char* ptr, size_t plen)
 			//cout << "在位置" << i-plen+1<< endl;
 			//k = -1;//重新初始化，寻找下一个
 			//i = i - plen + 1;//i定位到该位置，外层for循环i++可以继续找下一个（这里默认存在两个匹配字符串可以部分重叠），感谢评论中同学指出错误。
-			return i - plen + 1;//返回相应的位置
+			return (int)(i - plen + 1);//返回相应的位置
 		}
 	}
 	return -1;
@@ -113,11 +113,11 @@ int KMPSearch(char* str, char* ptr) {
 	return KMPSearch(str, strlen(str), ptr, strlen(ptr));
 }
 
-void KMPBuildNext(wchar_t* str, int* next, int len)
+void KMPBuildNext(wchar_t* str, int* next, size_t len)
 {
 	next[0] = -1;//next[0]初始化为-1，-1表示不存在相同的最大前缀和最大后缀
 	int k = -1;//k初始化为-1
-	for (int q = 1; q <= len - 1; q++)
+	for (size_t q = 1; q <= len - 1; q++)
 	{
 		while (k > -1 && str[k + 1] != str[q])//如果下一个不同，那么k就变成next[k]，注意next[k]是小于k的，无论k取任何值。
 		{
@@ -146,7 +146,7 @@ int KMPSearch(wchar_t* str, size_t slen, wchar_t* ptr, size_t plen)
 			//cout << "在位置" << i-plen+1<< endl;
 			//k = -1;//重新初始化，寻找下一个
 			//i = i - plen + 1;//i定位到该位置，外层for循环i++可以继续找下一个（这里默认存在两个匹配字符串可以部分重叠），感谢评论中同学指出错误。
-			return i - plen + 1;//返回相应的位置
+			return (int)(i - plen + 1);//返回相应的位置
 		}
 	}
 	return -1;

@@ -177,7 +177,7 @@ bool FastQuickSortV512(int data[], int n)
 
 	if (FastQuickSortV512(data, low, high))
 	{
-		Merge(data, n, stride);
+		Merge512(data, n);
 		return true;
 	}
 	return false;
@@ -358,7 +358,7 @@ bool FastQuickSortV512(unsigned int data[], int n)
 
 	if (FastQuickSortV512(data, low, high))
 	{
-		Merge(data, n, stride);
+		Merge512(data, n);
 		return true;
 	}
 	return false;

@@ -22,7 +22,7 @@ bool FastInsertionSort512(int data[], int n) {
 			j -= stride;
 		} while (j > 0);
 	}
-	Merge(data, n, stride);
+	Merge512(data, n);
 	return true;
 }
 bool FastInsertionSort512(unsigned int data[], int n) {
@@ -45,6 +45,6 @@ bool FastInsertionSort512(unsigned int data[], int n) {
 			j -= stride;
 		} while (j > 0);
 	}
-	Merge(data, n, stride);
+	Merge512(data, n);
 	return true;
 }

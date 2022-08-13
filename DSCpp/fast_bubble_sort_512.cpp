@@ -27,7 +27,7 @@ bool FastBubbleSort512(int data[], int n) {
 		}
 		if (!swapped)break;
 	}
-	Merge(data, n, stride);
+	Merge512(data, n);
 	return true;
 }
 bool FastBubbleSort512(unsigned int data[], int n) {
@@ -55,6 +55,6 @@ bool FastBubbleSort512(unsigned int data[], int n) {
 		}
 		if (!swapped)break;
 	}
-	Merge(data, n, stride);
+	Merge512(data, n);
 	return true;
 }

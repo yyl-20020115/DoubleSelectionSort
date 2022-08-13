@@ -39,7 +39,7 @@ bool FastSingleSelectionSort256(int data[], int n) {
 		}
 	}
 
-	Merge(data, n, stride);
+	Merge256(data, n);
 
 	return true;
 }
@@ -82,7 +82,7 @@ bool FastSingleSelectionSort256(unsigned int data[], int n) {
 		}
 	}
 
-	Merge(data, n, stride);
+	Merge256(data, n);
 
 	return true;
 }

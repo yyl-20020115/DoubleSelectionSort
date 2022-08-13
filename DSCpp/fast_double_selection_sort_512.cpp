@@ -77,7 +77,7 @@ bool FastDoubleSelectionSort512(int data[], int n)
 		staIndex = _mm512_mask_add_epi32(staIndex, lt, staIndex, _mm512_set1_epi32(stride));
 		endIndex = _mm512_mask_sub_epi32(endIndex, lt, endIndex, _mm512_set1_epi32(stride));
 	}
-	Merge(data, n, stride);
+	Merge512(data, n);
 	return true;
 }
 bool FastDoubleSelectionSort512(unsigned int data[], int n)
@@ -156,6 +156,6 @@ bool FastDoubleSelectionSort512(unsigned int data[], int n)
 		staIndex = _mm512_mask_add_epi32(staIndex, lt, staIndex, _mm512_set1_epi32(stride));
 		endIndex = _mm512_mask_sub_epi32(endIndex, lt, endIndex, _mm512_set1_epi32(stride));
 	}
-	Merge(data, n, stride);
+	Merge512(data, n);
 	return true;
 }

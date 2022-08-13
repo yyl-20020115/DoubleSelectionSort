@@ -105,7 +105,7 @@ bool FastHeapSort512(int data[], int n)
 		HeapAdjust512(data, 0, i, true);
 	}
 
-	Merge(data, n, stride);
+	Merge512(data, n);
 
 	return true;
 }
@@ -212,7 +212,7 @@ bool FastHeapSort512(unsigned int data[], int n)
 		HeapAdjust512(data, 0, i, true);
 	}
 
-	Merge(data, n, stride);
+	Merge512(data, n);
 
 	return true;
 }

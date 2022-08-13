@@ -26,7 +26,7 @@ bool FastBubbleSort256(int data[], int n) {
 		}
 		if (!swapped)break;
 	}
-	Merge(data, n, stride);
+	Merge256(data, n);
 	return true;
 }
 bool FastBubbleSort256(unsigned int data[], int n) {
@@ -54,6 +54,6 @@ bool FastBubbleSort256(unsigned int data[], int n) {
 		}
 		if (!swapped)break;
 	}
-	Merge(data, n, stride);
+	Merge256(data, n);
 	return true;
 }

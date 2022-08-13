@@ -352,7 +352,7 @@ bool FastQuickSortV256(unsigned int data[], int n)
 
 	if (FastQuickSortV256(data, low, high))
 	{
-		Merge(data, n, stride);
+		Merge256(data, n);
 		return true;
 	}
 	return false;

@@ -44,7 +44,7 @@ bool FastSingleSelectionSort512(int data[], int n) {
 			Swap(data, i + idx, tp);
 		}
 	}
-	Merge(data, n, stride);
+	Merge512(data, n);
 
 	return true;
 }
@@ -90,7 +90,7 @@ bool FastSingleSelectionSort512(unsigned int data[], int n) {
 			Swap(data, i + idx, tp);
 		}
 	}
-	Merge(data, n, stride);
+	Merge512(data, n);
 
 	return true;
 }

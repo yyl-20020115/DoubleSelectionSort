@@ -75,7 +75,7 @@ bool FastDoubleSelectionSort256(int data[], int n)
 		staIndex = _mm256_mask_add_epi32(staIndex, lt, staIndex, _mm256_set1_epi32(stride));
 		endIndex = _mm256_mask_sub_epi32(endIndex, lt, endIndex, _mm256_set1_epi32(stride));
 	}
-	Merge(data, n, stride);
+	Merge256(data, n);
 	return true;
 }
 bool FastDoubleSelectionSort256(unsigned int data[], int n)
@@ -152,6 +152,6 @@ bool FastDoubleSelectionSort256(unsigned int data[], int n)
 		staIndex = _mm256_mask_add_epi32(staIndex, lt, staIndex, _mm256_set1_epi32(stride));
 		endIndex = _mm256_mask_sub_epi32(endIndex, lt, endIndex, _mm256_set1_epi32(stride));
 	}
-	Merge(data, n, stride);
+	Merge256(data, n);
 	return true;
 }

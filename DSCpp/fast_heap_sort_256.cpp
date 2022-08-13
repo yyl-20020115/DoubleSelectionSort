@@ -102,7 +102,7 @@ bool FastHeapSort256(int data[], int n)
 		HeapAdjust256(data, 0, i, true);
 	}
 
-	Merge(data, n, stride);
+	Merge256(data, n);
 
 	return true;
 }
@@ -207,7 +207,7 @@ bool FastHeapSort256(unsigned int data[], int n)
 		HeapAdjust256(data, 0, i, true);
 	}
 
-	Merge(data, n, stride);
+	Merge256(data, n);
 
 	return true;
 }
