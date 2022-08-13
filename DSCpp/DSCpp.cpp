@@ -7,7 +7,7 @@
 #include "fast_sort_512.h"
 #include "string_functions_256.h"
 
-const int DATA_SIZE =  65536;// *16 * 16;
+const int DATA_SIZE =  4096;// *16 * 16;
 const bool use_random = true;
 const bool show = false;
 const bool allow_common = true;
@@ -231,6 +231,7 @@ int main()
 		if (!c) {
 			for (int i = 0; i < DATA_SIZE; i++) {
 				printf("%d ", data26[i]);
+				if (data0[i] != data26[i]) printf("x ");
 			}
 		}
 		printf("\n\n");
